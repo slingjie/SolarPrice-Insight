@@ -1,0 +1,7 @@
+{
+  "name": "SolarPrice Insight",
+  "description": "专业的分布式光伏电价分析工具。支持 AI 智能识别电价表、分时时段配置库、年度电价趋势分析及分时曲线可视化。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
