@@ -12,7 +12,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs, onImportTariffs, onImportConfigs }) => {
-  const [apiKey] = useState(process.env.API_KEY || '');
+  const [apiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +24,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
       tariffs,
       timeConfigs
     };
-    
+
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -45,7 +45,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        
+
         // 简单验证格式
         if (!json.tariffs || !json.timeConfigs) {
           throw new Error("无效的备份文件格式。");
@@ -67,7 +67,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
       <h2 className="text-2xl font-bold text-slate-900">系统设置 (Settings)</h2>
-      
+
       {/* Privacy Card */}
       <Card className="p-6">
         <div className="flex items-start gap-4 mb-6">
@@ -85,13 +85,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                <Key size={14} className="text-blue-500"/> Google Gemini API Key
+              <Key size={14} className="text-blue-500" /> Google Gemini API Key
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               value={apiKey}
               readOnly
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-slate-500 focus:outline-none cursor-not-allowed font-mono" 
+              className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-slate-500 focus:outline-none cursor-not-allowed font-mono"
             />
             <p className="text-[10px] text-slate-400 mt-2">
               当前应用使用系统注入的 API Key。如果您在本地开发，请在环境变量中设置 API_KEY。
@@ -116,12 +116,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
 
         {importError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-xs flex items-center gap-2">
-            <AlertCircle size={14}/> {importError}
+            <AlertCircle size={14} /> {importError}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <button 
+          <button
             onClick={handleExport}
             className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
           >
@@ -130,7 +130,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <span className="text-[10px] text-slate-400 mt-1">下载 JSON 文件</span>
           </button>
 
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-green-500 hover:bg-green-50 transition-all group"
           >
@@ -139,33 +139,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <span className="text-[10px] text-slate-400 mt-1">上传 JSON 文件</span>
           </button>
         </div>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleImport} 
-          accept=".json" 
-          className="hidden" 
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImport}
+          accept=".json"
+          className="hidden"
         />
       </Card>
 
       {/* Model Strategy Card */}
       <Card className="p-6">
-          <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-              <FileJson size={14} className="text-blue-500"/> AI 模型配置
-          </h4>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 border-2 border-blue-500 bg-blue-50/50 rounded-xl p-4 relative">
-              <div className="absolute top-3 right-3 text-blue-600"><CheckCircle2 size={16} /></div>
-              <div className="font-bold text-blue-900 text-sm mb-1">Gemini 3 Flash</div>
-              <div className="text-[10px] text-blue-600 font-medium">响应极速 · 视觉识别优化</div>
-            </div>
-            <div className="flex-1 border border-slate-200 rounded-xl p-4 opacity-50 cursor-not-allowed">
-              <div className="font-bold text-slate-700 text-sm mb-1">Gemini 3 Pro</div>
-              <div className="text-[10px] text-slate-500">超强推理 · 暂未启用</div>
-            </div>
+        <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <FileJson size={14} className="text-blue-500" /> AI 模型配置
+        </h4>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 border-2 border-blue-500 bg-blue-50/50 rounded-xl p-4 relative">
+            <div className="absolute top-3 right-3 text-blue-600"><CheckCircle2 size={16} /></div>
+            <div className="font-bold text-blue-900 text-sm mb-1">Gemini 3 Flash</div>
+            <div className="text-[10px] text-blue-600 font-medium">响应极速 · 视觉识别优化</div>
           </div>
+          <div className="flex-1 border border-slate-200 rounded-xl p-4 opacity-50 cursor-not-allowed">
+            <div className="font-bold text-slate-700 text-sm mb-1">Gemini 3 Pro</div>
+            <div className="text-[10px] text-slate-500">超强推理 · 暂未启用</div>
+          </div>
+        </div>
       </Card>
-      
+
       <div className="text-center text-[10px] text-slate-300">
         SolarPrice Insight v1.2 · Serverless Web App · Local-First Storage
       </div>

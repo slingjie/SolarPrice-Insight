@@ -8,8 +8,8 @@ export interface ImageSource {
 }
 
 export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRResultItem[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+
   const prompt = `你是一个专业的电力账单分析助手。请从这些电价表图片（可能是一张或多张连续的页面）中提取价格矩阵。
   提取内容必须包含：用电分类（category，如：大工业、一般工商业）、电压等级（voltage，如：1-10kV、35kV）、以及分时电价（prices，包含tip、peak、flat、valley）。
   请确保价格是纯数字。如果图片中没有某项价格，请填入0。
@@ -59,7 +59,7 @@ export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRR
 
     const jsonText = response.text;
     if (!jsonText) throw new Error("AI 未返回有效数据");
-    
+
     const results = JSON.parse(jsonText) as any[];
     return results.map(item => ({
       ...item,
