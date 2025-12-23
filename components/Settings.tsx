@@ -77,7 +77,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
           <div>
             <h3 className="text-lg font-bold text-slate-800">隐私与策略</h3>
             <p className="text-slate-500 text-sm mt-1">
-              我们遵循 "BYOK" (Bring Your Own Key) 模式。您的数据存储在浏览器本地存储（LocalStorage）中。
+              我们遵循 "BYOK" (Bring Your Own Key) 模式。您的数据安全地存储在浏览器本地数据库（RxDB/IndexedDB）中。
             </p>
           </div>
         </div>
@@ -109,7 +109,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
           <div>
             <h3 className="text-lg font-bold text-slate-800">数据管理</h3>
             <p className="text-slate-500 text-sm mt-1">
-              备份或恢复您的电价数据库。建议定期导出以防浏览器清理缓存导致数据丢失。
+              备份或恢复您的电价数据库。当前已升级至 RxDB 架构，支持海量数据存储与后续云端同步。
             </p>
           </div>
         </div>
@@ -167,7 +167,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
       </Card>
 
       <div className="text-center text-[10px] text-slate-300">
-        SolarPrice Insight v1.2 · Serverless Web App · Local-First Storage
+        SolarPrice Insight v2.0 · Local-First Database (RxDB) · Prepared for Supabase
       </div>
     </div>
   );
