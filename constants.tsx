@@ -1,8 +1,9 @@
 
 import React from 'react';
+import { TimeConfig } from './types';
 
 export const PROVINCES = [
-  "江苏省", "浙江省", "广东省", "山东省", "河南省", 
+  "江苏省", "浙江省", "广东省", "山东省", "河南省",
   "安徽省", "河北省", "湖南省", "湖北省", "上海市", "北京市"
 ];
 
@@ -22,7 +23,7 @@ export const getTypeLabel = (type: string) => {
   return map[type] || type;
 };
 
-export const DEFAULT_TIME_CONFIGS = [
+export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
   {
     id: 'tc-js-winter',
     province: '江苏省',
