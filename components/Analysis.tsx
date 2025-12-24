@@ -141,12 +141,17 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
                     data={(() => {
-                      const data = [];
+                      const data: any[] = [];
                       const tariff = selectedTariff;
+                      let lastType: string | null = null;
+                      let lastPrice: number = 0;
+
                       for (let h = 0; h < 24; h++) {
                         for (let m = 0; m < 60; m += 30) {
                           const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                           const hourDecimal = h + m / 60;
+
+                          // Find active rule
                           const rule = tariff.time_rules.find(r => {
                             const p = r.start.split(':');
                             const ep = r.end.split(':');
@@ -155,27 +160,69 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
                             if (endH === 0 && r.end.startsWith('24')) endH = 24;
                             return hourDecimal >= startH && hourDecimal < endH;
                           });
+
                           const type = rule ? rule.type : 'flat';
                           const price = tariff.prices[type as keyof PriceSchema] || 0;
-                          data.push({ time: timeStr, price, type });
+
+                          const entry: any = { time: timeStr, price }; // keep 'price' for tooltip common usage if needed
+
+                          // Assign current price to current type
+                          entry[type] = price;
+
+                          // Handle continuity: if type changed, ensure previous type has a value at this transition point
+                          if (lastType && lastType !== type) {
+                            entry[lastType] = lastPrice;
+                          }
+
+                          data.push(entry);
+                          lastType = type;
+                          lastPrice = price;
                         }
                       }
-                      data.push({ time: "24:00", price: data[data.length - 1].price, type: data[data.length - 1].type });
+
+                      // Add final point (24:00)
+                      // The final point should just close the last active type
+                      if (data.length > 0) {
+                        const lastEntry = data[data.length - 1];
+                        const entry24: any = { time: "24:00", price: lastEntry.price };
+                        if (lastType) {
+                          entry24[lastType] = lastPrice;
+                        }
+                        data.push(entry24);
+                      }
+
                       return data;
                     })()}
                     margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorPriceDaily" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
+                      {['tip', 'peak', 'flat', 'valley', 'deep'].map(type => (
+                        <linearGradient key={type} id={`color-${type}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={getTypeColor(type)} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={getTypeColor(type)} stopOpacity={0} />
+                        </linearGradient>
+                      ))}
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="time" interval={11} stroke="#94a3b8" fontSize={10} />
                     <YAxis stroke="#94a3b8" fontSize={10} domain={[0, 'auto']} />
-                    <Tooltip formatter={(value: number) => value.toFixed(4)} labelStyle={{ color: '#64748b' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                    <Area type="stepAfter" dataKey="price" stroke="#3b82f6" strokeWidth={3} fill="url(#colorPriceDaily)" animationDuration={1000} />
+                    <Tooltip
+                      formatter={(value: number) => value.toFixed(4)}
+                      labelStyle={{ color: '#64748b' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    {['tip', 'peak', 'flat', 'valley', 'deep'].map(type => (
+                      <Area
+                        key={type}
+                        type="stepAfter"
+                        dataKey={type}
+                        stroke={getTypeColor(type)}
+                        strokeWidth={3}
+                        fill={`url(#color-${type})`}
+                        animationDuration={1000}
+                        connectNulls={false}
+                      />
+                    ))}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -186,7 +233,7 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
             )}
           </Card>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
