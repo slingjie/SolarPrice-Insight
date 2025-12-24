@@ -10,11 +10,17 @@ interface DashboardProps {
   tariffs: TariffData[];
   onOpenAnalysis: (tariff: TariffData) => void;
   onNavigate: (view: any) => void;
+  viewMode: 'map' | 'list';
+  onViewModeChange: (mode: 'map' | 'list') => void;
+  selectedProvinces: string[];
+  onSelectedProvincesChange: (provinces: string[]) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ tariffs, onOpenAnalysis, onNavigate }) => {
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-  const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
+export const Dashboard: React.FC<DashboardProps> = ({
+  tariffs, onOpenAnalysis, onNavigate,
+  viewMode, onViewModeChange,
+  selectedProvinces, onSelectedProvincesChange
+}) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVoltages, setSelectedVoltages] = useState<string[]>([]);
   const [filterMonth, setFilterMonth] = useState('');
@@ -40,13 +46,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ tariffs, onOpenAnalysis, o
   };
 
   const handleProvinceSelect = (province: string) => {
-    setSelectedProvinces([province]);
-    setViewMode('list');
+    onSelectedProvincesChange([province]);
+    onViewModeChange('list');
   };
 
   const handleBackToMap = () => {
-    setSelectedProvinces([]);
-    setViewMode('map');
+    onSelectedProvincesChange([]);
+    onViewModeChange('map');
   };
 
   const toggleSelection = (item: string, currentSelections: string[], setSelections: (vals: string[]) => void) => {

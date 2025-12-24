@@ -17,6 +17,8 @@ const App: React.FC = () => {
   const [timeConfigs, setTimeConfigs] = useState<TimeConfig[]>(DEFAULT_TIME_CONFIGS);
   const [analysisTarget, setAnalysisTarget] = useState<{ province: string, category: string, voltage: string } | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [dashboardViewMode, setDashboardViewMode] = useState<'map' | 'list'>('map');
+  const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
 
   // 初始化数据库并建立订阅
   useEffect(() => {
@@ -127,6 +129,10 @@ const App: React.FC = () => {
               tariffs={tariffs}
               onOpenAnalysis={openAnalysis}
               onNavigate={setView}
+              viewMode={dashboardViewMode}
+              onViewModeChange={setDashboardViewMode}
+              selectedProvinces={selectedProvinces}
+              onSelectedProvincesChange={setSelectedProvinces}
             />
           )}
           {view === 'config' && (
