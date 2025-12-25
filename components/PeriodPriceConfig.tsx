@@ -5,6 +5,9 @@ import { PeriodPrice } from '../types';
 import { Card, Toast } from './UI';
 import { getDatabase } from '../services/db';
 
+// Default user ID for local-first application
+const DEFAULT_USER_ID = 1;
+
 interface PeriodPriceEntry {
   period_start: string;
   period_end: string;
@@ -37,7 +40,7 @@ export const PeriodPriceConfig: React.FC = () => {
         .find({
           selector: {
             date: selectedDate,
-            user_id: 1 // Default user_id for local-first app
+            user_id: DEFAULT_USER_ID
           },
           sort: [{ period_start: 'asc' }]
         })
@@ -144,7 +147,7 @@ export const PeriodPriceConfig: React.FC = () => {
         .find({
           selector: {
             date: selectedDate,
-            user_id: 1
+            user_id: DEFAULT_USER_ID
           }
         })
         .exec();
@@ -156,7 +159,7 @@ export const PeriodPriceConfig: React.FC = () => {
       // Insert new periods
       const newPeriodPrices: PeriodPrice[] = periods.map((p, idx) => ({
         id: crypto.randomUUID(),
-        user_id: 1,
+        user_id: DEFAULT_USER_ID,
         date: selectedDate,
         period_start: p.period_start,
         period_end: p.period_end,

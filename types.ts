@@ -51,7 +51,7 @@ export interface PeriodPrice {
   period_start: string; // HH:mm format
   period_end: string; // HH:mm format
   price: number;
-  created_at: string;
+  created_at: string; // ISO 8601 date-time format
 }
 
 export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'period_price';
