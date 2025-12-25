@@ -7,7 +7,6 @@ import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
 import { AnalysisView } from './components/Analysis';
 import { SettingsView } from './components/Settings';
-import { PeriodPriceConfig } from './components/PeriodPriceConfig';
 import { AppView, TariffData, TimeConfig } from './types';
 import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
 import { getDatabase } from './services/db';
@@ -173,9 +172,6 @@ const App: React.FC = () => {
               onImportTariffs={handleUpdateTariffs}
               onImportConfigs={handleUpdateTimeConfigs}
             />
-          )}
-          {view === 'period_price' && (
-            <PeriodPriceConfig />
           )}
         </div>
       </main>

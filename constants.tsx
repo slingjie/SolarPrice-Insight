@@ -2,9 +2,6 @@
 import React from 'react';
 import { TimeConfig } from './types';
 
-// Default user ID for local-first application (single-user mode)
-export const DEFAULT_USER_ID = 1;
-
 export const PROVINCES = [
   "江苏省", "浙江省", "广东省", "山东省", "河南省",
   "安徽省", "河北省", "湖南省", "湖北省", "上海市", "北京市"
