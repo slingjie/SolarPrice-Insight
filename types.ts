@@ -44,4 +44,14 @@ export interface OCRResultItem {
   prices: PriceSchema;
 }
 
-export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis';
+export interface PeriodPrice {
+  id: string;
+  user_id: number;
+  date: string; // YYYY-MM-DD format
+  period_start: string; // HH:mm format
+  period_end: string; // HH:mm format
+  price: number;
+  created_at: string;
+}
+
+export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'period_price';

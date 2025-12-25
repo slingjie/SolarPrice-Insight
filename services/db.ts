@@ -11,7 +11,7 @@ import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
-import { TariffData, TimeConfig } from '../types';
+import { TariffData, TimeConfig, PeriodPrice } from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -87,12 +87,32 @@ const timeConfigSchema = {
     required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at']
 };
 
+// 定义 PeriodPrice Schema
+const periodPriceSchema = {
+    title: 'period price schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        user_id: { type: 'number' },
+        date: { type: 'string' },
+        period_start: { type: 'string' },
+        period_end: { type: 'string' },
+        price: { type: 'number' },
+        created_at: { type: 'string', format: 'date-time' }
+    },
+    required: ['id', 'user_id', 'date', 'period_start', 'period_end', 'price', 'created_at']
+};
+
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
+type PeriodPriceCollection = RxCollection<PeriodPrice>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
     time_configs: TimeConfigCollection;
+    period_prices: PeriodPriceCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -114,6 +134,9 @@ const createDatabase = async () => {
             },
             time_configs: {
                 schema: timeConfigSchema
+            },
+            period_prices: {
+                schema: periodPriceSchema
             }
         });
 
