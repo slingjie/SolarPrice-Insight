@@ -96,9 +96,9 @@ const periodPriceSchema = {
     properties: {
         id: { type: 'string', maxLength: 100 },
         user_id: { type: 'number' },
-        date: { type: 'string' },
-        period_start: { type: 'string' },
-        period_end: { type: 'string' },
+        date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' }, // YYYY-MM-DD format
+        period_start: { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' }, // HH:mm format
+        period_end: { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' }, // HH:mm format
         price: { type: 'number' },
         created_at: { type: 'string', format: 'date-time' }
     },

@@ -4,9 +4,7 @@ import { Plus, Save, Trash2, Clock, Calendar, AlertCircle } from 'lucide-react';
 import { PeriodPrice } from '../types';
 import { Card, Toast } from './UI';
 import { getDatabase } from '../services/db';
-
-// Default user ID for local-first application
-const DEFAULT_USER_ID = 1;
+import { DEFAULT_USER_ID } from '../constants';
 
 interface PeriodPriceEntry {
   period_start: string;
@@ -71,8 +69,8 @@ export const PeriodPriceConfig: React.FC = () => {
     const newStartMin = timeToMinutes(newStart);
     let newEndMin = timeToMinutes(newEnd);
     
-    // Handle end time at midnight (24:00 = 00:00 next day)
-    if (newEndMin === 0 || newEnd === '24:00') {
+    // Handle end time at midnight (00:00 represents end of day)
+    if (newEndMin === 0) {
       newEndMin = 24 * 60;
     }
     
@@ -157,7 +155,7 @@ export const PeriodPriceConfig: React.FC = () => {
       }
 
       // Insert new periods
-      const newPeriodPrices: PeriodPrice[] = periods.map((p, idx) => ({
+      const newPeriodPrices: PeriodPrice[] = periods.map(p => ({
         id: crypto.randomUUID(),
         user_id: DEFAULT_USER_ID,
         date: selectedDate,
