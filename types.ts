@@ -29,10 +29,10 @@ export interface TariffData {
   province: string;
   city: string | null;
   month: string; // YYYY-MM
-  category: string; 
+  category: string;
   voltage_level: string;
   prices: PriceSchema;
-  time_rules: TimeRule[]; 
+  time_rules: TimeRule[];
   currency_unit: string;
   source_config_id?: string;
 }
@@ -44,4 +44,12 @@ export interface OCRResultItem {
   prices: PriceSchema;
 }
 
-export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis';
+export interface SavedTimeRange {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  created_at: string;
+}
+
+export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'database';

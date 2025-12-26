@@ -5,6 +5,8 @@ import { Dashboard } from './components/Dashboard';
 import { TimeConfigView } from './components/TimeConfig';
 import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
+import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
+import { PriceDatabase } from './components/PriceDatabase';
 import { AnalysisView } from './components/Analysis';
 import { SettingsView } from './components/Settings';
 import { AppView, TariffData, TimeConfig } from './types';
@@ -155,6 +157,18 @@ const App: React.FC = () => {
               tariffs={tariffs}
               onSave={handleUpdateTariffs}
               onNavigate={setView}
+            />
+          )}
+          {view === 'database' && (
+            <PriceDatabase
+              tariffs={tariffs}
+              onUpdateTariffs={handleUpdateTariffs}
+              onBack={() => setView('manual')}
+            />
+          )}
+          {view === 'calculator' && (
+            <ComprehensivePriceCalculator
+              onBack={() => setView('dashboard')}
             />
           )}
           {view === 'analysis' && analysisTarget && (

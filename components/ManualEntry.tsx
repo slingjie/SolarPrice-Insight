@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Save, ArrowLeft, Info, Database, MapPin, Calendar, Layers, Zap, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { Save, Info, Database, MapPin, Calendar, Layers, Zap, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { read, utils, write } from 'xlsx';
 import { TimeConfig, TariffData, PriceSchema, TimeRule, TimeType } from '../types';
 import { PROVINCES } from '../constants.tsx';
@@ -231,9 +231,7 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
     <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-right-6 duration-500 pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
-            <ArrowLeft size={20} />
-          </button>
+
           <h2 className="text-2xl font-bold text-slate-900">手动配置电价</h2>
         </div>
         <div className="flex gap-3">
@@ -255,6 +253,12 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
             className="bg-white border text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-sm"
           >
             <Upload size={16} /> 批量导入
+          </button>
+          <button
+            onClick={() => onNavigate('database')}
+            className="bg-white border text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-sm"
+          >
+            <Database size={16} /> 数据库管理
           </button>
           <button
             onClick={handleSave}

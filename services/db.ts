@@ -87,12 +87,36 @@ const timeConfigSchema = {
     required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at']
 };
 
+// 定义 SavedTimeRange Schema
+const savedTimeRangeSchema = {
+    title: 'saved time range schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        name: { type: 'string' },
+        startTime: { type: 'string' },
+        endTime: { type: 'string' },
+        created_at: { type: 'string', format: 'date-time' }
+    },
+    required: ['id', 'name', 'startTime', 'endTime', 'created_at']
+};
+
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
+type SavedTimeRangeCollection = RxCollection<{
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    created_at: string;
+}>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
     time_configs: TimeConfigCollection;
+    saved_time_ranges: SavedTimeRangeCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -114,6 +138,9 @@ const createDatabase = async () => {
             },
             time_configs: {
                 schema: timeConfigSchema
+            },
+            saved_time_ranges: {
+                schema: savedTimeRangeSchema
             }
         });
 

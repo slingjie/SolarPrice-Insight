@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, RotateCcw, Filter, ChevronRight, Search, FileEdit, Map, ArrowLeft } from 'lucide-react';
 import { TariffData } from '../types';
-import { PROVINCES, getTypeColor } from '../constants.tsx';
+import { PROVINCES, getTypeColor } from '../constants';
 import { Card } from './UI';
 import { ChinaMap } from './ChinaMap';
 
@@ -38,6 +38,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return matchProvince && matchCategory && matchVoltage && matchMonth;
     });
   }, [tariffs, selectedProvinces, selectedCategories, selectedVoltages, filterMonth]);
+
+  const provinceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    tariffs.forEach(t => {
+      counts[t.province] = (counts[t.province] || 0) + 1;
+    });
+    return counts;
+  }, [tariffs]);
 
   const resetFilters = () => {
     setSelectedCategories([]);
@@ -110,7 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {viewMode === 'map' ? '数据地图概览' : `${selectedProvinces.length > 0 ? selectedProvinces.join('、') : '全部'}电价数据详情`}
             </h2>
             <p className="text-slate-500 text-sm">
-              {viewMode === 'map' ? '点击省份查看详细数据' : `已筛选 ${filteredTariffs.length} 条数据`}
+              {viewMode === 'map' ? '点击省份查看详细数据，颜色越深代表数据越多' : `已筛选 ${filteredTariffs.length} 条数据`}
             </p>
           </div>
         </div>
@@ -126,7 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {viewMode === 'map' ? (
         <ChinaMap
-          dataProvinces={uniqueProvinces}
+          dataCounts={provinceCounts}
           onProvinceSelect={handleProvinceSelect}
         />
       ) : (

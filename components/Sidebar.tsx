@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit } from 'lucide-react';
+import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit, Calculator } from 'lucide-react';
 import { AppView } from '../types';
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'config', label: '时段配置库', icon: Library },
     { id: 'upload', label: '智能录入', icon: Zap },
     { id: 'manual', label: '手动录入', icon: FileEdit },
+    { id: 'calculator', label: '综合电价', icon: Calculator },
     { id: 'settings', label: '系统设置', icon: Settings },
   ];
 
@@ -33,9 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
           <button
             key={item.id}
             onClick={() => onNavigate(item.id as AppView)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              currentView === item.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-50'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === item.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-50'
+              }`}
           >
             <item.icon size={20} />
             <span className="hidden lg:block">{item.label}</span>
