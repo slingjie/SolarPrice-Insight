@@ -1,10 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
-import { Plus, RotateCcw, Filter, ChevronRight, Search, FileEdit, Map, ArrowLeft } from 'lucide-react';
-import { TariffData } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, RotateCcw, Filter, ChevronRight, Search, FileEdit, Map, ArrowLeft, Zap } from 'lucide-react';
+import { TariffData, ComprehensiveResult } from '../types';
 import { PROVINCES, getTypeColor } from '../constants';
 import { Card } from './UI';
 import { ChinaMap } from './ChinaMap';
+import { getDatabase } from '../services/db';
+
 
 interface DashboardProps {
   tariffs: TariffData[];
@@ -24,6 +26,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVoltages, setSelectedVoltages] = useState<string[]>([]);
   const [filterMonth, setFilterMonth] = useState('');
+  const [compResults, setCompResults] = useState<Record<string, ComprehensiveResult>>({});
+
+
+
+
+  useEffect(() => {
+    const fetchCompResults = async () => {
+      try {
+        const db = await getDatabase();
+        const results = await db.comprehensive_results.find().exec();
+        const mapping: Record<string, ComprehensiveResult> = {};
+        results.forEach(r => {
+          mapping[r.province] = r.toJSON();
+        });
+        setCompResults(mapping);
+      } catch (err) {
+        console.error("Failed to fetch comprehensive results:", err);
+      }
+    };
+    fetchCompResults();
+  }, [viewMode]);
+
 
   const uniqueProvinces = useMemo(() => Array.from(new Set(tariffs.map(t => t.province))).sort(), [tariffs]);
   const uniqueCategories = useMemo(() => Array.from(new Set(tariffs.map(t => t.category))).filter(Boolean).sort(), [tariffs]);
@@ -133,10 +157,67 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {viewMode === 'map' ? (
-        <ChinaMap
-          dataCounts={provinceCounts}
-          onProvinceSelect={handleProvinceSelect}
-        />
+        <div className="flex gap-4 items-stretch h-[600px]">
+
+          <div className="flex-1 min-w-0 h-full">
+            <Card className="h-full bg-white p-4 shadow-xl border-slate-100 relative overflow-hidden flex flex-col">
+              {/* Decorative Background gradient */}
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-80 z-10" />
+              <ChinaMap
+                dataCounts={provinceCounts}
+                onProvinceSelect={handleProvinceSelect}
+              />
+            </Card>
+          </div>
+
+          <div className="flex-shrink-0 w-64 h-full hidden lg:block">
+            <Card className="h-full bg-white/70 backdrop-blur-md border-slate-100 shadow-xl flex flex-col overflow-hidden relative">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
+                  <Zap size={16} className="text-amber-500" />
+                  已录入省份
+                </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                {uniqueProvinces.map(p => (
+                  <div
+                    key={p}
+                    onClick={() => handleProvinceSelect(p)}
+                    className="group/item flex items-center justify-between p-3 rounded-xl hover:bg-white cursor-pointer transition-all border border-transparent hover:border-slate-100 hover:shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-400 group-hover/item:bg-blue-50 group-hover/item:text-blue-600 transition-colors shrink-0">
+                        {p[0]}
+                      </div>
+                      <span className="font-bold text-slate-600 group-hover/item:text-slate-900 transition-colors truncate max-w-[80px] text-xs">{p}</span>
+                    </div>
+                    {compResults[p] ? (
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] font-mono font-bold text-blue-600">
+                          {compResults[p].avg_price.toFixed(3)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[9px] text-slate-300 shrink-0">
+                        {provinceCounts[p] || 0}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 bg-slate-50/50 border-t border-slate-100">
+                <p className="text-[10px] text-slate-400 leading-relaxed text-center">
+                  点击跳转详情
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+
+
+
       ) : (
         <>
           <Card className="p-6 flex flex-col gap-6 bg-white/80 backdrop-blur sticky top-0 z-10 shadow-sm border-b border-white">

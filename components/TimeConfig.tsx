@@ -17,6 +17,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
     time_rules: []
   });
   const [newRule, setNewRule] = useState<TimeRule>({ start: '00:00', end: '08:00', type: 'valley' });
+  const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [expandedProvince, setExpandedProvince] = useState<string | null>(null);
 
@@ -26,13 +27,29 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
       if (!groups[c.province]) groups[c.province] = [];
       groups[c.province].push(c);
     });
-    return groups;
+    return groups as Record<string, TimeConfig[]>;
   }, [configs]);
 
   const handleAddRule = () => {
     if (!newRule.start || !newRule.end) return;
-    const updated = [...(editingConfig.time_rules || []), newRule].sort((a, b) => a.start.localeCompare(b.start));
-    setEditingConfig(prev => ({ ...prev, time_rules: updated }));
+
+    let updatedRows = [...(editingConfig.time_rules || [])];
+
+    if (editingRuleIndex !== null) {
+      // 更新现有规则
+      updatedRows[editingRuleIndex] = newRule;
+      setEditingRuleIndex(null);
+    } else {
+      // 添加新规则
+      updatedRows.push(newRule);
+    }
+
+    // 重新排序
+    updatedRows = updatedRows.sort((a, b) => a.start.localeCompare(b.start));
+
+    setEditingConfig(prev => ({ ...prev, time_rules: updatedRows }));
+    // 重置 newRule 以便下次输入
+    setNewRule({ start: '00:00', end: '08:00', type: 'valley' });
   };
 
   const handleSaveConfig = () => {
@@ -45,7 +62,8 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
       province: editingConfig.province!.trim(),
       month_pattern: editingConfig.month_pattern || 'All',
       time_rules: editingConfig.time_rules!,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      last_modified: new Date().toISOString()
     };
 
     // 立即过滤掉可能存在的同名旧配置（如果用户是想全量覆盖或新增）
@@ -103,7 +121,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
 
               {expandedProvince === province && (
                 <div className="border-t border-slate-100 bg-slate-50/50">
-                  {items.map(config => (
+                  {(items as TimeConfig[]).map(config => (
                     <div
                       key={config.id}
                       onClick={() => setEditingConfig(config)}
@@ -130,7 +148,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                       </button>
                     </div>
                   ))}
-                  {items.length === 0 && <div className="p-3 text-center text-xs text-slate-400">无配置</div>}
+                  {(items as TimeConfig[]).length === 0 && <div className="p-3 text-center text-xs text-slate-400">无配置</div>}
                 </div>
               )}
             </div>
@@ -181,54 +199,70 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4 shadow-inner">
-              <div className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Clock size={16} className="text-blue-500" /> 添加时段</div>
-              <div className="flex flex-col sm:flex-row gap-3 items-end">
-                <div className="w-full sm:flex-1">
-                  <label className="text-[10px] text-slate-400 mb-1 block">开始</label>
-                  <input type="time" value={newRule.start} onChange={e => setNewRule({ ...newRule, start: e.target.value })} className="w-full p-2 border rounded bg-white" />
-                </div>
-                <div className="w-full sm:flex-1">
-                  <label className="text-[10px] text-slate-400 mb-1 block">结束</label>
-                  <input type="time" value={newRule.end} onChange={e => setNewRule({ ...newRule, end: e.target.value })} className="w-full p-2 border rounded bg-white" />
-                </div>
-                <div className="w-full sm:flex-[2]">
-                  <label className="text-[10px] text-slate-400 mb-1 block">类型</label>
-                  <div className="flex gap-1 flex-wrap">
-                    {['tip', 'peak', 'flat', 'valley', 'deep'].map(t => (
-                      <button
-                        key={t}
-                        onClick={() => setNewRule({ ...newRule, type: t as TimeType })}
-                        style={{
-                          background: newRule.type === t ? getTypeColor(t) : '#fff',
-                          color: newRule.type === t ? '#fff' : '#64748b',
-                          borderColor: getTypeColor(t)
-                        }}
-                        className={`flex-1 min-w-[50px] py-2 rounded border text-[10px] transition-all ${newRule.type === t ? 'font-bold shadow-sm scale-105' : 'hover:bg-slate-50'}`}
-                      >
-                        {getTypeLabel(t)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={handleAddRule} className="w-full sm:w-auto bg-slate-800 text-white p-2.5 rounded-lg hover:bg-slate-700 transition-colors"><Plus size={20} /></button>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4 shadow-inner">
+            <div className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Clock size={16} className="text-blue-500" /> 添加时段</div>
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="w-full sm:flex-1">
+                <label className="text-[10px] text-slate-400 mb-1 block">开始</label>
+                <input type="time" value={newRule.start} onChange={e => setNewRule({ ...newRule, start: e.target.value })} className="w-full p-2 border rounded bg-white" />
               </div>
+              <div className="w-full sm:flex-1">
+                <label className="text-[10px] text-slate-400 mb-1 block">结束</label>
+                <input type="time" value={newRule.end} onChange={e => setNewRule({ ...newRule, end: e.target.value })} className="w-full p-2 border rounded bg-white" />
+              </div>
+              <div className="w-full sm:flex-[2]">
+                <label className="text-[10px] text-slate-400 mb-1 block">类型</label>
+                <div className="flex gap-1 flex-wrap">
+                  {['tip', 'peak', 'flat', 'valley', 'deep'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setNewRule({ ...newRule, type: t as TimeType })}
+                      style={{
+                        background: newRule.type === t ? getTypeColor(t) : '#fff',
+                        color: newRule.type === t ? '#fff' : '#64748b',
+                        borderColor: getTypeColor(t)
+                      }}
+                      className={`flex-1 min-w-[50px] py-2 rounded border text-[10px] transition-all ${newRule.type === t ? 'font-bold shadow-sm scale-105' : 'hover:bg-slate-50'}`}
+                    >
+                      {getTypeLabel(t)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={handleAddRule} className={`w-full sm:w-auto p-2.5 rounded-lg transition-colors ${editingRuleIndex !== null ? 'bg-orange-500 hover:bg-orange-600' : 'bg-slate-800 hover:bg-slate-700'} text-white`}>
+                {editingRuleIndex !== null ? <Save size={20} /> : <Plus size={20} />}
+              </button>
             </div>
+          </div>
 
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             <div className="space-y-2 pb-6">
               {editingConfig.time_rules?.map((rule, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-all animate-in slide-in-from-top-2">
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setNewRule(rule);
+                    setEditingRuleIndex(idx);
+                  }}
+                  className={`flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-all animate-in slide-in-from-top-2 cursor-pointer ${editingRuleIndex === idx ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-200 shadow-sm' : ''}`}
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-1.5 h-8 rounded-full" style={{ background: getTypeColor(rule.type) }} />
                     <div className="font-mono font-bold text-base text-slate-700">{rule.start} <span className="text-slate-300 mx-2">→</span> {rule.end}</div>
                     <Badge type={rule.type} />
                   </div>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       const updated = [...editingConfig.time_rules!];
                       updated.splice(idx, 1);
                       setEditingConfig({ ...editingConfig, time_rules: updated });
+                      if (editingRuleIndex === idx) {
+                        setEditingRuleIndex(null);
+                        setNewRule({ start: '00:00', end: '08:00', type: 'valley' });
+                      } else if (editingRuleIndex !== null && editingRuleIndex > idx) {
+                        setEditingRuleIndex(editingRuleIndex - 1);
+                      }
                     }}
                     className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                   >

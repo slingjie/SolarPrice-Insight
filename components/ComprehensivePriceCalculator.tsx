@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calculator, Calendar, ArrowRight, ArrowLeft, Save, Trash2, Clock, PlusCircle } from 'lucide-react';
+import { Calculator, Calendar, ArrowRight, Save, Trash2, Clock, PlusCircle } from 'lucide-react';
 import { Card } from './UI';
-import { TariffData, TimeType, SavedTimeRange } from '../types';
+import { TariffData, TimeType, SavedTimeRange, ComprehensiveResult } from '../types';
 import { PROVINCES, DEFAULT_TIME_CONFIGS, getTypeColor, getTypeLabel } from '../constants.tsx';
 import { getDatabase } from '../services/db';
 
 interface ComprehensivePriceCalculatorProps {
-    onBack: () => void;
+    tariffs: TariffData[];
 }
+
 
 interface PriceResult {
     month: string;
@@ -23,8 +24,7 @@ interface PriceResult {
     totalHours: number;
 }
 
-export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ onBack }) => {
-    const [tariffs, setTariffs] = useState<TariffData[]>([]);
+export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs }) => {
     const [dbProvinces, setDbProvinces] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [initLoading, setInitLoading] = useState(true);
@@ -38,6 +38,24 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         endTime: '17:00'
     });
 
+    const provinceTariffs = useMemo(() => {
+        return allTariffs.filter(t => t.province === formData.province);
+    }, [allTariffs, formData.province]);
+
+    const activeProvinces = useMemo(() => {
+        return Array.from(new Set(allTariffs.map(t => t.province))).sort();
+    }, [allTariffs]);
+
+    // sync dbProvinces with activeProvinces
+    useEffect(() => {
+        setDbProvinces(activeProvinces);
+        setInitLoading(false);
+        if (activeProvinces.length > 0 && !activeProvinces.includes(formData.province)) {
+            setFormData(prev => ({ ...prev, province: activeProvinces[0] }));
+        }
+    }, [activeProvinces]);
+
+
     const [results, setResults] = useState<PriceResult[]>([]);
     const [savedRanges, setSavedRanges] = useState<SavedTimeRange[]>([]);
     const [newRangeName, setNewRangeName] = useState('');
@@ -45,6 +63,8 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
     const [calcMsg, setCalcMsg] = useState<{ type: 'error' | 'success', msg: string } | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isSavingResult, setIsSavingResult] = useState(false);
+
 
     // Calculate Average over all selected months
     const totalAvgPrice = useMemo(() => {
@@ -58,29 +78,6 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         if (results.length === 0) return 0;
         return results.reduce((acc, curr) => acc + curr.totalHours, 0) / results.length;
     }, [results]);
-
-    // Load initial data: discover which provinces have data
-    useEffect(() => {
-        const init = async () => {
-            setInitLoading(true);
-            try {
-                const db = await getDatabase();
-                const allTariffs = await db.tariffs.find().exec();
-                const uniqueProvinces = Array.from(new Set(allTariffs.map(t => t.province))).sort();
-                setDbProvinces(uniqueProvinces);
-
-                // If current default province has no data, pick the first one that has
-                if (uniqueProvinces.length > 0 && !uniqueProvinces.includes(formData.province)) {
-                    setFormData(prev => ({ ...prev, province: uniqueProvinces[0] }));
-                }
-            } catch (err) {
-                console.error("Failed to init provinces:", err);
-            } finally {
-                setInitLoading(false);
-            }
-        };
-        init();
-    }, []);
 
     // Load saved time ranges
     useEffect(() => {
@@ -96,6 +93,7 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         loadSaved();
     }, []);
 
+
     const handleSaveRange = async () => {
         if (!newRangeName.trim()) {
             setActionStatus({ type: 'error', msg: '请写一个名称' });
@@ -110,7 +108,8 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                 name: newRangeName,
                 startTime: formData.startTime,
                 endTime: formData.endTime,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                last_modified: new Date().toISOString()
             };
             await db.saved_time_ranges.insert(newRange);
             setSavedRanges(prev => [...prev, newRange]);
@@ -159,42 +158,59 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         }));
     };
 
-    // Load tariffs when province changes
-    useEffect(() => {
-        if (!formData.province) return;
-        const fetchTariffs = async () => {
-            setLoading(true);
-            try {
-                const db = await getDatabase();
-                const docs = await db.tariffs.find({
-                    selector: {
-                        province: formData.province
-                    }
-                }).exec();
-                setTariffs(docs.map(d => d.toJSON()));
-            } catch (err) {
-                console.error("Failed to fetch tariffs:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTariffs();
-    }, [formData.province]);
+    const handleSaveResult = async () => {
+        if (results.length === 0 || !formData.province) return;
 
-    // Derived options
+        setIsSavingResult(true);
+        try {
+            const db = await getDatabase();
+            // We use a deterministic ID based on province (if we only want one main result per province)
+            // Or use a UUID if we want multiple. For the floating list, let's stick to one main result per province
+            // to keep it simple and clean.
+            const resultId = `comp-${formData.province}`;
+
+            const newResult: ComprehensiveResult = {
+                id: resultId,
+                province: formData.province,
+                category: formData.category,
+                voltage_level: formData.voltage,
+                avg_price: totalAvgPrice,
+                months: formData.months,
+                start_time: formData.startTime,
+                end_time: formData.endTime,
+                last_modified: new Date().toISOString()
+            };
+
+            await db.comprehensive_results.upsert(newResult);
+
+            setActionStatus({ type: 'success', msg: '电价结果已保存到数据中心' });
+            setTimeout(() => setActionStatus(null), 3000);
+        } catch (err) {
+            console.error("Failed to save comprehensive result full error:", err);
+            setActionStatus({ type: 'error', msg: `保存失败: ${err instanceof Error ? err.message : '未知错误'}` });
+            setTimeout(() => setActionStatus(null), 5000);
+        } finally {
+            setTimeout(() => setIsSavingResult(false), 1000);
+        }
+
+    };
+
+
+    // Derived options from filtered province tariffs
     const availableCategories = useMemo(() =>
-        Array.from(new Set(tariffs.map(t => t.category))), [tariffs]);
+        Array.from(new Set(provinceTariffs.map(t => t.category))), [provinceTariffs]);
 
     const availableVoltages = useMemo(() =>
-        Array.from(new Set(tariffs.filter(t => t.category === formData.category).map(t => t.voltage_level))),
-        [tariffs, formData.category]);
+        Array.from(new Set(provinceTariffs.filter(t => t.category === formData.category).map(t => t.voltage_level))),
+        [provinceTariffs, formData.category]);
 
     const availableMonths = useMemo(() =>
-        Array.from(new Set(tariffs.filter(t =>
+        Array.from(new Set(provinceTariffs.filter(t =>
             t.category === formData.category &&
             t.voltage_level === formData.voltage
         ).map(t => t.month))).sort(),
-        [tariffs, formData.category, formData.voltage]);
+        [provinceTariffs, formData.category, formData.voltage]);
+
 
     // Helper: Convert "HH:MM" to minutes from midnight
     const timeToMinutes = (time: string) => {
@@ -236,12 +252,13 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         const calcResults: PriceResult[] = [];
 
         formData.months.forEach(month => {
-            const tariff = tariffs.find(t =>
+            const tariff = provinceTariffs.find(t =>
                 t.province === formData.province &&
                 t.category === formData.category &&
                 t.voltage_level === formData.voltage &&
                 t.month === month
             );
+
 
             if (!tariff) return;
 
@@ -315,9 +332,6 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
-                        <ArrowLeft size={20} />
-                    </button>
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
                             <Calculator size={24} />
@@ -339,7 +353,7 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                         <div>
                             <label className="text-xs font-bold text-slate-500 mb-1 block">省份</label>
                             <select
-                                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 font-bold"
                                 value={formData.province}
                                 onChange={e => setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] })}
                                 disabled={initLoading}
@@ -521,19 +535,32 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                     {results.length > 0 ? (
                         <>
                             {/* Summary Card */}
-                            <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 border-none shadow-xl shadow-indigo-200">
-                                <div className="flex items-center justify-between mb-2 opacity-90">
+                            <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 border-none shadow-xl shadow-indigo-200 relative overflow-hidden group">
+                                <div className="flex items-center justify-between mb-2 opacity-90 relative z-10">
                                     <span className="text-sm font-medium">所选月份平均综合电价</span>
                                     <Calendar size={20} />
                                 </div>
-                                <div className="text-4xl font-bold font-mono tracking-tight">
-                                    {totalAvgPrice.toFixed(4)} <span className="text-lg opacity-75 font-sans font-normal">元/kWh</span>
+                                <div className="flex items-end justify-between relative z-10">
+                                    <div className="text-4xl font-bold font-mono tracking-tight">
+                                        {totalAvgPrice.toFixed(4)} <span className="text-lg opacity-75 font-sans font-normal">元/kWh</span>
+                                    </div>
+                                    <button
+                                        onClick={handleSaveResult}
+                                        disabled={isSavingResult}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${isSavingResult ? 'bg-white/20 text-white/50' : 'bg-white text-indigo-600 hover:bg-white/90 active:scale-95 shadow-lg'}`}
+                                    >
+                                        <Save size={16} />
+                                        {isSavingResult ? '已保存' : '存至数据中心'}
+                                    </button>
                                 </div>
-                                <div className="mt-4 flex gap-4 text-sm opacity-90">
+                                <div className="mt-4 flex gap-4 text-sm opacity-90 relative z-10">
                                     <div>已选月份: <span className="font-bold">{formData.months.length}</span> 个</div>
                                     <div>计算时长: <span className="font-bold">{averageHours.toFixed(1)}</span> 小时/日</div>
                                 </div>
+                                {/* Decorative background element */}
+                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
                             </Card>
+
 
                             {/* Detail List */}
                             <div className="space-y-4">

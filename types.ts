@@ -21,6 +21,8 @@ export interface TimeConfig {
   month_pattern: string; // e.g., "1,2,3" or "All"
   time_rules: TimeRule[];
   updated_at: string;
+  last_modified: string; // ISO string
+  _deleted?: boolean;
 }
 
 export interface TariffData {
@@ -35,6 +37,8 @@ export interface TariffData {
   time_rules: TimeRule[];
   currency_unit: string;
   source_config_id?: string;
+  last_modified: string; // ISO string
+  _deleted?: boolean;
 }
 
 export interface OCRResultItem {
@@ -50,6 +54,22 @@ export interface SavedTimeRange {
   startTime: string;
   endTime: string;
   created_at: string;
+  last_modified: string; // ISO string
+  _deleted?: boolean;
+}
+
+export interface ComprehensiveResult {
+  id: string;
+  province: string;
+  category: string;
+  voltage_level: string;
+  avg_price: number;
+  months: string[];
+  start_time: string;
+  end_time: string;
+  last_modified: string; // ISO string
+  _deleted?: boolean;
 }
 
 export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'database';
+
