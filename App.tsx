@@ -34,15 +34,22 @@ const App: React.FC = () => {
 
         const existingTariffCount = await db.tariffs.count().exec();
         if (existingTariffCount === 0 && savedTariffs) {
-          const parsed = JSON.parse(savedTariffs) as TariffData[];
+          const parsed = (JSON.parse(savedTariffs) as TariffData[]).map(t => ({
+            ...t,
+            last_modified: t.last_modified || new Date().toISOString()
+          }));
           await db.tariffs.bulkInsert(parsed);
         }
 
         const existingConfigCount = await db.time_configs.count().exec();
         if (existingConfigCount === 0 && savedConfigs) {
-          const parsed = JSON.parse(savedConfigs) as TimeConfig[];
+          const parsed = (JSON.parse(savedConfigs) as TimeConfig[]).map(c => ({
+            ...c,
+            last_modified: c.last_modified || new Date().toISOString()
+          }));
           await db.time_configs.bulkInsert(parsed);
         } else if (existingConfigCount === 0) {
+          // DEFAULT_TIME_CONFIGS 已经添加了 last_modified，这里不再重复处理
           await db.time_configs.bulkInsert(DEFAULT_TIME_CONFIGS);
         }
 
@@ -52,7 +59,7 @@ const App: React.FC = () => {
         });
 
         const configSub = db.time_configs.find().$.subscribe(docs => {
-          if (docs.length > 0) setTimeConfigs(docs.map(doc => doc.toJSON()));
+          setTimeConfigs(docs.map(doc => doc.toJSON()));
         });
 
         setInitialized(true);
@@ -72,28 +79,56 @@ const App: React.FC = () => {
   }, []);
 
   const handleUpdateTariffs = async (newTariffs: TariffData[]) => {
-    const db = await getDatabase();
-    // 简单起见，这里采取全量替换或批量新增逻辑
-    // 在实际复杂场景中，RxDB 建议逐条增量更新
-    // 这里为了兼容现有 handleUpdateTariffs 的语义：
-    const existingIds = new Set(newTariffs.map(t => t.id));
-    // 找出不在新列表里的，删除它们
-    const allDocs = await db.tariffs.find().exec();
-    const toDelete = allDocs.filter(doc => !existingIds.has(doc.id));
-    if (toDelete.length > 0) {
-      await db.tariffs.bulkRemove(toDelete.map(d => d.id));
+    try {
+      const db = await getDatabase();
+      // 简单起见，这里采取全量替换或批量新增逻辑
+      // 在实际复杂场景中，RxDB 建议逐条增量更新
+      // 这里为了兼容现有 handleUpdateTariffs 的语义：
+      const existingIds = new Set(newTariffs.map(t => t.id));
+      // 找出不在新列表里的，删除它们
+      const allDocs = await db.tariffs.find().exec();
+      const toDelete = allDocs.filter(doc => !existingIds.has(doc.id));
+      if (toDelete.length > 0) {
+        await db.tariffs.bulkRemove(toDelete.map(d => d.id));
+      }
+      console.log('[App] Upserting tariffs:', newTariffs);
+      const docsToUpsert = newTariffs.map(t => ({
+        ...t,
+        last_modified: t.last_modified || new Date().toISOString()
+      }));
+      await db.tariffs.bulkUpsert(docsToUpsert);
+      console.log('[App] Tariffs upsert success');
+    } catch (err) {
+      console.error('[App] Tariffs update failed:', err);
+      // 可以在此处显示 Toast 提示
     }
-    await db.tariffs.bulkUpsert(newTariffs);
   };
 
   const handleUpdateTimeConfigs = async (newConfigs: TimeConfig[]) => {
     try {
       const db = await getDatabase();
-      console.log('[App] Upserting time configs:', newConfigs);
-      await db.time_configs.bulkUpsert(newConfigs);
-      console.log('[App] Upsert success');
+      const existingDocs = await db.time_configs.find().exec();
+      const existingIds = new Set(existingDocs.map(d => d.id));
+      const newIds = new Set(newConfigs.map(c => c.id));
+
+      // 1. 找出需要删除的 ID
+      const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
+      if (idsToDelete.length > 0) {
+        console.log('[App] Removing time configs:', idsToDelete);
+        await db.time_configs.bulkRemove(idsToDelete);
+      }
+
+      // 2. 找出需要更新/新增的配置
+      const docsToUpsert = newConfigs.map(c => ({
+        ...c,
+        last_modified: c.last_modified || new Date().toISOString()
+      }));
+      console.log('[App] Upserting time configs:', docsToUpsert);
+      await db.time_configs.bulkUpsert(docsToUpsert);
+
+      console.log('[App] Update success');
     } catch (err) {
-      console.error('[App] Upsert failed:', err);
+      console.error('[App] Update failed:', err);
     }
   };
 
@@ -163,14 +198,13 @@ const App: React.FC = () => {
             <PriceDatabase
               tariffs={tariffs}
               onUpdateTariffs={handleUpdateTariffs}
-              onBack={() => setView('manual')}
+              onBack={() => setView('settings')}
             />
           )}
           {view === 'calculator' && (
-            <ComprehensivePriceCalculator
-              onBack={() => setView('dashboard')}
-            />
+            <ComprehensivePriceCalculator tariffs={tariffs} />
           )}
+
           {view === 'analysis' && analysisTarget && (
             <AnalysisView
               tariffs={tariffs}
@@ -185,6 +219,7 @@ const App: React.FC = () => {
               timeConfigs={timeConfigs}
               onImportTariffs={handleUpdateTariffs}
               onImportConfigs={handleUpdateTimeConfigs}
+              onNavigate={setView}
             />
           )}
         </div>

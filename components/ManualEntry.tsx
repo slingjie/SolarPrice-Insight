@@ -29,9 +29,32 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
     } as PriceSchema
   });
 
-  const availableConfigs = useMemo(() => {
-    return timeConfigs.filter(c => c.province === formData.province || c.province === '全部');
+  const sortedConfigs = useMemo(() => {
+    // 1. 优先完全匹配省份的
+    // 2. 其次是“全部”省份的
+    // 3. 最后是其他省份的
+    return [...timeConfigs].sort((a, b) => {
+      const aMatch = a.province === formData.province;
+      const bMatch = b.province === formData.province;
+      if (aMatch && !bMatch) return -1;
+      if (!aMatch && bMatch) return 1;
+
+      const aAll = a.province === '全部';
+      const bAll = b.province === '全部';
+      if (aAll && !bAll) return -1;
+      if (!aAll && bAll) return 1;
+
+      return a.province.localeCompare(b.province);
+    });
   }, [timeConfigs, formData.province]);
+
+  // 自动关联逻辑：当选择省份改变时，尝试找到一个最佳匹配并自动选中
+  React.useEffect(() => {
+    const bestMatch = timeConfigs.find(c => c.province === formData.province);
+    if (bestMatch) {
+      setFormData(prev => ({ ...prev, configId: bestMatch.id }));
+    }
+  }, [formData.province, timeConfigs]);
 
   const handlePriceChange = (type: keyof PriceSchema, val: string) => {
     const numVal = parseFloat(val) || 0;
@@ -59,7 +82,8 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
       prices: formData.prices,
       time_rules: config.time_rules,
       currency_unit: 'CNY/kWh',
-      source_config_id: config.id
+      source_config_id: config.id,
+      last_modified: new Date().toISOString()
     };
 
     onSave([...tariffs, newTariff]);
@@ -202,7 +226,8 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
           voltage_level: vol || '未知',
           prices,
           time_rules,
-          currency_unit: 'CNY/kWh'
+          currency_unit: 'CNY/kWh',
+          last_modified: new Date().toISOString()
           // source_config_id is skipped for imported data as it has its own rules
         });
       }
@@ -255,12 +280,6 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
             <Upload size={16} /> 批量导入
           </button>
           <button
-            onClick={() => onNavigate('database')}
-            className="bg-white border text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-sm"
-          >
-            <Database size={16} /> 数据库管理
-          </button>
-          <button
             onClick={handleSave}
             className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-100 transition-all active:scale-95 text-sm"
           >
@@ -281,13 +300,17 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
               <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1">
                 <MapPin size={12} /> 省份
               </label>
-              <select
+              <input
+                list="province-options"
+                type="text"
+                placeholder="选择或输入省份"
                 value={formData.province}
                 onChange={e => setFormData({ ...formData, province: e.target.value })}
-                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+              />
+              <datalist id="province-options">
+                {PROVINCES.map(p => <option key={p} value={p} />)}
+              </datalist>
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 mb-1 block flex items-center gap-1">
@@ -345,12 +368,21 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
               onChange={e => setFormData({ ...formData, configId: e.target.value })}
             >
               <option value="">-- 请选择配置库 --</option>
-              {availableConfigs.map(c => (
-                <option key={c.id} value={c.id}>{c.province} - {c.month_pattern === 'All' ? '全年' : c.month_pattern + '月'}</option>
-              ))}
+              {sortedConfigs.map(c => {
+                const isMatch = c.province === formData.province;
+                return (
+                  <option key={c.id} value={c.id} className={isMatch ? 'font-bold bg-blue-50' : ''}>
+                    {c.province} - {c.month_pattern === 'All' ? '全年' : c.month_pattern + '月'}
+                    {isMatch ? ' (推荐)' : ''}
+                  </option>
+                );
+              })}
             </select>
-            {availableConfigs.length === 0 && (
-              <p className="text-[10px] text-red-500 mt-2">该省份暂无配置库，请先前往“配置库管理”创建。</p>
+            {sortedConfigs.length === 0 && (
+              <p className="text-[10px] text-red-500 mt-2">系统暂无任何配置库，请先前往“配置库管理”创建。</p>
+            )}
+            {sortedConfigs.length > 0 && !sortedConfigs.find(c => c.province === formData.province) && (
+              <p className="text-[10px] text-orange-500 mt-2">提示：当前省份暂无专属配置，您可以选择其他省份的通用配置。</p>
             )}
           </div>
         </Card>

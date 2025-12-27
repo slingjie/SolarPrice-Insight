@@ -11,7 +11,8 @@ import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
-import { TariffData, TimeConfig } from '../types';
+import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
+import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult } from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -19,11 +20,12 @@ if (import.meta.env.DEV) {
 }
 addRxPlugin(RxDBQueryBuilderPlugin);
 addRxPlugin(RxDBUpdatePlugin);
+addRxPlugin(RxDBMigrationSchemaPlugin);
 
 // 定义 Tariff Schema
 const tariffSchema = {
     title: 'tariff schema',
-    version: 0,
+    version: 1, // 升级版本
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -56,15 +58,18 @@ const tariffSchema = {
             }
         },
         currency_unit: { type: 'string' },
-        source_config_id: { type: 'string', nullable: true }
+        source_config_id: { type: 'string', nullable: true },
+        // Supabase 兼容性字段 (RxDB 不允许以 _ 开头的字段名)
+        last_modified: { type: 'string', format: 'date-time' },
+        _deleted: { type: 'boolean', default: false }
     },
-    required: ['id', 'province', 'month', 'category', 'voltage_level', 'prices', 'time_rules']
+    required: ['id', 'province', 'month', 'category', 'voltage_level', 'prices', 'time_rules', 'last_modified']
 };
 
 // 定义 TimeConfig Schema
 const timeConfigSchema = {
     title: 'time config schema',
-    version: 0,
+    version: 1, // 升级版本
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -82,15 +87,18 @@ const timeConfigSchema = {
                 }
             }
         },
-        updated_at: { type: 'string', format: 'date-time' }
+        updated_at: { type: 'string', format: 'date-time' },
+        // Supabase 兼容性字段
+        last_modified: { type: 'string', format: 'date-time' },
+        _deleted: { type: 'boolean', default: false }
     },
-    required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at']
+    required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at', 'last_modified']
 };
 
 // 定义 SavedTimeRange Schema
 const savedTimeRangeSchema = {
     title: 'saved time range schema',
-    version: 0,
+    version: 1, // 升级版本
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -98,25 +106,46 @@ const savedTimeRangeSchema = {
         name: { type: 'string' },
         startTime: { type: 'string' },
         endTime: { type: 'string' },
-        created_at: { type: 'string', format: 'date-time' }
+        created_at: { type: 'string', format: 'date-time' },
+        // Supabase 兼容性字段
+        last_modified: { type: 'string', format: 'date-time' },
+        _deleted: { type: 'boolean', default: false }
     },
-    required: ['id', 'name', 'startTime', 'endTime', 'created_at']
+    required: ['id', 'name', 'startTime', 'endTime', 'created_at', 'last_modified']
 };
+
+// 定义 ComprehensiveResult Schema
+const comprehensiveResultSchema = {
+    title: 'comprehensive result schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        province: { type: 'string' },
+        category: { type: 'string' },
+        voltage_level: { type: 'string' },
+        avg_price: { type: 'number' },
+        months: { type: 'array', items: { type: 'string' } },
+        start_time: { type: 'string' },
+        end_time: { type: 'string' },
+        last_modified: { type: 'string' }, // Removed date-time format to avoid validation issues
+        _deleted: { type: 'boolean', default: false }
+    },
+    required: ['id', 'province', 'category', 'voltage_level', 'avg_price', 'months', 'start_time', 'end_time', 'last_modified']
+};
+
 
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
-type SavedTimeRangeCollection = RxCollection<{
-    id: string;
-    name: string;
-    startTime: string;
-    endTime: string;
-    created_at: string;
-}>;
+type SavedTimeRangeCollection = RxCollection<SavedTimeRange>;
+type ComprehensiveResultCollection = RxCollection<ComprehensiveResult>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
     time_configs: TimeConfigCollection;
     saved_time_ranges: SavedTimeRangeCollection;
+    comprehensive_results: ComprehensiveResultCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -134,13 +163,38 @@ const createDatabase = async () => {
 
         await db.addCollections({
             tariffs: {
-                schema: tariffSchema
+                schema: tariffSchema,
+                migrationStrategies: {
+                    // 从 v0 迁移到 v1 的策略
+                    1: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+                        return oldDoc;
+                    }
+                }
             },
             time_configs: {
-                schema: timeConfigSchema
+                schema: timeConfigSchema,
+                migrationStrategies: {
+                    1: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+                        return oldDoc;
+                    }
+                }
             },
             saved_time_ranges: {
-                schema: savedTimeRangeSchema
+                schema: savedTimeRangeSchema,
+                migrationStrategies: {
+                    1: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+                        return oldDoc;
+                    }
+                }
+            },
+            comprehensive_results: {
+                schema: comprehensiveResultSchema
             }
         });
 
@@ -157,3 +211,4 @@ export const getDatabase = () => {
     }
     return dbPromise;
 };
+

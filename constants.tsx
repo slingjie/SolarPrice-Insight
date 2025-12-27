@@ -29,6 +29,7 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
     province: '江苏省',
     month_pattern: '1,2,12',
     updated_at: new Date().toISOString(),
+    last_modified: new Date().toISOString(),
     time_rules: [
       { start: "00:00", end: "08:00", type: "valley" },
       { start: "08:00", end: "11:00", type: "peak" },
@@ -44,6 +45,7 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
     province: '浙江省',
     month_pattern: 'All',
     updated_at: new Date().toISOString(),
+    last_modified: new Date().toISOString(),
     time_rules: [
       { start: "00:00", end: "08:00", type: "valley" },
       { start: "08:00", end: "15:00", type: "peak" },

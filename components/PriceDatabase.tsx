@@ -186,8 +186,9 @@ export const PriceDatabase: React.FC<PriceDatabaseProps> = ({ tariffs, onUpdateT
                 return {
                     ...t,
                     ...editForm,
-                    // Ensure prices object is properly merged if partially updated (though here we replace whole object usually)
-                    prices: { ...t.prices, ...editForm.prices }
+                    // Ensure prices object is properly merged if partially updated
+                    prices: { ...t.prices, ...editForm.prices },
+                    last_modified: new Date().toISOString()
                 } as TariffData;
             }
             return t;
@@ -428,13 +429,16 @@ export const PriceDatabase: React.FC<PriceDatabaseProps> = ({ tariffs, onUpdateT
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">省份</label>
-                                    <select
+                                    <input
+                                        list="edit-province-options"
+                                        type="text"
                                         value={editForm.province}
                                         onChange={e => setEditForm(prev => ({ ...prev, province: e.target.value }))}
                                         className="w-full p-2 border rounded"
-                                    >
-                                        {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
+                                    />
+                                    <datalist id="edit-province-options">
+                                        {PROVINCES.map(p => <option key={p} value={p} />)}
+                                    </datalist>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">月份</label>

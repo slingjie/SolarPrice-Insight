@@ -38,7 +38,8 @@ export const ChinaMap: React.FC<ChinaMapProps> = ({ dataCounts, onProvinceSelect
             value
         }));
 
-        const maxVal = Math.max(...Object.values(dataCounts), 1);
+        const maxVal = Math.max(...(Object.values(dataCounts) as number[]), 1);
+
 
         return {
             tooltip: {
@@ -154,19 +155,15 @@ export const ChinaMap: React.FC<ChinaMapProps> = ({ dataCounts, onProvinceSelect
     }
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-100 relative overflow-hidden">
-            {/* Decorative Background gradient */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-80" />
-
-            <ReactECharts
-                ref={chartRef}
-                option={getOption()}
-                style={{ height: '600px', width: '100%' }}
-                notMerge={true}
-                onEvents={{
-                    click: onChartClick
-                }}
-            />
-        </div>
+        <ReactECharts
+            ref={chartRef}
+            option={getOption()}
+            style={{ height: '100%', width: '100%' }}
+            notMerge={true}
+            onEvents={{
+                click: onChartClick
+            }}
+        />
     );
+
 };
