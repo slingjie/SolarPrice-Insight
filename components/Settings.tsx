@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Settings, CheckCircle2, ShieldCheck, Key, Database, Download, Upload, AlertCircle, FileJson, Trash2 } from 'lucide-react';
+import { Settings, CheckCircle2, ShieldCheck, Key, Database, Download, Upload, AlertCircle, FileJson, Trash2, RefreshCcw } from 'lucide-react';
 import { Card, Toast } from './UI';
 import { TariffData, TimeConfig } from '../types';
+import { DEFAULT_TIME_CONFIGS } from '../constants.tsx';
 
 interface SettingsViewProps {
   tariffs: TariffData[];
@@ -79,6 +80,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
 
     setImportConfirmation(null);
     setToastMessage("数据导入成功！");
+  };
+
+  const handleRestoreDefaults = () => {
+    if (window.confirm("确定恢复默认配置库？这会将现有的配置库替换为系统内置的典型省份配置。")) {
+      onImportConfigs(DEFAULT_TIME_CONFIGS);
+      setToastMessage("已恢复默认配置库");
+    }
   };
 
   return (
@@ -163,6 +171,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <span className="font-bold text-slate-700 text-sm">电价数据库管理</span>
             <span className="text-[10px] text-slate-400 mt-1">查看、修改或删除已保存的电价记录</span>
           </button>
+
+          <button
+            onClick={handleRestoreDefaults}
+            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-orange-500 hover:bg-orange-50 transition-all group lg:col-span-2"
+          >
+            <RefreshCcw size={28} className="text-slate-400 group-hover:text-orange-600 mb-3 transition-colors" />
+            <span className="font-bold text-slate-700 text-sm">恢复默认配置库</span>
+            <span className="text-[10px] text-slate-400 mt-1">一键找回系统自带的典型省份时段规则</span>
+          </button>
         </div>
         <input
           type="file"
@@ -171,10 +188,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
           accept=".json"
           className="hidden"
         />
-      </Card>
+      </Card >
 
       {/* Model Strategy Card */}
-      <Card className="p-6">
+      < Card className="p-6" >
         <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
           <FileJson size={14} className="text-blue-500" /> AI 模型配置
         </h4>
@@ -189,43 +206,47 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <div className="text-[10px] text-slate-500">超强推理 · 暂未启用</div>
           </div>
         </div>
-      </Card>
+      </Card >
 
       <div className="text-center text-[10px] text-slate-300">
         SolarPrice Insight v2.0 · Local-First Database (RxDB) · Prepared for Supabase
       </div>
 
       {/* Import Confirmation Modal */}
-      {importConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入备份</h3>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录和 <span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置。
-              <br />
-              <span className="text-red-500 font-medium">注意：这将替换您当前的全部数据！</span>
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setImportConfirmation(null)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
-              >
-                取消
-              </button>
-              <button
-                onClick={confirmImport}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm font-medium shadow-sm shadow-blue-200"
-              >
-                <Upload size={16} /> 确认导入并覆盖
-              </button>
+      {
+        importConfirmation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入备份</h3>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录和 <span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置。
+                <br />
+                <span className="text-red-500 font-medium">注意：这将替换您当前的全部数据！</span>
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setImportConfirmation(null)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={confirmImport}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm font-medium shadow-sm shadow-blue-200"
+                >
+                  <Upload size={16} /> 确认导入并覆盖
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
-      )}
-    </div>
+      {
+        toastMessage && (
+          <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+        )
+      }
+    </div >
   );
 };

@@ -50,8 +50,14 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
 
   // 自动关联逻辑：当选择省份改变时，尝试找到一个最佳匹配并自动选中
   React.useEffect(() => {
-    const bestMatch = timeConfigs.find(c => c.province === formData.province);
-    if (bestMatch) {
+    // 优先匹配当前省份
+    let bestMatch = timeConfigs.find(c => c.province === formData.province);
+    // 其次匹配通用配置
+    if (!bestMatch) {
+      bestMatch = timeConfigs.find(c => c.province === '全部');
+    }
+
+    if (bestMatch && formData.configId !== bestMatch.id) {
       setFormData(prev => ({ ...prev, configId: bestMatch.id }));
     }
   }, [formData.province, timeConfigs]);
@@ -382,7 +388,9 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
               <p className="text-[10px] text-red-500 mt-2">系统暂无任何配置库，请先前往“配置库管理”创建。</p>
             )}
             {sortedConfigs.length > 0 && !sortedConfigs.find(c => c.province === formData.province) && (
-              <p className="text-[10px] text-orange-500 mt-2">提示：当前省份暂无专属配置，您可以选择其他省份的通用配置。</p>
+              <p className="text-[10px] text-red-500 mt-2">
+                该省份暂无专属配置库，建议选择“全部”或前往“配置库管理”创建。
+              </p>
             )}
           </div>
         </Card>

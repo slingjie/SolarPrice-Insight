@@ -42,15 +42,28 @@ const App: React.FC = () => {
         }
 
         const existingConfigCount = await db.time_configs.count().exec();
-        if (existingConfigCount === 0 && savedConfigs) {
-          const parsed = (JSON.parse(savedConfigs) as TimeConfig[]).map(c => ({
-            ...c,
-            last_modified: c.last_modified || new Date().toISOString()
-          }));
-          await db.time_configs.bulkInsert(parsed);
-        } else if (existingConfigCount === 0) {
-          // DEFAULT_TIME_CONFIGS 已经添加了 last_modified，这里不再重复处理
-          await db.time_configs.bulkInsert(DEFAULT_TIME_CONFIGS);
+        if (existingConfigCount === 0) {
+          const savedConfigs = localStorage.getItem('solar_time_configs_v2');
+          let parsed: TimeConfig[] = [];
+
+          if (savedConfigs) {
+            try {
+              parsed = JSON.parse(savedConfigs);
+            } catch (e) {
+              console.error('Failed to parse saved configs', e);
+            }
+          }
+
+          if (parsed && parsed.length > 0) {
+            const docsToInsert = parsed.map(c => ({
+              ...c,
+              last_modified: c.last_modified || new Date().toISOString()
+            }));
+            await db.time_configs.bulkInsert(docsToInsert);
+          } else {
+            // 如果存储中没有数据或解析为空，加载默认配置
+            await db.time_configs.bulkInsert(DEFAULT_TIME_CONFIGS);
+          }
         }
 
         // 2. 建立响应式订阅
