@@ -12,7 +12,7 @@ import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
-import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult } from '../types';
+import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData } from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -135,17 +135,36 @@ const comprehensiveResultSchema = {
     required: ['id', 'province', 'category', 'voltage_level', 'avg_price', 'months', 'start_time', 'end_time', 'last_modified']
 };
 
+// 定义 PVGIS Cache Schema
+const pvgisCacheSchema = {
+    title: 'pvgis cache schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        params: { type: 'object' },
+        summary: { type: 'object' },
+        hourly: { type: 'array' },
+        created_at: { type: 'number' },
+        _deleted: { type: 'boolean', default: false }
+    },
+    required: ['id', 'params', 'summary', 'created_at']
+};
+
 
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
 type SavedTimeRangeCollection = RxCollection<SavedTimeRange>;
 type ComprehensiveResultCollection = RxCollection<ComprehensiveResult>;
+type PVGISCacheCollection = RxCollection<PVGISCacheData>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
     time_configs: TimeConfigCollection;
     saved_time_ranges: SavedTimeRangeCollection;
     comprehensive_results: ComprehensiveResultCollection;
+    pvgis_cache: PVGISCacheCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -195,6 +214,9 @@ const createDatabase = async () => {
             },
             comprehensive_results: {
                 schema: comprehensiveResultSchema
+            },
+            pvgis_cache: {
+                schema: pvgisCacheSchema
             }
         });
 

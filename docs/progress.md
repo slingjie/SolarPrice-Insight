@@ -155,11 +155,62 @@
 - **验证情况**：修复后，空的数据库会自动加载江苏省、浙江省等默认时段规则，确保“手动录入”页面可用。
 
 ---
-*文档更新于: 2025-12-28 16:15*
+## 2025-12-28 文档优化 - PVGIS 需求与开发计划
+- **背景**：用户新增 PVGIS 光伏发电量计算需求，需将初始的 AI 生成文档优化为符合当前架构的执行文档。
+- **涉及文档**：`docs/pvgis/ChatGPT-PVGIS光伏发电量计算方案需求文档.md`, `docs/pvgis/ChatGPT-PVGIS光伏发电量计算todolist.md`。
+- **改进点**：
+    - **架构对齐**：将原文档中的“Backend BFF”架构调整为符合当前项目的“纯前端 Service + RxDB 缓存”架构。
+    - **接口明确**：明确了 PVGIS API 的前端直接调用方式及 CORS 处理策略。
+    - **执行计划**：将 Todolist 细化为具体的前端开发任务（Service 封装、Component 开发、RxDB Schema 定义）。
+- **结果**：文档现已具备直接指导前端开发的可执行性。
+
+## 2025-12-29 PVGIS Development Completed
+- **Architecture**: Implemented Clean Client-Side Architecture with React + RxDB + Vite Proxy.
+- **Service**: 
+  - Created `pvgisService` with `fetchPVGIS` (PVcalc for summary, seriescalc for hourly).
+  - Implemented Caching Strategy using RxDB `pvgis_cache` collection with SHA-256 key and TTL.
+  - Added derived calculations for PR and Full Load Hours.
+- **UI**: 
+  - Integrated into Sidebar and App navigation (`/pvgis`).
+  - Created `LocationInput`, `SystemParams`, `ResultsCard`, `PVGISCharts` components.
+  - Implemented Report Export (Print) functionality.
+- **Testing**:
+  - Added `services/pvgisService.test.ts` covering API fetching, caching logic, and error handling.
+  - Verified API response structures via CURL.
 
 
+## 2025-12-29 PVGIS 功能增强与交互优化
+- **背景**：在完成基础 PVGIS 功能后，用户提出了一系列增强需求，包括城市搜索、自动/手动计算流程调整、数据展示优化等。
+- **涉及组件**：`LocationInput.tsx`, `PVGISAnalysis.tsx`, `FormulaCard.tsx`, `ResultsCard.tsx`, `SystemParams.tsx`。
+- **改进点**：
+    - **智能搜索**：引入 Nominatim API 实现城市名/地址模糊搜索，并增加绿色 Feedback Badge 反馈定位结果。
+    - **交互流程**：从“搜索即计算”调整为“搜索定位 -> 确认 -> 手动计算”，防止误操作。
+    - **数据展示**：
+        - 明确区分了“预估损耗 (Estimated Loss)”（输入）与“系统效率 (PR)”（输出）。
+        - 新增“最佳倾角 (Optimal Slope)”和“水平/斜面辐照度”展示。
+        - 修复了手动设置倾角时最佳倾角显示不准确的问题（通过额外 API 请求修正）。
+    - **报表增强**：新增“导出逐时数据 (CSV)”功能，支持导出整年 8760 小时的发电功率与辐照度明细，方便外部建模使用。
+- **验证情况**：单元测试通过，手动交互流畅，数据逻辑清晰无歧义。
 
+### 2025-12-29 导出功能专项调试
+- **现状**：PVGIS 逐时数据导出在 4000 端口（HTTP）环境下，Mac 浏览器虽有触发日志但实际未保存文件。
+- **已尝试**：经历了 V1.0 - V1.6 多个版本的迭代，包括 Blob URL、Data URI、Base64、MouseEvent 派发、延时清理等方案。
+- **下一步**：实施 V1.7 “强制物理触发”方案，使用更兼容的 `text/csv` 类型，并增加控制台链接作为最终保底。
 
+## 2025-12-29 门户化重构与导出稳定性增强
+- **需求背景**：为解决电价分析与光伏计算的功能混杂感，构建了统一的导航门户，并针对 Mac 发电量数据导出失败的问题进行了针对性修复。
+- **涉及组件**：`LandingPage.tsx`, `Sidebar.tsx`, `PVGISAnalysis.tsx`, `App.tsx`, `exportUtils.ts`。
+- **改进点**：
+    - **入口门户化 (`LandingPage`)**：
+        - 新增应用入口分发页，采用双卡片设计区分“电价深度洞察”与“光伏测算助手”。
+        - 入口动态路由，确保侧边栏在不同功能模块间正确切换可见性。
+    - **导航一致性**：
+        - 统一了两个模块的“返回门户”交互：统一采用 `ArrowLeft` 圆形按钮设计，并根据模块属性区分品牌色（电价-蓝色，光伏-橙色）。
+        - 移除了电价侧边栏中不相关的光伏入口，保持专注。
+    - **导出稳定性 (Mac 后缀修复)**：
+        - 针对 Mac 系统“导出文件无后缀”的问题，将 MIME 类型优化为 `application/octet-stream`，强制浏览器尊重 `download` 属性中的 `.csv` 后缀。
+        - 彻底移除 `revokeObjectURL` 逻辑，确保数据源在页面存续期间永远有效，杜绝下载中断。
+        - 为 CSV 文件注入 UTF-8 BOM (`\ufeff`)，确保 Excel 打开不乱码。
+- **验证情况**：门户导航逻辑清晰，Mac/Chrome 环境下导出 8760 行逐时数据文件稳定成功。
 
-
-
+*文档更新于: 2025-12-30 00:05*

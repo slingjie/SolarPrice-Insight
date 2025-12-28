@@ -71,5 +71,41 @@ export interface ComprehensiveResult {
   _deleted?: boolean;
 }
 
-export type AppView = 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'database';
+export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'database' | 'pvgis';
+
+export interface PVGISParams {
+  lat: number;
+  lon: number;
+  peakPower: number; // kWp
+  loss: number;      // %
+  azimuth: number;   // -180 to 180, 0 is South, East is negative, West is positive
+  angle?: number;    // tilt, optional for optimized
+}
+
+export interface PVSummary {
+  annualEnergy: number; // kWh
+  monthlyEnergy: number[]; // 12 months, kWh
+  fullLoadHours: number; // h
+  pr: number; // 0-1
+  loss: number; // %
+  optimalSlope: number; // degrees
+  globalIrradiance: number; // kWh/m2/year (Horizontal)
+  inPlaneIrradiance: number; // kWh/m2/year (In-Plane)
+}
+
+export interface HourlyData {
+  time: string; // ISO string
+  pvPower: number; // W
+  poaIrradiance: number; // W/m2
+}
+
+export interface PVGISCacheData {
+  id: string; // hash
+  params: PVGISParams;
+  summary: PVSummary;
+  hourly: HourlyData[];
+  created_at: number; // timestamp
+  _deleted?: boolean;
+}
+
 
