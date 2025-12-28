@@ -14,6 +14,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/pvgis/, ''),
         },
+        '/api/geocode': {
+          target: 'https://nominatim.openstreetmap.org',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/geocode/, '/search'),
+        },
       },
     },
     plugins: [react()],

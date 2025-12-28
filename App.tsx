@@ -8,7 +8,7 @@ import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
 import { PriceDatabase } from './components/PriceDatabase';
 import { AnalysisView } from './components/Analysis';
-import { PVGISAnalysis } from './components/pvgis/PVGISAnalysis';
+import { PVGISModule } from './components/pvgis/PVGISModule';
 import { SettingsView } from './components/Settings';
 import { AppView, TariffData, TimeConfig } from './types';
 import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
@@ -227,7 +227,7 @@ const App: React.FC = () => {
             <ComprehensivePriceCalculator tariffs={tariffs} />
           )}
           {view === 'pvgis' && (
-            <PVGISAnalysis onBack={() => setView('home')} />
+            <PVGISModule onBack={() => setView('home')} />
           )}
 
           {view === 'analysis' && analysisTarget && (
