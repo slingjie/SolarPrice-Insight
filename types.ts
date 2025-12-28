@@ -108,4 +108,73 @@ export interface PVGISCacheData {
   _deleted?: boolean;
 }
 
+// ========== 辐照度查询相关类型 ==========
+
+/**
+ * 辐照度数据点 (统一格式)
+ */
+export interface IrradiancePoint {
+  time: string; // ISO8601 UTC
+  ghi: number | null; // 水平面总辐照度 W/m2
+  dni: number | null; // 法向直射辐照度 W/m2
+  dhi: number | null; // 漫射辐照度 W/m2
+  extras: Record<string, number | string | null>; // 其他字段
+}
+
+/**
+ * 辐照度查询元数据
+ */
+export interface IrradianceMetadata {
+  source: 'pvgis' | 'cams';
+  queryType: 'tmy' | 'series';
+  lat: number;
+  lon: number;
+  timeRef: 'UTC';
+  unit: {
+    irradiance?: 'W/m2';
+    irradiation?: 'Wh/m2' | 'kWh/m2';
+  };
+  provider?: string;
+  rawInputs?: unknown;
+  cached?: boolean;
+  requestUrl?: string;
+}
+
+/**
+ * 辐照度查询响应
+ */
+export interface IrradianceResponse {
+  metadata: IrradianceMetadata;
+  data: IrradiancePoint[];
+}
+
+/**
+ * 地址解析候选点
+ */
+export interface GeocodeCandidate {
+  lat: number;
+  lon: number;
+  displayName: string;
+  provider: string;
+  confidence: number | null;
+}
+
+/**
+ * 地址解析响应
+ */
+export interface GeocodeResponse {
+  requestUrl?: string;
+  candidates: GeocodeCandidate[];
+}
+
+/**
+ * 辐照度缓存数据
+ */
+export interface IrradianceCacheData {
+  id: string; // hash of query params
+  metadata: IrradianceMetadata;
+  data: IrradiancePoint[];
+  created_at: number;
+  _deleted?: boolean;
+}
 

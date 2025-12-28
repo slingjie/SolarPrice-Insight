@@ -214,3 +214,37 @@
 - **验证情况**：门户导航逻辑清晰，Mac/Chrome 环境下导出 8760 行逐时数据文件稳定成功。
 
 *文档更新于: 2025-12-30 00:05*
+
+## 2025-12-29 PVGIS 模块拆分重构
+
+- **需求背景**：参考用户新建的 [PVgis 仓库](https://github.com/slingjie/PVgis.git)，将原有单一的发电量计算页面拆分为"辐照度查询"和"发电量计算"两个子模块，提供更专业、更灵活的数据查询能力。
+
+- **架构变更**：
+    | 变更类型 | 文件 | 说明 |
+    |---------|------|------|
+    | 新增类型 | `types.ts` | 添加 `IrradiancePoint`, `IrradianceMetadata`, `IrradianceResponse`, `GeocodeCandidate` |
+    | 新增服务 | `services/geocodeService.ts` | Nominatim 地址解析服务（通过 Vite proxy） |
+    | 扩展服务 | `services/pvgisService.ts` | 新增 `getTMYData()`, `getIrradianceSeries()` 方法 |
+    | 新增组件 | `components/pvgis/IrradianceQuery.tsx` | 辐照度查询页面（地址/经纬度双模式、TMY/年度序列、月份筛选、图表、CSV导出） |
+    | 新增组件 | `components/pvgis/PVGISModule.tsx` | 带 Tab 切换的模块入口 |
+    | 重命名 | `PVGISAnalysis.tsx` → `PowerCalculation.tsx` | 保持原有发电量计算功能 |
+    | 配置 | `vite.config.ts` | 新增 `/api/geocode` 代理到 Nominatim |
+
+- **辐照度查询功能亮点**：
+    1. **双模式输入**：支持直接输入经纬度或通过地址搜索（Nominatim）获取坐标
+    2. **候选位置确认**：地址解析后显示候选列表，用户需确认后才能查询
+    3. **TMY / 年度序列**：支持典型年（8760 小时）或指定年度范围查询
+    4. **可视化展示**：月度辐照量柱状图 + 日内曲线折线图
+    5. **分页表格**：支持月份筛选、日期选择、中国时间/UTC 切换
+    6. **CSV 导出**：含 metadata JSON 注释，双时间格式（中国时间 + UTC）
+    7. **可验证性**：显示完整的 PVGIS 请求 URL，可直接复制到浏览器验证
+
+- **用户确认的设计决策**：
+    - 地址解析：先用 Nominatim，远期可改为高德
+    - 数据源：仅 PVGIS，远期支持 CAMS
+    - 模块入口：门户显示两个卡片，辐照度查询与发电量计算为子 Tab
+    - 后端代理：Vite proxy，远期部署到 Cloudflare Workers
+
+- **验证情况**：浏览器测试通过，Tab 切换正常，辐照度查询返回 8760 条 TMY 数据，月度图表与日内曲线正确渲染。
+
+*文档更新于: 2025-12-29 01:50*
