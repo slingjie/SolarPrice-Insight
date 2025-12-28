@@ -53,5 +53,20 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
       { start: "17:00", end: "22:00", type: "peak" },
       { start: "22:00", end: "24:00", type: "valley" }
     ]
+  },
+  {
+    id: 'tc-national-fallback',
+    province: '全部',
+    month_pattern: 'All',
+    updated_at: new Date().toISOString(),
+    last_modified: new Date().toISOString(),
+    time_rules: [
+      { start: "00:00", end: "08:00", type: "valley" },
+      { start: "08:00", end: "12:00", type: "peak" },
+      { start: "12:00", end: "14:00", type: "flat" },
+      { start: "14:00", end: "17:00", type: "peak" },
+      { start: "17:00", end: "21:00", type: "peak" },
+      { start: "21:00", end: "24:00", type: "valley" }
+    ]
   }
 ];
