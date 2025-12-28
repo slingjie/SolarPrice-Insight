@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit, Calculator } from 'lucide-react';
+import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit, Calculator, BarChart3, Home, LogOut, ArrowLeft } from 'lucide-react';
 import { AppView } from '../types';
 
 interface SidebarProps {
@@ -20,12 +19,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
 
   return (
     <aside className="w-20 lg:w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-20 transition-all">
-      <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-orange-200">
-          <Sun size={20} />
+      {/* Top Navigation Back Button */}
+      <div className="p-4 border-b border-slate-50 mb-2">
+        <button
+          onClick={() => onNavigate('home')}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <ArrowLeft size={18} />
+          </div>
+          <span className="hidden lg:block font-bold">返回模块门户</span>
+        </button>
+      </div>
+
+      <div className="px-6 py-2 flex items-center gap-3 opacity-60">
+        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded flex items-center justify-center text-white shadow-sm">
+          <Sun size={14} />
         </div>
-        <span className="font-bold text-xl tracking-tight hidden lg:block bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
-          SolarPrice
+        <span className="font-bold text-base tracking-tight hidden lg:block text-slate-700">
+          PriceInsight
         </span>
       </div>
 

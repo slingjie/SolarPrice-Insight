@@ -8,13 +8,16 @@ import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
 import { PriceDatabase } from './components/PriceDatabase';
 import { AnalysisView } from './components/Analysis';
+import { PVGISAnalysis } from './components/pvgis/PVGISAnalysis';
 import { SettingsView } from './components/Settings';
 import { AppView, TariffData, TimeConfig } from './types';
 import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
 import { getDatabase } from './services/db';
 
+import { LandingPage } from './components/LandingPage';
+
 const App: React.FC = () => {
-  const [view, setView] = useState<AppView>('dashboard');
+  const [view, setView] = useState<AppView>('home');
   const [tariffs, setTariffs] = useState<TariffData[]>([]);
   const [timeConfigs, setTimeConfigs] = useState<TimeConfig[]>(DEFAULT_TIME_CONFIGS);
   const [analysisTarget, setAnalysisTarget] = useState<{ province: string, category: string, voltage: string } | null>(null);
@@ -168,11 +171,17 @@ const App: React.FC = () => {
     );
   }
 
+  if (view === 'home') {
+    return <LandingPage onNavigate={setView} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
-      <Sidebar currentView={view} onNavigate={setView} />
+      {view !== 'pvgis' && (
+        <Sidebar currentView={view} onNavigate={setView} />
+      )}
 
-      <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8 overflow-y-auto min-h-screen">
+      <main className={`flex-1 ${view !== 'pvgis' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
         <div className="max-w-7xl mx-auto">
           {view === 'dashboard' && (
             <Dashboard
@@ -216,6 +225,9 @@ const App: React.FC = () => {
           )}
           {view === 'calculator' && (
             <ComprehensivePriceCalculator tariffs={tariffs} />
+          )}
+          {view === 'pvgis' && (
+            <PVGISAnalysis onBack={() => setView('home')} />
           )}
 
           {view === 'analysis' && analysisTarget && (
