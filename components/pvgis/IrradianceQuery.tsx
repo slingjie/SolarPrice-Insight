@@ -61,9 +61,13 @@ function formatTime(timeIso: string, mode: TimeMode): string {
     return `${p.y}-${pad2(p.m)}-${pad2(p.d)} ${pad2(p.hh)}:${pad2(p.mm)}`;
 }
 
-function dayKey(timeIso: string, mode: TimeMode): string {
+function dayKey(timeIso: string, mode: TimeMode, ignoreYear: boolean = false): string {
     const p = getTimeParts(timeIso, mode);
     if (!p) return '';
+    // 对于 TMY 数据，忽略年份（每月可能来自不同年份）
+    if (ignoreYear) {
+        return `${pad2(p.m)}-${pad2(p.d)}`;
+    }
     return `${p.y}-${pad2(p.m)}-${pad2(p.d)}`;
 }
 
@@ -121,10 +125,38 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
         return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${latNum},${lonNum}`)}`;
     }, [locationMode, lat, lon, selectedCandidate]);
 
-    // 过滤后的数据（表格用）
-    const filteredData = useMemo(() => {
+    // 过滤并处理后的数据（表格用）
+    const processedData = useMemo(() => {
         if (!result) return [];
-        let data = result.data;
+        let data = [...result.data];
+
+        // 如果是 TMY (典型年) 且是 中国时间，进行循环位移
+        // PVGIS TMY 总是从 UTC 00:00 开始。切换到 CN 会变成 08:00。
+        // 为了让显示从 00:00 开始，我们需要将末尾的 8 小时（跨年平移）移到开头。
+        if (queryType === 'tmy' && timeMode === 'cn') {
+            // 我们通过计算在 CN 时间下的分钟偏移量来排序
+            // 实际上对于 TMY，它不关心具体哪一年，所以我们可以按 (月*10000 + 日*100 + 时) 排序
+            data.sort((a, b) => {
+                const pa = getTimeParts(a.time, 'cn');
+                const pb = getTimeParts(b.time, 'cn');
+                if (!pa || !pb) return 0;
+
+                // 计算一个统一的排序分值：月-1, 日-1, 时
+                const valA = pa.m * 10000 + pa.d * 100 + pa.hh;
+                const valB = pb.m * 10000 + pb.d * 100 + pb.hh;
+                return valA - valB;
+            });
+        } else if (queryType === 'series' && timeMode === 'cn') {
+            // 年度序列数据，简单按时间戳排序即可
+            data.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+        }
+
+        return data;
+    }, [result, timeMode, queryType]);
+
+    // 再次过滤（根据用户选择的月份/日期）
+    const filteredData = useMemo(() => {
+        let data = processedData;
 
         // 月份过滤
         if (monthFilter !== 'all') {
@@ -135,12 +167,29 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
         }
 
         // 日期过滤（仅当 tableFollowChartDay 为 true 时）
+        // TMY 数据需要忽略年份，因为每月可能来自不同年份
+        const ignoreYear = queryType === 'tmy';
         if (tableFollowChartDay && selectedDay) {
-            data = data.filter(r => dayKey(r.time, timeMode) === selectedDay);
+            data = data.filter(r => dayKey(r.time, timeMode, ignoreYear) === selectedDay);
         }
 
         return data;
-    }, [result, monthFilter, selectedDay, timeMode, tableFollowChartDay]);
+    }, [processedData, monthFilter, selectedDay, timeMode, tableFollowChartDay, queryType]);
+
+    // 可用的日期列表（用于下拉选择）
+    const availableDays = useMemo(() => {
+        if (!processedData.length) return [];
+        const ignoreYear = queryType === 'tmy';
+        const daySet = new Set<string>();
+
+        for (const r of processedData) {
+            const key = dayKey(r.time, timeMode, ignoreYear);
+            if (key) daySet.add(key);
+        }
+
+        // 按月-日排序
+        return Array.from(daySet).sort((a, b) => a.localeCompare(b));
+    }, [processedData, timeMode, queryType]);
 
     // 分页数据
     const pagedData = useMemo(() => {
@@ -171,12 +220,46 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
         }));
     }, [result, timeMode]);
 
+    // 年度汇总（用于 SITE INFO 面板）
+    const annualSummary = useMemo(() => {
+        if (!result) return null;
+
+        let ghiTotal = 0;
+        let dniTotal = 0;
+        let dhiTotal = 0;
+
+        for (const r of result.data) {
+            if (typeof r.ghi === 'number' && Number.isFinite(r.ghi)) ghiTotal += r.ghi;
+            if (typeof r.dni === 'number' && Number.isFinite(r.dni)) dniTotal += r.dni;
+            if (typeof r.dhi === 'number' && Number.isFinite(r.dhi)) dhiTotal += r.dhi;
+        }
+
+        // W/m2 * 小时数 -> Wh/m2 -> kWh/m2
+        return {
+            ghi: ghiTotal / 1000,
+            dni: dniTotal / 1000,
+            dhi: dhiTotal / 1000,
+            recordCount: result.data.length,
+            lat: result.metadata.lat,
+            lon: result.metadata.lon,
+            queryType: result.metadata.queryType,
+        };
+    }, [result]);
+
     // 日内曲线数据
     const dailyCurve = useMemo(() => {
-        if (!result || !selectedDay) return null;
+        if (!processedData.length || !selectedDay) return null;
 
-        const dayData = result.data.filter(r => dayKey(r.time, timeMode) === selectedDay);
-        if (dayData.length === 0) return null;
+        // 在 processedData 中寻找匹配 selectedDay 的数据
+        // 这很重要，因为 processedData 已经处理了时间平移
+        // TMY 数据需要忽略年份
+        const ignoreYear = queryType === 'tmy';
+        const dayData = processedData.filter(r => dayKey(r.time, timeMode, ignoreYear) === selectedDay);
+
+        if (dayData.length === 0) {
+            console.warn('IrradianceQuery: No data found for selected day:', selectedDay);
+            return null;
+        }
 
         return dayData.map(r => {
             const p = getTimeParts(r.time, timeMode);
@@ -187,17 +270,20 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                 dhi: r.dhi ?? 0,
             };
         }).sort((a, b) => a.hour.localeCompare(b.hour)); // 按小时排序
-    }, [result, selectedDay, timeMode]);
+    }, [processedData, selectedDay, timeMode]);
 
     // 初始化日期选择
     useEffect(() => {
-        if (result && result.data.length > 0) {
-            // 获取数据中的第一个日期（按当前时间模式）
-            const firstDay = dayKey(result.data[0].time, timeMode);
+        if (processedData.length > 0) {
+            console.log('IrradianceQuery V1.2: Data sorted by local time, TMY uses MM-DD dayKey');
+            // 获取处理后数据中的第一个日期（已按 local time 排序）
+            // TMY 数据需要忽略年份
+            const ignoreYear = queryType === 'tmy';
+            const firstDay = dayKey(processedData[0].time, timeMode, ignoreYear);
             setSelectedDay(firstDay);
             setPage(1);
         }
-    }, [result]); // 只在 result 变化时重置，不在 timeMode 变化时重置
+    }, [processedData]); // 当 processedData 变化时重置（包含 result 或 timeMode 变化）
 
     // 地址解析
     const handleGeocode = async () => {
@@ -491,13 +577,10 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                                 {error}
                             </div>
                         )}
-                    </div>
 
-                    {/* 右侧：地图预览 / 概览 */}
-                    <div className="bg-slate-50 p-4 rounded-lg min-h-[300px]">
-                        {/* 地图预览 */}
+                        {/* 地图预览 - 移到按钮下方 */}
                         {osmEmbedUrl && (
-                            <div className="mb-4">
+                            <div className="mt-4">
                                 <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                                     <MapPin size={12} />
                                     位置预览
@@ -505,7 +588,7 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                                 <iframe
                                     title="位置预览"
                                     src={osmEmbedUrl}
-                                    className="w-full h-48 rounded-lg border border-slate-200"
+                                    className="w-full h-40 rounded-lg border border-slate-200"
                                     style={{ border: 0 }}
                                     loading="lazy"
                                 />
@@ -519,62 +602,130 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                                 </a>
                             </div>
                         )}
+                    </div>
 
-                        {!result && !osmEmbedUrl && (
+                    {/* 右侧：SITE INFO 风格数据展示 */}
+                    <div className="bg-slate-50 p-4 rounded-lg min-h-[300px]">
+                        {!annualSummary ? (
                             <div className="h-full flex items-center justify-center text-slate-400">
                                 <div className="text-center">
-                                    <MapPin size={48} className="mx-auto mb-2 opacity-50" />
-                                    <p>请输入位置并点击查询</p>
+                                    <Info size={48} className="mx-auto mb-2 opacity-50" />
+                                    <p>查询后显示站点数据</p>
                                 </div>
                             </div>
-                        )}
-
-                        {result && (
+                        ) : (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <CheckCircle className="text-green-500" size={20} />
-                                    <span className="font-medium text-slate-700">查询成功</span>
+                                {/* 标题 */}
+                                <div className="border-b border-slate-200 pb-3">
+                                    <h3 className="font-bold text-slate-800 text-lg">站点信息</h3>
+                                    <div className="text-sm text-slate-600 mt-1">
+                                        {annualSummary.lat.toFixed(5)}°, {annualSummary.lon.toFixed(5)}°
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                        时区: UTC+08, 亚洲/上海
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <div className="text-xs text-slate-500">坐标</div>
-                                        <div className="font-medium">{result.metadata.lat.toFixed(4)}, {result.metadata.lon.toFixed(4)}</div>
+                                {/* 数据标题 */}
+                                <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-slate-700">辐照数据</span>
+                                    <span className="text-sm text-blue-500">年度汇总</span>
+                                </div>
+
+                                {/* 辐照数据表格 */}
+                                <div className="space-y-0">
+                                    {/* GHI */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">水平面总辐射量</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-blue-500 font-medium">GHI</div>
+                                        <div className="w-20 text-right font-bold text-blue-600">{annualSummary.ghi.toFixed(1)}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">kWh/m<sup>2</sup></div>
                                     </div>
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <div className="text-xs text-slate-500">类型</div>
-                                        <div className="font-medium">{result.metadata.queryType.toUpperCase()}</div>
+
+                                    {/* DNI */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">法向直射辐射量</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">DNI</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{annualSummary.dni.toFixed(1)}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">kWh/m<sup>2</sup></div>
                                     </div>
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <div className="text-xs text-slate-500">记录数</div>
-                                        <div className="font-medium">{result.data.length.toLocaleString()}</div>
+
+                                    {/* DHI */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">水平面散射辐射量</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">DHI</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{annualSummary.dhi.toFixed(1)}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">kWh/m<sup>2</sup></div>
                                     </div>
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <div className="text-xs text-slate-500">单位</div>
-                                        <div className="font-medium">{result.metadata.unit.irradiance || 'W/m2'}</div>
+
+                                    {/* 最佳倾角 - 经验公式: 纬度 * 0.9 + 适当调整 */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">最佳倾角</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">OPTA</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{Math.round(Math.abs(annualSummary.lat) * 0.9)}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">°</div>
+                                    </div>
+
+                                    {/* 最佳方位角 - 北半球朝南(180°)，南半球朝北(0°) */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">最佳方位角</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">AZIM</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{annualSummary.lat >= 0 ? 180 : 0}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">° ({annualSummary.lat >= 0 ? '正南' : '正北'})</div>
+                                    </div>
+
+                                    {/* 数据记录数 */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">数据记录数</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">N</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{annualSummary.recordCount.toLocaleString()}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">小时</div>
+                                    </div>
+
+                                    {/* 查询类型 */}
+                                    <div className="flex items-center py-2.5">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-600">查询类型</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-slate-500 font-medium">TYPE</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{annualSummary.queryType.toUpperCase()}</div>
+                                        <div className="w-20"></div>
                                     </div>
                                 </div>
+
+                                {/* 导出按钮 */}
+                                <button
+                                    onClick={handleExport}
+                                    className="w-full py-2.5 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 flex items-center justify-center gap-2 mt-4"
+                                >
+                                    <Download size={18} />
+                                    导出 CSV
+                                </button>
 
                                 {/* 可验证性：显示请求 URL */}
-                                {result.metadata.requestUrl && (
+                                {result?.metadata.requestUrl && (
                                     <div className="bg-white p-3 rounded-lg">
                                         <div className="text-xs text-slate-500 mb-1 flex items-center gap-1">
                                             <Info size={12} />
-                                            请求 URL (可复制复现)
+                                            API 请求 URL
                                         </div>
                                         <div className="text-xs text-slate-600 break-all font-mono bg-slate-50 p-2 rounded">
                                             {result.metadata.requestUrl}
                                         </div>
                                     </div>
                                 )}
-
-                                <button
-                                    onClick={handleExport}
-                                    className="w-full py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 flex items-center justify-center gap-2"
-                                >
-                                    <Download size={18} />
-                                    导出 CSV
-                                </button>
                             </div>
                         )}
                     </div>
@@ -621,12 +772,17 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
 
                             {/* 日期选择（影响日内曲线） */}
                             <div className="flex items-center gap-2">
-                                <input
-                                    type="date"
+                                <select
                                     value={selectedDay}
                                     onChange={e => setSelectedDay(e.target.value)}
-                                    className="text-sm border border-slate-200 rounded px-2 py-1"
-                                />
+                                    className="text-sm border border-slate-200 rounded px-2 py-1 max-w-[140px]"
+                                >
+                                    {availableDays.map(day => (
+                                        <option key={day} value={day}>
+                                            {queryType === 'tmy' ? day : day}
+                                        </option>
+                                    ))}
+                                </select>
                                 <span className="text-xs text-slate-400">(日内曲线)</span>
                             </div>
 
