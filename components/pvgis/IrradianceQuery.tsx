@@ -248,6 +248,8 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack, onNavi
             lat: result.metadata.lat,
             lon: result.metadata.lon,
             queryType: result.metadata.queryType,
+            elevation: result.metadata.rawInputs?.location?.elevation,
+            radiationDb: result.metadata.rawInputs?.meteo_data?.radiation_db,
         };
     }, [result]);
 
@@ -751,6 +753,47 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack, onNavi
                                         <div className="w-16 text-center text-sm text-slate-500 font-medium">TYPE</div>
                                         <div className="w-20 text-right font-bold text-slate-700">{annualSummary.queryType.toUpperCase()}</div>
                                         <div className="w-20"></div>
+                                    </div>
+                                </div>
+
+                                {/* 数据源验证 (Verification) */}
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                                            <CheckCircle size={16} className="text-green-500" />
+                                            数据源验证
+                                        </span>
+                                    </div>
+                                    <div className="bg-slate-100/50 rounded-lg p-3 space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">模型采用海拔:</span>
+                                            <span className="font-mono font-medium text-slate-700">
+                                                {annualSummary.elevation !== undefined ? `${annualSummary.elevation} m` : 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">辐射数据库:</span>
+                                            <span className="font-mono font-medium text-slate-700">
+                                                {annualSummary.radiationDb || 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-200/50">
+                                            <div className="text-xs text-slate-400 mb-1">模型网格坐标 (用于验证):</div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-mono text-xs text-slate-600">
+                                                    {annualSummary.lat.toFixed(4)}, {annualSummary.lon.toFixed(4)}
+                                                </span>
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${annualSummary.lat},${annualSummary.lon}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    <MapPin size={10} />
+                                                    校验位置
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
