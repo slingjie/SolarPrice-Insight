@@ -10,12 +10,28 @@ import { PowerCalculation } from './PowerCalculation';
 
 type TabType = 'irradiance' | 'power';
 
+export interface PVGISNavParams {
+    lat?: number;
+    lon?: number;
+    address?: string;
+    source?: 'irradiance_query';
+    optimalSlope?: number;
+}
+
 interface PVGISModuleProps {
     onBack?: () => void;
 }
 
 export const PVGISModule: React.FC<PVGISModuleProps> = ({ onBack }) => {
     const [activeTab, setActiveTab] = useState<TabType>('irradiance');
+    const [navParams, setNavParams] = useState<PVGISNavParams>({});
+
+    const handleNavigate = (tab: TabType, params?: PVGISNavParams) => {
+        if (params) {
+            setNavParams(prev => ({ ...prev, ...params }));
+        }
+        setActiveTab(tab);
+    };
 
     return (
         <div className="h-full flex flex-col bg-slate-50">
@@ -71,9 +87,13 @@ export const PVGISModule: React.FC<PVGISModuleProps> = ({ onBack }) => {
             {/* Content */}
             <div className="flex-1 overflow-auto">
                 {activeTab === 'irradiance' ? (
-                    <IrradianceQuery />
+                    <IrradianceQuery
+                        onNavigate={(params) => handleNavigate('power', params)}
+                    />
                 ) : (
-                    <PowerCalculation />
+                    <PowerCalculation
+                        initialParams={navParams}
+                    />
                 )}
             </div>
         </div>

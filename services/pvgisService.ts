@@ -4,6 +4,7 @@ import { getDatabase } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE_URL = '/api/pvgis'; // Uses Vite Proxy
+const CACHE_VERSION = 'v2_ghi_fix'; // Increment to invalidate cache
 
 /**
  * Calculate SHA-256 hash for params to use as cache key
@@ -13,10 +14,34 @@ async function generateCacheKey(params: PVGISParams): Promise<string> {
         acc[key] = params[key as keyof PVGISParams];
         return acc;
     }, {} as any);
-    const msgBuffer = new TextEncoder().encode(JSON.stringify(sortedParams));
+    const msgBuffer = new TextEncoder().encode(JSON.stringify(sortedParams) + CACHE_VERSION);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Fetch Optimal Slope from PVGIS
+ */
+async function getOptimalSlope(lat: number, lon: number): Promise<number | null> {
+    const query = new URLSearchParams({
+        lat: lat.toString(),
+        lon: lon.toString(),
+        peakpower: '1',
+        loss: '0',
+        optimalinclination: '1',
+        outputformat: 'json',
+    });
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/PVcalc?${query.toString()}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.inputs?.mounting_system?.fixed?.slope?.value ?? null;
+    } catch (e) {
+        console.warn('Failed to fetch optimal slope', e);
+        return null;
+    }
 }
 
 /**
@@ -27,9 +52,7 @@ async function fetchMonthlyRadiation(params: PVGISParams): Promise<number> {
         lat: params.lat.toString(),
         lon: params.lon.toString(),
         horirrad: '1',
-        outputformat: 'json',
-        startyear: '2016', // Use a recent representative range or leave empty for full range
-        endyear: '2020'
+        outputformat: 'json'
     });
 
     try {
@@ -79,7 +102,8 @@ async function fetchPVSummary(params: PVGISParams): Promise<PVSummary> {
     });
 
     // Check if we need to optimize slope (angle)
-    if (!params.angle) {
+    // IMPORTANT: Check for undefined/null, as 0 is a valid angle!
+    if (params.angle === undefined || params.angle === null) {
         query.append('optimalinclination', '1');
     } else {
         query.append('angle', params.angle.toString());
@@ -107,8 +131,20 @@ async function fetchPVSummary(params: PVGISParams): Promise<PVSummary> {
     // Full Load Hours = E_y / peakPower
     const fullLoadHours = annualEnergy / params.peakPower;
 
-    const H_i_y = outputs.totals.fixed['H(i)_y'];
+    const H_i_y = outputs.totals.fixed['H(i)_y']; // In-plane
     const pr = H_i_y ? (annualEnergy / params.peakPower) / H_i_y : 0;
+
+    // [Updated] Priority: Use MRcalc (horizontalIrradiance) if available to ensure consistency with Irradiance Query page.
+    // Fallback to PVcalc summation if MRcalc fails.
+    let calcGHI = 0;
+    const monthlyList = outputs.monthly?.fixed || outputs.monthly;
+    if (Array.isArray(monthlyList)) {
+        calcGHI = monthlyList.reduce((sum: number, m: any) => sum + (m['H(h)_m'] || 0), 0);
+        if (calcGHI === 0 && (params.angle === 0 || params.angle === undefined)) {
+            calcGHI = monthlyList.reduce((sum: number, m: any) => sum + (m['H(i)_m'] || 0), 0);
+        }
+    }
+    const finalGHI = horizontalIrradiance > 0 ? horizontalIrradiance : calcGHI;
 
     // Extract Optimal Slope
     let optimalSlope = 0;
@@ -149,14 +185,14 @@ async function fetchPVSummary(params: PVGISParams): Promise<PVSummary> {
         pr,
         loss,
         optimalSlope,
-        globalIrradiance: horizontalIrradiance, // From MRcalc
+        globalIrradiance: finalGHI, // Use the one summed from PVcalc matching the same params
         inPlaneIrradiance: H_i_y || 0
     };
 }
 
 /**
- * Fetch Hourly Data using seriescalc
- * Uses a recent representative year (2020) because PVcalc doesn't support hourly TMY via API easily.
+ * Fetch Hourly Data using TMY (Typical Meteorological Year)
+ * Changed from seriescalc(2020) to tmy to align with Irradiance Query results
  */
 async function fetchHourlyData(params: PVGISParams): Promise<HourlyData[]> {
     const query = new URLSearchParams({
@@ -165,34 +201,36 @@ async function fetchHourlyData(params: PVGISParams): Promise<HourlyData[]> {
         peakpower: params.peakPower.toString(),
         loss: params.loss.toString(),
         outputformat: 'json',
-        pvcalculation: '1', // Important for seriescalc to return P
-        startyear: '2020',
-        endyear: '2020',
-        aspect: params.azimuth.toString(),
+        pvcalculation: '1', // Include PV output in TMY
     });
 
-    if (!params.angle) {
-        query.append('optimalinclination', '1');
-    } else {
+    if (params.angle !== undefined) {
         query.append('angle', params.angle.toString());
+    } else {
+        query.append('optimalinclination', '1');
     }
 
-    const response = await fetch(`${API_BASE_URL}/seriescalc?${query.toString()}`);
+    if (params.azimuth !== undefined) {
+        query.append('aspect', params.azimuth.toString());
+    }
+
+
+    const response = await fetch(`${API_BASE_URL}/tmy?${query.toString()}`);
     if (!response.ok) {
         throw new Error(`PVGIS API Error: ${response.statusText}`);
     }
 
     const data = await response.json();
-    const hourly = data.outputs.hourly;
+    const hourly = data.outputs.tmy_hourly;
 
     if (!hourly) {
-        throw new Error('No hourly data returned from PVGIS');
+        throw new Error('No hourly data returned from PVGIS TMY');
     }
 
     return hourly.map((h: any) => ({
-        time: parsePVGISTime(h.time),
-        pvPower: h.P, // Watts
-        poaIrradiance: h['G(i)'], // W/m2
+        time: parsePvgisTimeToIsoUtc(h['time(UTC)']),
+        pvPower: h.P ?? 0, // Watts
+        poaIrradiance: h['G(i)'] ?? 0, // W/m2 In-plane irradiance
     }));
 }
 
@@ -378,6 +416,10 @@ export const pvgisService = {
             data,
         };
     },
+
+    // [NEW] Exposed methods
+    getOptimalSlope,
+    fetchMonthlyRadiation,
 };
 
 // ========== 辅助函数 ==========

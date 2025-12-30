@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, MapPin, Download, Calendar, ChevronLeft, ChevronRight, Clock, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Download, Calendar, ChevronLeft, ChevronRight, Clock, Info, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { geocodeService } from '../../services/geocodeService';
 import { pvgisService } from '../../services/pvgisService';
@@ -21,8 +21,11 @@ type LocationMode = 'address' | 'coords';
 type QueryType = 'tmy' | 'series';
 type TimeMode = 'cn' | 'utc';
 
+import { PVGISNavParams } from './PVGISModule';
+
 interface IrradianceQueryProps {
     onBack?: () => void;
+    onNavigate?: (params: PVGISNavParams) => void;
 }
 
 // 时间处理辅助函数
@@ -71,7 +74,7 @@ function dayKey(timeIso: string, mode: TimeMode, ignoreYear: boolean = false): s
     return `${p.y}-${pad2(p.m)}-${pad2(p.d)}`;
 }
 
-export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
+export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack, onNavigate }) => {
     // 输入状态
     const [locationMode, setLocationMode] = useState<LocationMode>('coords');
     const [queryType, setQueryType] = useState<QueryType>('tmy');
@@ -91,6 +94,8 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<IrradianceResponse | null>(null);
+    const [optimalSlope, setOptimalSlope] = useState<number | undefined>(undefined);
+    const [avgGHI, setAvgGHI] = useState<number | undefined>(undefined);
 
     // 显示状态
     const [timeMode, setTimeMode] = useState<TimeMode>('cn');
@@ -324,6 +329,8 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
         setLoading(true);
         setError(null);
         setResult(null);
+        setOptimalSlope(undefined);
+        setAvgGHI(undefined);
 
         try {
             let data: IrradianceResponse;
@@ -341,6 +348,15 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
 
             setResult(data);
             setMonthFilter('all');
+
+            // Fetch Site-level stats (Optimal Slope and Multi-year Average GHI)
+            Promise.all([
+                pvgisService.getOptimalSlope(latNum, lonNum),
+                pvgisService.fetchMonthlyRadiation({ lat: resolvedLat, lon: resolvedLon } as any)
+            ]).then(([slope, ghi]) => {
+                if (slope !== null) setOptimalSlope(slope);
+                if (ghi > 0) setAvgGHI(ghi);
+            });
         } catch (e) {
             setError(e instanceof Error ? e.message : '查询失败');
         } finally {
@@ -552,23 +568,45 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                         )}
 
                         {/* 查询按钮 */}
-                        <button
-                            onClick={handleQuery}
-                            disabled={loading || (locationMode === 'address' && candidates.length > 0 && !confirmLocation)}
-                            className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    查询中...
-                                </>
-                            ) : (
-                                <>
-                                    <Search size={18} />
-                                    查询辐照数据
-                                </>
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleQuery}
+                                disabled={loading || (locationMode === 'address' && candidates.length > 0 && !confirmLocation)}
+                                className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        查询中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search size={18} />
+                                        查询辐照数据
+                                    </>
+                                )}
+                            </button>
+
+                            {/* [NEW] 下一步：计算发电量 */}
+                            {result && onNavigate && (
+                                <button
+                                    onClick={() => {
+                                        const slope = optimalSlope ?? (annualSummary ? Math.round(Math.abs(annualSummary.lat) * 0.9) : undefined);
+                                        onNavigate({
+                                            lat: resolvedLat,
+                                            lon: resolvedLon,
+                                            address: locationMode === 'address' ? address : undefined,
+                                            source: 'irradiance_query',
+                                            optimalSlope: slope
+                                        });
+                                    }}
+                                    className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2 animate-in slide-in-from-top-2 fade-in"
+                                >
+                                    <Zap size={18} />
+                                    下一步：计算发电量
+                                </button>
                             )}
-                        </button>
+                        </div>
 
                         {/* 错误提示 */}
                         {error && (
@@ -634,10 +672,21 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
 
                                 {/* 辐照数据表格 */}
                                 <div className="space-y-0">
-                                    {/* GHI */}
+                                    <div className="flex items-center py-2.5 border-b border-slate-100 bg-orange-50/50 -mx-1 px-1 rounded">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-700 font-semibold">多年平均水平辐照 (GHI)</div>
+                                            <div className="text-[10px] text-slate-400">来自多年度历史数据平均值</div>
+                                        </div>
+                                        <div className="w-16 text-center text-sm text-orange-500 font-medium">AVG</div>
+                                        <div className="w-20 text-right font-bold text-orange-600">{avgGHI ? avgGHI.toFixed(1) : '...'}</div>
+                                        <div className="w-20 text-right text-sm text-slate-500">kWh/m<sup>2</sup>/y</div>
+                                    </div>
+
+                                    {/* Current Result GHI */}
                                     <div className="flex items-center py-2.5 border-b border-slate-100">
                                         <div className="flex-1">
-                                            <div className="text-sm text-slate-600">水平面总辐射量</div>
+                                            <div className="text-sm text-slate-600">当前查询总辐射量</div>
+                                            <div className="text-[10px] text-slate-400">{annualSummary.queryType === 'tmy' ? '典型年 (TMY) 序列总和' : '选定序列总和'}</div>
                                         </div>
                                         <div className="w-16 text-center text-sm text-blue-500 font-medium">GHI</div>
                                         <div className="w-20 text-right font-bold text-blue-600">{annualSummary.ghi.toFixed(1)}</div>
@@ -670,7 +719,7 @@ export const IrradianceQuery: React.FC<IrradianceQueryProps> = ({ onBack }) => {
                                             <div className="text-sm text-slate-600">最佳倾角</div>
                                         </div>
                                         <div className="w-16 text-center text-sm text-slate-500 font-medium">OPTA</div>
-                                        <div className="w-20 text-right font-bold text-slate-700">{Math.round(Math.abs(annualSummary.lat) * 0.9)}</div>
+                                        <div className="w-20 text-right font-bold text-slate-700">{optimalSlope ?? Math.round(Math.abs(annualSummary.lat) * 0.9)}</div>
                                         <div className="w-20 text-right text-sm text-slate-500">°</div>
                                     </div>
 

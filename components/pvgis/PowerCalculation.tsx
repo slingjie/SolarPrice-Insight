@@ -5,6 +5,7 @@ import { ResultsCard } from './ResultsCard';
 import { PVGISCharts } from './PVGISCharts';
 import { FormulaCard } from './FormulaCard';
 import { PVGISParams, PVSummary, HourlyData } from '../../types';
+import { PVGISNavParams } from './PVGISModule';
 import { pvgisService } from '../../services/pvgisService';
 import { AlertCircle, Printer, ArrowLeft, Sun, Download } from 'lucide-react';
 import { exportHourlyDataToCSV } from '../../utils/exportUtils';
@@ -20,14 +21,34 @@ const DEFAULT_PARAMS: PVGISParams = {
 
 interface PowerCalculationProps {
     onBack?: () => void;
+    initialParams?: PVGISNavParams;
 }
 
-export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack }) => {
+export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack, initialParams }) => {
     const [params, setParams] = useState<PVGISParams>(DEFAULT_PARAMS);
     const [summary, setSummary] = useState<PVSummary | null>(null);
     const [hourly, setHourly] = useState<HourlyData[] | null>(null);
     const [loading, setLoading] = useState(false);
+
     const [error, setError] = useState<string | null>(null);
+
+    // [NEW] Handle navigation params
+    const isFromQuery = initialParams?.source === 'irradiance_query';
+
+    React.useEffect(() => {
+        if (initialParams?.lat && initialParams?.lon) {
+            console.log('PowerCalculation: Initializing from params', initialParams);
+            const newParams = {
+                ...DEFAULT_PARAMS,
+                lat: initialParams.lat,
+                lon: initialParams.lon,
+            };
+            setParams(newParams);
+
+            // Auto calculate
+            performCalculation(newParams);
+        }
+    }, [initialParams]);
 
     const handleParamChange = (newParams: Partial<PVGISParams>) => {
         setParams(prev => ({ ...prev, ...newParams }));
@@ -75,6 +96,7 @@ export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack }) =>
                             lon={params.lon}
                             onChange={handleLocationChange}
                             onLocationSelect={handleLocationSearch}
+                            readOnly={isFromQuery}
                         />
                         <div className="h-px bg-slate-100" />
                         <SystemParams
