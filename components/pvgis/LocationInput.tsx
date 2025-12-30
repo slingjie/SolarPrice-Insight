@@ -7,6 +7,7 @@ interface LocationInputProps {
     lon: number;
     onChange: (field: 'lat' | 'lon', value: number) => void;
     onLocationSelect?: (lat: number, lon: number) => void;
+    readOnly?: boolean;
 }
 
 const CITIES = [
@@ -27,7 +28,7 @@ const CITIES = [
     { name: '青岛 (Qingdao)', lat: 36.06, lon: 120.38 },
 ];
 
-export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange, onLocationSelect }) => {
+export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange, onLocationSelect, readOnly = false }) => {
     const [searchQuery, setSearchQuery] = React.useState('');
     const [searching, setSearching] = React.useState(false);
     const [foundAddress, setFoundAddress] = React.useState<string | null>(null);
@@ -100,11 +101,12 @@ export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="输入城市名 (如: Wuxi, 无锡)..."
-                        className="flex-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                        className="flex-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500"
+                        disabled={readOnly}
                     />
                     <button
                         onClick={handleSearch}
-                        disabled={searching || !searchQuery.trim()}
+                        disabled={searching || !searchQuery.trim() || readOnly}
                         className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-3 rounded-lg transition-colors flex items-center justify-center min-w-[44px]"
                     >
                         {searching ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Navigation size={16} className="rotate-45" />}
@@ -126,6 +128,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange
                         onChange={handleCityChange}
                         className="w-full appearance-none border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all bg-white"
                         defaultValue={-1}
+                        disabled={readOnly}
                     >
                         <option value={-1}>-- 自定义 / 选择城市 --</option>
                         {CITIES.map((city, idx) => (
@@ -148,6 +151,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange
                         className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
                         placeholder="30.27"
                         step="0.0001"
+                        disabled={readOnly}
                     />
                 </div>
                 <div className="space-y-1">
@@ -159,6 +163,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ lat, lon, onChange
                         className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
                         placeholder="120.15"
                         step="0.0001"
+                        disabled={readOnly}
                     />
                 </div>
             </div>
