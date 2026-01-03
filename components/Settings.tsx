@@ -112,12 +112,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
               <Key size={14} className="text-blue-500" /> Google Gemini API Key
             </label>
-            <input
-              type="password"
-              value={apiKey}
-              readOnly
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-slate-500 focus:outline-none cursor-not-allowed font-mono"
-            />
+            <form onSubmit={(e) => e.preventDefault()}>
+              <input
+                type="password"
+                value={apiKey}
+                readOnly
+                className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-slate-500 focus:outline-none cursor-not-allowed font-mono"
+              />
+            </form>
             <p className="text-[10px] text-slate-400 mt-2">
               当前应用使用系统注入的 API Key。如果您在本地开发，请在环境变量中设置 API_KEY。
             </p>
@@ -146,14 +148,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => onNavigate('admin')}
-            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group lg:col-span-2"
-          >
-            <Database size={28} className="text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors" />
-            <span className="font-bold text-slate-700 text-sm">进入数据管理中心</span>
-            <span className="text-[10px] text-slate-400 mt-1">统一管理所有数据、导入导出及备份</span>
-          </button>
+          <div className="flex flex-col gap-2 lg:col-span-2">
+            <button
+              onClick={() => {
+                const width = 1280;
+                const height = 800;
+                const left = (window.screen.width - width) / 2;
+                const top = (window.screen.height - height) / 2;
+
+                const win = window.open(
+                  '/?view=admin',
+                  'SolarAdmin',
+                  `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+                );
+
+                if (!win || win.closed || typeof win.closed === 'undefined') {
+                  setToastMessage("如未弹出窗口，请检查浏览器拦截设置 (Popup Blocker)");
+                }
+              }}
+              className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group w-full"
+            >
+              <Database size={28} className="text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors" />
+              <span className="font-bold text-slate-700 text-sm">进入数据管理中心 (独立窗口)</span>
+              <span className="text-[10px] text-slate-400 mt-1">统一管理所有数据、导入导出及备份</span>
+            </button>
+            <div className="text-center">
+              <a
+                href="/?view=admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-slate-400 hover:text-indigo-500 underline decoration-dotted"
+              >
+                如果不弹出，点此在新标签页打开
+              </a>
+            </div>
+          </div>
 
           <button
             onClick={handleRestoreDefaults}

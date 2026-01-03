@@ -18,7 +18,11 @@ import { getDatabase } from './services/db';
 import { LandingPage } from './components/LandingPage';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<AppView>('home');
+  // Check URL parameters for initial view
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialView = searchParams.get('view') === 'admin' ? 'admin' : 'home';
+
+  const [view, setView] = useState<AppView>(initialView as AppView);
   const [tariffs, setTariffs] = useState<TariffData[]>([]);
   const [timeConfigs, setTimeConfigs] = useState<TimeConfig[]>(DEFAULT_TIME_CONFIGS);
   const [analysisTarget, setAnalysisTarget] = useState<{ province: string, category: string, voltage: string } | null>(null);
@@ -178,11 +182,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
-      {view !== 'pvgis' && (
+      {view !== 'pvgis' && view !== 'admin' && (
         <Sidebar currentView={view} onNavigate={setView} />
       )}
 
-      <main className={`flex-1 ${view !== 'pvgis' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
+      <main className={`flex-1 ${view !== 'pvgis' && view !== 'admin' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
         <div className="max-w-7xl mx-auto">
           {view === 'dashboard' && (
             <Dashboard
@@ -223,7 +227,13 @@ const App: React.FC = () => {
               timeConfigs={timeConfigs}
               onUpdateTariffs={handleUpdateTariffs}
               onUpdateTimeConfigs={handleUpdateTimeConfigs}
-              onBack={() => setView('home')}
+              onBack={() => {
+                if (window.opener) {
+                  window.close();
+                } else {
+                  setView('home');
+                }
+              }}
             />
           )}
           {view === 'calculator' && (
