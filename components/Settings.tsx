@@ -147,29 +147,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
 
         <div className="grid grid-cols-2 gap-4">
           <button
-            onClick={handleExport}
-            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
-          >
-            <Download size={28} className="text-slate-400 group-hover:text-blue-600 mb-3 transition-colors" />
-            <span className="font-bold text-slate-700 text-sm">导出备份</span>
-            <span className="text-[10px] text-slate-400 mt-1">下载 JSON 文件</span>
-          </button>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-green-500 hover:bg-green-50 transition-all group"
-          >
-            <Upload size={28} className="text-slate-400 group-hover:text-green-600 mb-3 transition-colors" />
-            <span className="font-bold text-slate-700 text-sm">导入恢复</span>
-            <span className="text-[10px] text-slate-400 mt-1">上传 JSON 文件</span>
-          </button>
-          <button
-            onClick={() => onNavigate('database')}
+            onClick={() => onNavigate('admin')}
             className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group lg:col-span-2"
           >
             <Database size={28} className="text-slate-400 group-hover:text-indigo-600 mb-3 transition-colors" />
-            <span className="font-bold text-slate-700 text-sm">电价数据库管理</span>
-            <span className="text-[10px] text-slate-400 mt-1">查看、修改或删除已保存的电价记录</span>
+            <span className="font-bold text-slate-700 text-sm">进入数据管理中心</span>
+            <span className="text-[10px] text-slate-400 mt-1">统一管理所有数据、导入导出及备份</span>
           </button>
 
           <button
@@ -188,10 +171,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
           accept=".json"
           className="hidden"
         />
-      </Card >
+      </Card>
 
       {/* Model Strategy Card */}
-      < Card className="p-6" >
+      <Card className="p-6">
         <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
           <FileJson size={14} className="text-blue-500" /> AI 模型配置
         </h4>
@@ -206,47 +189,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
             <div className="text-[10px] text-slate-500">超强推理 · 暂未启用</div>
           </div>
         </div>
-      </Card >
+      </Card>
 
       <div className="text-center text-[10px] text-slate-300">
         SolarPrice Insight v2.0 · Local-First Database (RxDB) · Prepared for Supabase
       </div>
 
       {/* Import Confirmation Modal */}
-      {
-        importConfirmation && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入备份</h3>
-              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录和 <span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置。
-                <br />
-                <span className="text-red-500 font-medium">注意：这将替换您当前的全部数据！</span>
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setImportConfirmation(null)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={confirmImport}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm font-medium shadow-sm shadow-blue-200"
-                >
-                  <Upload size={16} /> 确认导入并覆盖
-                </button>
-              </div>
+      {importConfirmation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入备份</h3>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+              即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录和 <span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置。
+              <br />
+              <span className="text-red-500 font-medium">注意：这将替换您当前的全部数据！</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setImportConfirmation(null)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmImport}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm font-medium shadow-sm shadow-blue-200"
+              >
+                <Upload size={16} /> 确认导入并覆盖
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
-      {
-        toastMessage && (
-          <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
-        )
-      }
-    </div >
+      {toastMessage && (
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+      )}
+    </div>
   );
 };

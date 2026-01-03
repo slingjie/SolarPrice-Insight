@@ -71,7 +71,21 @@ export interface ComprehensiveResult {
   _deleted?: boolean;
 }
 
-export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'database' | 'pvgis';
+// ========== 操作日志相关类型 ==========
+
+export type LogCollection = 'tariffs' | 'time_configs' | 'comprehensive_results';
+export type LogAction = 'create' | 'update' | 'delete' | 'bulk_delete' | 'bulk_import' | 'backup' | 'restore';
+
+export interface OperationLog {
+  id: string;
+  timestamp: string;
+  target_collection: LogCollection;
+  action: LogAction;
+  count: number;
+  details?: string;
+}
+
+export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis';
 
 export interface PVGISParams {
   lat: number;

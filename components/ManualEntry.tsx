@@ -26,6 +26,7 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
       peak: 0,
       flat: 0,
       valley: 0,
+      deep: 0,
     } as PriceSchema
   });
 
@@ -396,7 +397,7 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
             <Zap size={18} className="text-blue-500" /> 电价配置 (元/kWh)
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-red-600 uppercase tracking-wider">尖峰电价</label>
               <input
@@ -438,6 +439,17 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
                 value={formData.prices.valley || ''}
                 onChange={e => handlePriceChange('valley', e.target.value)}
                 className="w-full p-3 border-b-2 border-transparent focus:border-blue-500 bg-blue-50/30 text-lg font-mono font-bold outline-none rounded-t-lg transition-all"
+                placeholder="0.0000"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">深谷电价</label>
+              <input
+                type="number"
+                step="0.0001"
+                value={formData.prices.deep || ''}
+                onChange={e => handlePriceChange('deep', e.target.value)}
+                className="w-full p-3 border-b-2 border-transparent focus:border-indigo-500 bg-indigo-50/30 text-lg font-mono font-bold outline-none rounded-t-lg transition-all"
                 placeholder="0.0000"
               />
             </div>
