@@ -29,22 +29,16 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
     } as PriceSchema
   });
 
-  const sortedConfigs = useMemo(() => {
-    // 1. 优先完全匹配省份的
-    // 2. 其次是“全部”省份的
-    // 3. 最后是其他省份的
-    return [...timeConfigs].sort((a, b) => {
-      const aMatch = a.province === formData.province;
-      const bMatch = b.province === formData.province;
-      if (aMatch && !bMatch) return -1;
-      if (!aMatch && bMatch) return 1;
-
-      const aAll = a.province === '全部';
-      const bAll = b.province === '全部';
-      if (aAll && !bAll) return -1;
-      if (!aAll && bAll) return 1;
-
-      return a.province.localeCompare(b.province);
+  const filteredConfigs = useMemo(() => {
+    // 仅显示当前选中省份的配置和通用配置（"全部"）
+    // 避免显示其他省份的干扰数据
+    return timeConfigs.filter(c =>
+      c.province === formData.province || c.province === '全部'
+    ).sort((a, b) => {
+      // 排序优先级：当前省份 > 全部 > 其他(虽然这里被过滤了但保持逻辑完整)
+      if (a.province === formData.province && b.province !== formData.province) return -1;
+      if (b.province === formData.province && a.province !== formData.province) return 1;
+      return 0; // 同类之间保持原序或可加次级排序
     });
   }, [timeConfigs, formData.province]);
 
@@ -374,7 +368,7 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
               onChange={e => setFormData({ ...formData, configId: e.target.value })}
             >
               <option value="">-- 请选择配置库 --</option>
-              {sortedConfigs.map(c => {
+              {filteredConfigs.map(c => {
                 const isMatch = c.province === formData.province;
                 return (
                   <option key={c.id} value={c.id} className={isMatch ? 'font-bold bg-blue-50' : ''}>
@@ -384,10 +378,11 @@ export const ManualEntry: React.FC<ManualEntryProps> = ({ timeConfigs, tariffs, 
                 );
               })}
             </select>
-            {sortedConfigs.length === 0 && (
-              <p className="text-[10px] text-red-500 mt-2">系统暂无任何配置库，请先前往“配置库管理”创建。</p>
+            {filteredConfigs.length === 0 && (
+              <p className="text-[10px] text-red-500 mt-2">该省份暂无配置，请前往“配置库管理”创建。</p>
             )}
-            {sortedConfigs.length > 0 && !sortedConfigs.find(c => c.province === formData.province) && (
+            {/* 移除不必要的提示，因为现在只显示匹配的 */}
+            {false && (
               <p className="text-[10px] text-red-500 mt-2">
                 该省份暂无专属配置库，建议选择“全部”或前往“配置库管理”创建。
               </p>
