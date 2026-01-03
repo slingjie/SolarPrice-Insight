@@ -343,3 +343,17 @@
     - 各子模块数据加载、分页、搜索响应迅速（基于 RxDB）。
     - 备份文件格式正确，恢复功能通过测试（数据可成功还原）。
     - “手动添加”与“新建配置”弹窗交互流畅，新增逻辑已打通。
+
+## 2026-01-03 Chrome 导入选择器卡死态处理与可观测性增强
+- **问题现象**：在部分 Chrome 环境中，点击导入/恢复无弹窗、无报错或出现 `NotAllowedError: File picker already active`，导致用户误以为按钮无响应。
+- **处理策略**：
+    - **导入/恢复**：不再依赖 `showOpenFilePicker()`，改为使用原生 `input[type=file]` 的 `showPicker()/click()`；若仍无法弹窗，提供 **拖拽导入/拖拽恢复** 作为稳定替代路径。
+    - **导出/备份**：`showSaveFilePicker()` 若进入 `File picker already active` 卡死态，将自动回退到 `<a download>` 下载方式，保证导出可用。
+- **可观测性**：
+    - 在导入/恢复 UI 内新增调试信息面板（记录点击诊断、是否弹出 picker、文件选择/拖拽等关键事件）。
+    - 将“打开文件选择器尝试/未弹出/解析失败/导入成功”等信息写入“操作日志”，便于回溯排查。
+- **涉及文件**：`components/admin/DataImportExport.tsx`, `components/admin/BackupRestore.tsx`, `utils/fileDialog.ts`, `docs/Chrome_FileInput_Issue.md`。
+
+## 2026-01-03 控制台噪音清理（非功能性）
+- **favicon 404 修复**：新增 `public/favicon.svg` 与 `public/favicon.ico`，并在 `index.html` 明确声明图标，消除 `:4000/favicon.ico 404`。
+- **Chrome DOM 提示修复**：将 Settings 页的 `password` 输入包裹在 `<form>` 中，消除 `[DOM] Password field is not contained in a form` 提示。
