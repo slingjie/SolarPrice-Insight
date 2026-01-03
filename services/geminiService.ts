@@ -11,7 +11,7 @@ export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRR
   const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
   const prompt = `你是一个专业的电力账单分析助手。请从这些电价表图片（可能是一张或多张连续的页面）中提取价格矩阵。
-  提取内容必须包含：用电分类（category，如：大工业、一般工商业）、电压等级（voltage，如：1-10kV、35kV）、以及分时电价（prices，包含tip、peak、flat、valley）。
+  提取内容必须包含：用电分类（category，如：大工业、一般工商业）、电压等级（voltage，如：1-10kV、35kV）、以及分时电价（prices，包含tip、peak、flat、valley、deep）。
   请确保价格是纯数字。如果图片中没有某项价格，请填入0。
   
   如果多张图片中包含重复的项目，请合并处理。输出格式必须是严格的 JSON 数组。`;
@@ -22,7 +22,7 @@ export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRR
     }));
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash-exp",
       contents: [
         {
           parts: [
@@ -46,7 +46,8 @@ export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRR
                   tip: { type: Type.NUMBER, description: "尖峰电价" },
                   peak: { type: Type.NUMBER, description: "高峰电价" },
                   flat: { type: Type.NUMBER, description: "平段电价" },
-                  valley: { type: Type.NUMBER, description: "低谷电价" }
+                  valley: { type: Type.NUMBER, description: "低谷电价" },
+                  deep: { type: Type.NUMBER, description: "深谷电价" }
                 },
                 required: ["tip", "peak", "flat", "valley"]
               }

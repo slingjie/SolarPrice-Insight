@@ -12,7 +12,7 @@ import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
-import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData } from '../types';
+import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData, OperationLog } from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -152,12 +152,31 @@ const pvgisCacheSchema = {
     required: ['id', 'params', 'summary', 'created_at']
 };
 
+// 定义 OperationLog Schema
+// 注意：RxDB 不允许使用 'collection' 作为字段名（是保留字），因此使用 'target_collection'
+const operationLogSchema = {
+    title: 'operation log schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        timestamp: { type: 'string' },
+        target_collection: { type: 'string' },
+        action: { type: 'string' },
+        count: { type: 'number' },
+        details: { type: 'string' }
+    },
+    required: ['id', 'timestamp', 'target_collection', 'action', 'count']
+};
+
 
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
 type SavedTimeRangeCollection = RxCollection<SavedTimeRange>;
 type ComprehensiveResultCollection = RxCollection<ComprehensiveResult>;
 type PVGISCacheCollection = RxCollection<PVGISCacheData>;
+type OperationLogCollection = RxCollection<OperationLog>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
@@ -165,6 +184,7 @@ export type SolarDatabaseCollections = {
     saved_time_ranges: SavedTimeRangeCollection;
     comprehensive_results: ComprehensiveResultCollection;
     pvgis_cache: PVGISCacheCollection;
+    operation_logs: OperationLogCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -217,6 +237,9 @@ const createDatabase = async () => {
             },
             pvgis_cache: {
                 schema: pvgisCacheSchema
+            },
+            operation_logs: {
+                schema: operationLogSchema
             }
         });
 

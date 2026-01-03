@@ -6,9 +6,10 @@ import { TimeConfigView } from './components/TimeConfig';
 import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
-import { PriceDatabase } from './components/PriceDatabase';
+
 import { AnalysisView } from './components/Analysis';
 import { PVGISModule } from './components/pvgis/PVGISModule';
+import { AdminModule } from './components/admin/AdminModule';
 import { SettingsView } from './components/Settings';
 import { AppView, TariffData, TimeConfig } from './types';
 import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
@@ -216,11 +217,13 @@ const App: React.FC = () => {
               onNavigate={setView}
             />
           )}
-          {view === 'database' && (
-            <PriceDatabase
+          {view === 'admin' && (
+            <AdminModule
               tariffs={tariffs}
+              timeConfigs={timeConfigs}
               onUpdateTariffs={handleUpdateTariffs}
-              onBack={() => setView('settings')}
+              onUpdateTimeConfigs={handleUpdateTimeConfigs}
+              onBack={() => setView('home')}
             />
           )}
           {view === 'calculator' && (
