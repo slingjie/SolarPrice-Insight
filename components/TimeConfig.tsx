@@ -1,9 +1,9 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { Library, Plus, Save, Trash2, Clock, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
-import { TimeConfig, TimeRule, TimeType } from '../types';
-import { PROVINCES, getTypeColor, getTypeLabel } from '../constants.tsx';
-import { Card, Badge, Toast } from './UI';
+import React, { useState, useMemo } from 'react';
+import { Library, Search, MapPin } from 'lucide-react';
+import { TimeConfig } from '../types';
+import { PROVINCES } from '../constants.tsx';
+import { TimeConfigMatrix } from './TimeConfigMatrix';
+import { ConfirmModal } from './UI';
 
 interface TimeConfigProps {
   configs: TimeConfig[];
@@ -11,276 +11,158 @@ interface TimeConfigProps {
 }
 
 export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) => {
-  const [editingConfig, setEditingConfig] = useState<Partial<TimeConfig>>({
-    province: '',
-    month_pattern: 'All',
-    time_rules: []
-  });
-  const [newRule, setNewRule] = useState<TimeRule>({ start: '00:00', end: '08:00', type: 'valley' });
-  const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [expandedProvince, setExpandedProvince] = useState<string | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirmProvince, setDeleteConfirmProvince] = useState<string | null>(null);
 
-  const groupedConfigs = useMemo(() => {
-    const groups: Record<string, TimeConfig[]> = {};
+  // 计算每个省份的配置状态
+  const provinceStatus = useMemo(() => {
+    const status: Record<string, boolean> = {};
     configs.forEach(c => {
-      if (!groups[c.province]) groups[c.province] = [];
-      groups[c.province].push(c);
+      if (c.province) status[c.province] = true;
     });
-    return groups as Record<string, TimeConfig[]>;
+    return status;
   }, [configs]);
 
-  const handleAddRule = () => {
-    if (!newRule.start || !newRule.end) return;
+  // 过滤省份列表
+  const filteredProvinces = useMemo(() => {
+    return PROVINCES.filter(p =>
+      !searchTerm || p.includes(searchTerm)
+    );
+  }, [searchTerm]);
 
-    let updatedRows = [...(editingConfig.time_rules || [])];
-
-    if (editingRuleIndex !== null) {
-      // 更新现有规则
-      updatedRows[editingRuleIndex] = newRule;
-      setEditingRuleIndex(null);
-    } else {
-      // 添加新规则
-      updatedRows.push(newRule);
-    }
-
-    // 重新排序
-    updatedRows = updatedRows.sort((a, b) => a.start.localeCompare(b.start));
-
-    setEditingConfig(prev => ({ ...prev, time_rules: updatedRows }));
-    // 重置 newRule 以便下次输入
-    setNewRule({ start: '00:00', end: '08:00', type: 'valley' });
-  };
-
-  const handleSaveConfig = () => {
-    if (!editingConfig.province || (editingConfig.time_rules?.length || 0) === 0) return;
-
-    // 生成一个干净的配置对象
-    const configId = editingConfig.id || crypto.randomUUID();
-    const newConfig: TimeConfig = {
-      id: configId,
-      province: editingConfig.province!.trim(),
-      month_pattern: editingConfig.month_pattern || 'All',
-      time_rules: editingConfig.time_rules!,
-      updated_at: new Date().toISOString(),
-      last_modified: new Date().toISOString()
-    };
-
-    // 立即过滤掉可能存在的同名旧配置（如果用户是想全量覆盖或新增）
-    // 注意：这里我们遵循 App.tsx 的逻辑，将整个列表传递过去进行 bulkUpsert
-    const updatedList = editingConfig.id
-      ? configs.map(c => c.id === configId ? newConfig : c)
-      : [...configs, newConfig];
+  const handleMatrixSave = (province: string, newConfigs: TimeConfig[]) => {
+    // 1. 移除该省份的所有旧配置
+    const otherConfigs = configs.filter(c => c.province !== province);
+    // 2. 添加新配置
+    const updatedList = [...otherConfigs, ...newConfigs];
 
     onSave(updatedList);
-
-    // 显示自定义 Toast 提示
-    setShowToast(true);
-
-    // 自动展开当前省份并选中（如果之前是新建）
-    setExpandedProvince(newConfig.province);
-    setEditingConfig(newConfig);
   };
 
-  const handleDeleteConfig = (id: string) => {
-    if (window.confirm("确定删除该配置？此操作无法撤销。")) {
-      onSave(configs.filter(c => c.id !== id));
+  const clearProvinceConfig = () => {
+    if (deleteConfirmProvince) {
+      const updatedList = configs.filter(c => c.province !== deleteConfirmProvince);
+      onSave(updatedList);
+      setDeleteConfirmProvince(null);
+      // 清空后保持选中状态，矩阵会显示为空白，符合预期
     }
   };
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in slide-in-from-right-4 duration-500">
-      {/* Left: List */}
-      <div className="w-full lg:w-1/3 flex flex-col gap-4 overflow-hidden">
-        <h2 className="text-xl font-bold flex items-center gap-2"><Library className="text-blue-600" /> 时段配置库</h2>
-        <div className="overflow-y-auto flex-1 space-y-3 pr-2 custom-scrollbar">
-          <button
-            onClick={() => {
-              setEditingConfig({ province: '', month_pattern: 'All', time_rules: [] });
-              // 自动折叠所有
-              setExpandedProvince(null);
-            }}
-            className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 font-medium"
-          >
-            <Plus size={18} /> 新建配置
-          </button>
+      {/* Left: Province List */}
+      <div className="w-full lg:w-1/4 flex flex-col gap-4 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200">
+        <div className="p-4 border-b bg-slate-50">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 mb-3">
+            <Library className="text-blue-600" /> 省份列表
+          </h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="搜索省份..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+            />
+          </div>
+        </div>
 
-          {Object.keys(groupedConfigs).length === 0 && (
-            <div className="text-center py-10 text-slate-400 text-sm">暂无配置，请新建</div>
-          )}
+        <div className="overflow-y-auto flex-1 custom-scrollbar">
+          {filteredProvinces.map(province => {
+            const hasConfig = provinceStatus[province];
+            const isSelected = selectedProvince === province;
 
-          {Object.entries(groupedConfigs).map(([province, items]) => (
-            <div key={province} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <button
-                onClick={() => setExpandedProvince(expandedProvince === province ? null : province)}
-                className={`w-full p-4 flex items-center justify-between transition-colors ${expandedProvince === province ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+            return (
+              <div
+                key={province}
+                className={`w-full flex items-center justify-between transition-all hover:bg-slate-50 border-l-4 group ${isSelected
+                    ? 'border-l-blue-600 bg-blue-50 text-blue-700 font-bold'
+                    : 'border-l-transparent text-slate-600'
+                  }`}
               >
-                <div className="font-bold text-slate-800">{province}</div>
-                {expandedProvince === province ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
-              </button>
+                <button
+                  onClick={() => setSelectedProvince(province)}
+                  className="flex-1 px-4 py-3 flex items-center gap-3 text-left"
+                >
+                  <MapPin size={16} className={hasConfig ? 'text-blue-500' : 'text-slate-300'} />
+                  <span>{province}</span>
+                </button>
 
-              {expandedProvince === province && (
-                <div className="border-t border-slate-100 bg-slate-50/50">
-                  {(items as TimeConfig[]).map(config => (
-                    <div
-                      key={config.id}
-                      onClick={() => setEditingConfig(config)}
-                      className={`p-3 pl-6 border-l-4 cursor-pointer transition-all hover:bg-white flex justify-between items-center group relative ${editingConfig.id === config.id ? 'border-l-blue-600 bg-blue-50' : 'border-l-transparent'}`}
+                {hasConfig && (
+                  <div className="pr-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmProvince(province);
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      title="清空配置"
                     >
-                      <div className="flex flex-col gap-1 w-full">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-slate-700">
-                            {config.month_pattern === 'All' ? '全年' : `${config.month_pattern}月`}
-                          </span>
-                          <div className="flex gap-0.5">
-                            {config.time_rules.slice(0, 3).map((r, i) => (
-                              <div key={i} className="w-2 h-2 rounded-full" style={{ background: getTypeColor(r.type) }} />
-                            ))}
-                            {config.time_rules.length > 3 && <div className="w-2 h-2 rounded-full bg-slate-300" />}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteConfig(config.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 transition-opacity"
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {(items as TimeConfig[]).length === 0 && <div className="p-3 text-center text-xs text-slate-400">无配置</div>}
-                </div>
-              )}
-            </div>
-          ))}
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {searchTerm && !filteredProvinces.includes(searchTerm) && !provinceStatus[searchTerm] && (
+            <button
+              onClick={() => setSelectedProvince(searchTerm)}
+              className="w-full px-4 py-3 flex items-center gap-3 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-l-transparent border-t border-slate-100 group"
+            >
+              <div className="bg-slate-100 p-1 rounded group-hover:bg-blue-200 text-slate-400 group-hover:text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+              </div>
+              <span>新增 "{searchTerm}"</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Right: Editor */}
-      <div className="w-full lg:w-2/3 flex flex-col gap-4 overflow-hidden">
-        <Card className="flex-1 p-6 flex flex-col overflow-hidden">
-          <div className="flex justify-between items-center mb-6 border-b pb-4">
-            <h3 className="font-bold text-lg text-slate-800">
-              {editingConfig.id ? '编辑配置' : '创建新时段规则'}
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveConfig}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-all"
-              >
-                <Save size={18} /> 保存到库
-              </button>
-            </div>
+      {/* Right: Matrix Editor */}
+      <div className="w-full lg:w-3/4 flex flex-col overflow-hidden">
+        {selectedProvince ? (
+          <TimeConfigMatrix
+            configs={configs}
+            selectedProvince={selectedProvince}
+            onSave={handleMatrixSave}
+          />
+        ) : (
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+            <Library size={64} className="mb-4 opacity-10" />
+            <p className="text-lg">请在左侧选择省份进行配置</p>
+            <p className="text-sm mt-2 opacity-60">支持 12 个月全量可视化编辑</p>
           </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">省份</label>
-              <input
-                list="provinces-list"
-                value={editingConfig.province || ''}
-                onChange={e => setEditingConfig({ ...editingConfig, province: e.target.value })}
-                placeholder="选择或输入省份"
-                className="w-full p-2 border rounded-lg bg-slate-50 font-bold outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <datalist id="provinces-list">
-                {PROVINCES.map(p => <option key={p} value={p} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">适用月份 (Pattern)</label>
-              <input
-                type="text"
-                value={editingConfig.month_pattern}
-                onChange={e => setEditingConfig({ ...editingConfig, month_pattern: e.target.value })}
-                placeholder="例如: 1,2,12 或 All"
-                className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4 shadow-inner">
-            <div className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><Clock size={16} className="text-blue-500" /> 添加时段</div>
-            <div className="flex flex-col sm:flex-row gap-3 items-end">
-              <div className="w-full sm:flex-1">
-                <label className="text-[10px] text-slate-400 mb-1 block">开始</label>
-                <input type="time" value={newRule.start} onChange={e => setNewRule({ ...newRule, start: e.target.value })} className="w-full p-2 border rounded bg-white" />
-              </div>
-              <div className="w-full sm:flex-1">
-                <label className="text-[10px] text-slate-400 mb-1 block">结束</label>
-                <input type="time" value={newRule.end} onChange={e => setNewRule({ ...newRule, end: e.target.value })} className="w-full p-2 border rounded bg-white" />
-              </div>
-              <div className="w-full sm:flex-[2]">
-                <label className="text-[10px] text-slate-400 mb-1 block">类型</label>
-                <div className="flex gap-1 flex-wrap">
-                  {['tip', 'peak', 'flat', 'valley', 'deep'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setNewRule({ ...newRule, type: t as TimeType })}
-                      style={{
-                        background: newRule.type === t ? getTypeColor(t) : '#fff',
-                        color: newRule.type === t ? '#fff' : '#64748b',
-                        borderColor: getTypeColor(t)
-                      }}
-                      className={`flex-1 min-w-[50px] py-2 rounded border text-[10px] transition-all ${newRule.type === t ? 'font-bold shadow-sm scale-105' : 'hover:bg-slate-50'}`}
-                    >
-                      {getTypeLabel(t)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button onClick={handleAddRule} className={`w-full sm:w-auto p-2.5 rounded-lg transition-colors ${editingRuleIndex !== null ? 'bg-orange-500 hover:bg-orange-600' : 'bg-slate-800 hover:bg-slate-700'} text-white`}>
-                {editingRuleIndex !== null ? <Save size={20} /> : <Plus size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <div className="space-y-2 pb-6">
-              {editingConfig.time_rules?.map((rule, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setNewRule(rule);
-                    setEditingRuleIndex(idx);
-                  }}
-                  className={`flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-all animate-in slide-in-from-top-2 cursor-pointer ${editingRuleIndex === idx ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-200 shadow-sm' : ''}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-1.5 h-8 rounded-full" style={{ background: getTypeColor(rule.type) }} />
-                    <div className="font-mono font-bold text-base text-slate-700">{rule.start} <span className="text-slate-300 mx-2">→</span> {rule.end}</div>
-                    <Badge type={rule.type} />
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const updated = [...editingConfig.time_rules!];
-                      updated.splice(idx, 1);
-                      setEditingConfig({ ...editingConfig, time_rules: updated });
-                      if (editingRuleIndex === idx) {
-                        setEditingRuleIndex(null);
-                        setNewRule({ start: '00:00', end: '08:00', type: 'valley' });
-                      } else if (editingRuleIndex !== null && editingRuleIndex > idx) {
-                        setEditingRuleIndex(editingRuleIndex - 1);
-                      }
-                    }}
-                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-              {(editingConfig.time_rules?.length || 0) === 0 && (
-                <div className="text-center py-20 text-slate-400 flex flex-col items-center">
-                  <Clock size={40} className="mb-2 opacity-20" />
-                  暂无分时规则，请在上方添加
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
+        )}
       </div>
-      {showToast && <Toast message="保存到库成功！" onClose={() => setShowToast(false)} />}
+
+      <ConfirmModal
+        isOpen={deleteConfirmProvince !== null}
+        title="确认清空"
+        message={`确定要清空 ${deleteConfirmProvince} 的所有配置吗？此操作不可撤销。`}
+        onConfirm={clearProvinceConfig}
+        onCancel={() => setDeleteConfirmProvince(null)}
+        confirmText="清空"
+        danger
+      />
     </div>
   );
 };
