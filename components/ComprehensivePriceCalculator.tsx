@@ -4,25 +4,14 @@ import { Card } from './UI';
 import { TariffData, TimeType, SavedTimeRange, ComprehensiveResult } from '../types';
 import { PROVINCES, DEFAULT_TIME_CONFIGS, getTypeColor, getTypeLabel } from '../constants.tsx';
 import { getDatabase } from '../services/db';
+import { calculateAveragePrice, CalculationResult } from '../services/priceCalculator';
 
 interface ComprehensivePriceCalculatorProps {
     tariffs: TariffData[];
 }
 
 
-interface PriceResult {
-    month: string;
-    startTime: string;
-    endTime: string;
-    avgPrice: number;
-    details: {
-        type: TimeType;
-        price: number;
-        hours: number;
-        cost: number; // price * hours representation for weight
-    }[];
-    totalHours: number;
-}
+interface PriceResult extends CalculationResult {}
 
 export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs }) => {
     const [dbProvinces, setDbProvinces] = useState<string[]>([]);
@@ -212,34 +201,6 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         [provinceTariffs, formData.category, formData.voltage]);
 
 
-    // Helper: Convert "HH:MM" to minutes from midnight
-    const timeToMinutes = (time: string) => {
-        const [h, m] = time.split(':').map(Number);
-        return h * 60 + m;
-    };
-
-    // Helper: Calculate intersection of two time ranges in minutes
-    const getOverlapMinutes = (start1: number, end1: number, start2: number, end2: number) => {
-        const maxStart = Math.max(start1, start2);
-        const minEnd = Math.min(end1, end2);
-        return Math.max(0, minEnd - maxStart);
-    };
-
-    // Helper: Split a time range into segments within [0, 1440]
-    const getTimeSegments = (start: string, end: string) => {
-        const startMins = timeToMinutes(start);
-        let endMins = timeToMinutes(end);
-
-        // Handle "00:00" as "24:00" if it's an end time (common for rules like 17:00-00:00)
-        if (endMins === 0 && startMins !== 0) endMins = 1440;
-
-        if (endMins < startMins) {
-            // Over midnight: e.g. 22:00 - 02:00 -> [1320, 1440] and [0, endMins]
-            return [[startMins, 1440], [0, endMins]];
-        }
-        return [[startMins, endMins]];
-    };
-
     const handleCalculate = () => {
         setCalcMsg(null);
         if (formData.months.length === 0) {
@@ -248,67 +209,26 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
             return;
         }
 
-        const userSegments = getTimeSegments(formData.startTime, formData.endTime);
-        const calcResults: PriceResult[] = [];
+        // Filter tariffs for selected province, category, voltage
+        const filteredTariffs = provinceTariffs.filter(t =>
+            t.category === formData.category &&
+            t.voltage_level === formData.voltage &&
+            formData.months.includes(t.month)
+        );
 
-        formData.months.forEach(month => {
-            const tariff = provinceTariffs.find(t =>
-                t.province === formData.province &&
-                t.category === formData.category &&
-                t.voltage_level === formData.voltage &&
-                t.month === month
-            );
+        if (filteredTariffs.length === 0) {
+            setCalcMsg({ type: 'error', msg: "在所选时段内未找到有效的电价规则" });
+            setTimeout(() => setCalcMsg(null), 3000);
+            return;
+        }
 
-
-            if (!tariff) return;
-
-            let totalWeightedPrice = 0;
-            let totalOverlapMinutes = 0;
-            const typeAccumulator: Record<string, { type: TimeType, price: number, totalMinutes: number }> = {};
-
-            tariff.time_rules.forEach(rule => {
-                const ruleSegments = getTimeSegments(rule.start, rule.end);
-                const price = tariff.prices[rule.type as keyof typeof tariff.prices] || 0;
-
-                userSegments.forEach(uSeg => {
-                    ruleSegments.forEach(rSeg => {
-                        const overlap = getOverlapMinutes(uSeg[0], uSeg[1], rSeg[0], rSeg[1]);
-                        if (overlap > 0) {
-                            totalWeightedPrice += price * overlap;
-                            totalOverlapMinutes += overlap;
-
-                            if (!typeAccumulator[rule.type]) {
-                                typeAccumulator[rule.type] = { type: rule.type as TimeType, price, totalMinutes: 0 };
-                            }
-                            typeAccumulator[rule.type].totalMinutes += overlap;
-                        }
-                    });
-                });
-            });
-
-            if (totalOverlapMinutes > 0) {
-                const breakdown = Object.values(typeAccumulator)
-                    .sort((a, b) => {
-                        const order = ['tip', 'peak', 'flat', 'valley', 'deep'];
-                        return order.indexOf(a.type) - order.indexOf(b.type);
-                    })
-                    .map(item => ({
-                        type: item.type,
-                        price: item.price,
-                        hours: item.totalMinutes / 60,
-                        cost: item.price * (item.totalMinutes / 60)
-                    }));
-
-                calcResults.push({
-                    month: month,
-                    startTime: formData.startTime,
-                    endTime: formData.endTime,
-                    avgPrice: totalWeightedPrice / totalOverlapMinutes,
-                    details: breakdown,
-                    totalHours: totalOverlapMinutes / 60
-                });
-            }
-        });
+        // Call service to calculate average prices
+        const calcResults = calculateAveragePrice(
+            filteredTariffs,
+            formData.months,
+            formData.startTime,
+            formData.endTime
+        );
 
         if (calcResults.length === 0) {
             setCalcMsg({ type: 'error', msg: "在所选时段内未找到有效的电价规则" });
