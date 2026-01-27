@@ -17,8 +17,9 @@ export const rulesToGrid = (rules: TimeRule[]): TimeType[] => {
         const startHour = parseInt(rule.start.split(':')[0], 10);
         // 处理结束时间：如果是 00:00 且在 start 之后，通常表示次日 24:00
         let endHour = parseInt(rule.end.split(':')[0], 10);
-        if (endHour === 0 && rule.end !== '00:00') endHour = 24; // 比如 23:59 -> 24? 或者规则就是 00:00 结束
-        if (endHour === 0 && startHour > 0) endHour = 24; // 跨度到 24 点
+        if (rule.end === '24:00') endHour = 24; // 显式 24:00 表示结束于午夜
+        else if (endHour === 0 && rule.end !== '00:00') endHour = 24; // 比如 23:59 -> 24? 或者规则就是 00:00 结束
+        else if (endHour === 0 && startHour > 0) endHour = 24; // 跨度到 24 点
 
         // 填充网格
         for (let i = startHour; i < endHour; i++) {

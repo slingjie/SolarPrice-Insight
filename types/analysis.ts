@@ -31,3 +31,55 @@ export class ExcelParseError extends Error {
     this.name = 'ExcelParseError';
   }
 }
+
+/**
+ * Hourly load data point for a specific timestamp.
+ */
+export interface HourlyLoad {
+  /** ISO 8601 timestamp (e.g., "2025-01-15T08:00:00Z") */
+  time: string;
+  /** Load in kW for this hour */
+  loadKw: number;
+  /** TOU type for this hour */
+  type: TOUType;
+}
+
+/**
+ * Hourly PV generation data point for a specific timestamp.
+ */
+export interface HourlyPV {
+  /** ISO 8601 timestamp (e.g., "2025-01-15T08:00:00Z") */
+  time: string;
+  /** PV generation in kW for this hour */
+  pvKw: number;
+}
+
+/**
+ * Self-consumption metrics from load and PV balance calculation.
+ */
+export interface SelfConsumptionMetrics {
+  /** Total self-consumed energy in kWh (min(PV, Load) each hour, summed) */
+  selfConsumptionKwh: number;
+  /** Total energy fed to grid in kWh (excess PV when PV > Load) */
+  gridFeedInKwh: number;
+  /** Total energy drawn from grid in kWh (deficit when Load > PV) */
+  gridDrawKwh: number;
+  /** Total load consumption in kWh */
+  totalLoadKwh: number;
+  /** Total PV generation in kWh */
+  totalPvKwh: number;
+  /** Self-consumption rate (0-1), self-consumed / total PV */
+  selfConsumptionRate: number;
+  /** Self-sufficiency rate (0-1), self-consumed / total load */
+  selfSufficiencyRate: number;
+}
+
+/**
+ * Error thrown when load synthesis fails due to invalid configuration.
+ */
+export class LoadSynthesisError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LoadSynthesisError';
+  }
+}
