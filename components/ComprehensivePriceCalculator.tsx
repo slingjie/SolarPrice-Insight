@@ -337,6 +337,37 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                                 <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
                                 选择月份
                             </div>
+                            <div className="flex gap-2 flex-wrap">
+                                <button
+                                    onClick={() => {
+                                        const allMonths = Array.from({ length: 12 }, (_, i) =>
+                                            String(i + 1).padStart(2, '0')
+                                        );
+                                        setFormData({ ...formData, months: allMonths });
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    全选
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const summerMonths = ['06', '07', '08', '09'];
+                                        setFormData({ ...formData, months: summerMonths });
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    夏季
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const winterMonths = ['12', '01', '02'];
+                                        setFormData({ ...formData, months: winterMonths });
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    冬季
+                                </button>
+                            </div>
                             <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
                                 {availableMonths.map(m => (
                                     <label key={m} className={`
