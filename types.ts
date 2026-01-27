@@ -85,7 +85,7 @@ export interface OperationLog {
   details?: string;
 }
 
-export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis';
+export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis' | 'self-consumption';
 
 export interface PVGISParams {
   lat: number;

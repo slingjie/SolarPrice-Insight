@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit, Calculator, BarChart3, Home, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Library, Zap, Settings, Sun, FileEdit, Calculator, BarChart3, Home, LogOut, ArrowLeft, PieChart } from 'lucide-react';
 import { AppView } from '../types';
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'upload', label: '智能录入', icon: Zap },
     { id: 'manual', label: '手动录入', icon: FileEdit },
     { id: 'calculator', label: '综合电价', icon: Calculator },
+    { id: 'self-consumption', label: '光伏消纳分析', icon: PieChart },
     { id: 'settings', label: '系统设置', icon: Settings },
   ];
 

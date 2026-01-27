@@ -7,6 +7,7 @@ import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
 
+import { SelfConsumption } from './components/SelfConsumption';
 import { AnalysisView } from './components/Analysis';
 import { PVGISModule } from './components/pvgis/PVGISModule';
 import { AdminModule } from './components/admin/AdminModule';
@@ -250,6 +251,9 @@ const App: React.FC = () => {
               onBack={() => setView('dashboard')}
               onUpdateTariffs={handleUpdateTariffs}
             />
+          )}
+          {view === 'self-consumption' && (
+            <SelfConsumption />
           )}
           {view === 'settings' && (
             <SettingsView
