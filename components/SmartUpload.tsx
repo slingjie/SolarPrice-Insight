@@ -2,8 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { Zap, FileText, CheckCircle2, Settings, Save, ArrowLeft, Loader2, Sparkles, Files, ChevronRight, Check, Trash2, PlusCircle } from 'lucide-react';
 import { recognizeTariffImages, ImageSource } from '../services/geminiService';
-import { OCRResultItem, TimeConfig, TariffData } from '../types';
+import { OCRResultItem, TimeConfig, TariffData, TimeRule } from '../types';
 import { Card, Badge, LoadingSpinner } from './UI';
+import { getDatabase } from '../services/db';
 
 interface SmartUploadProps {
   timeConfigs: TimeConfig[];
@@ -36,6 +37,8 @@ export const SmartUpload: React.FC<SmartUploadProps> = ({ timeConfigs, tariffs, 
 
   const [error, setError] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState({ current: 0, total: 0 });
+  const [isCreatingConfig, setIsCreatingConfig] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,6 +155,44 @@ export const SmartUpload: React.FC<SmartUploadProps> = ({ timeConfigs, tariffs, 
     setSelectedOcrIds(newSet);
   };
 
+  const createDefaultTimeConfig = async () => {
+    setIsCreatingConfig(true);
+    setConfigError(null);
+    
+    try {
+      const db = await getDatabase();
+      
+      // Define default Peak/Valley rules (通用峰谷平)
+      const defaultTimeRules: TimeRule[] = [
+        { start: '08:00', end: '12:00', type: 'peak' },      // 08:00-12:00 Peak
+        { start: '12:00', end: '14:00', type: 'flat' },      // 12:00-14:00 Flat
+        { start: '14:00', end: '18:00', type: 'peak' },      // 14:00-18:00 Peak
+        { start: '18:00', end: '22:00', type: 'tip' },       // 18:00-22:00 Tip
+        { start: '22:00', end: '08:00', type: 'valley' }     // 22:00-08:00 Valley
+      ];
+      
+      const newConfig: TimeConfig = {
+        id: crypto.randomUUID(),
+        province: '默认配置',
+        month_pattern: 'All',
+        time_rules: defaultTimeRules,
+        updated_at: new Date().toISOString(),
+        last_modified: new Date().toISOString()
+      };
+      
+      // Insert into database
+      await db.time_configs.insert(newConfig);
+      
+      // Auto-select the newly created config
+      setSelectedConfigId(newConfig.id);
+      setIsCreatingConfig(false);
+    } catch (err: any) {
+      console.error('[SmartUpload] Error creating default config:', err);
+      setConfigError(err.message || '创建默认配置失败');
+      setIsCreatingConfig(false);
+    }
+  };
+
   const handleNextBatch = () => {
     if (!selectedConfigId || selectedOcrIds.size === 0) return;
 
@@ -247,33 +288,69 @@ export const SmartUpload: React.FC<SmartUploadProps> = ({ timeConfigs, tariffs, 
       {step === 'review' && currentBatch && (
         <div className="flex flex-col lg:flex-row gap-6 h-full pb-10 animate-in fade-in slide-in-from-right-4">
           <div className="w-full lg:w-1/3 flex flex-col gap-4">
-            <Card className="p-6">
+             <Card className="p-6">
               <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <Settings size={18} className="text-blue-600" /> 第一步：关联配置
               </h3>
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 mb-1 block">选择该页所属时段配置</label>
-                  <select
-                    className="w-full p-2.5 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500"
-                    value={selectedConfigId}
-                    onChange={(e) => setSelectedConfigId(e.target.value)}
-                  >
-                    <option value="">-- 请选择配置库 --</option>
-                    {timeConfigs.map(c => (
-                      <option key={c.id} value={c.id}>{c.province} - {c.month_pattern === 'All' ? '全年' : c.month_pattern + '月'}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 mb-1 block">价格执行月份</label>
-                  <input
-                    type="month"
-                    value={targetMonth}
-                    onChange={(e) => setTargetMonth(e.target.value)}
-                    className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {timeConfigs.length === 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-600 text-center py-4">
+                      暂无时段配置，请先创建一个默认配置
+                    </p>
+                    {configError && (
+                      <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+                        {configError}
+                      </div>
+                    )}
+                    <button
+                      onClick={createDefaultTimeConfig}
+                      disabled={isCreatingConfig}
+                      className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${
+                        isCreatingConfig
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-blue-200'
+                      }`}
+                    >
+                      {isCreatingConfig ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          正在创建...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={18} />
+                          使用默认配置（通用峰谷平）
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">选择该页所属时段配置</label>
+                      <select
+                        className="w-full p-2.5 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                        value={selectedConfigId}
+                        onChange={(e) => setSelectedConfigId(e.target.value)}
+                      >
+                        <option value="">-- 请选择配置库 --</option>
+                        {timeConfigs.map(c => (
+                          <option key={c.id} value={c.id}>{c.province} - {c.month_pattern === 'All' ? '全年' : c.month_pattern + '月'}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">价格执行月份</label>
+                      <input
+                        type="month"
+                        value={targetMonth}
+                        onChange={(e) => setTargetMonth(e.target.value)}
+                        className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
 
