@@ -1,14 +1,125 @@
-import { SolarSimulationResult, SelfConsumptionHourlyData } from '../types';
+import { SolarSimulationResult, SelfConsumptionHourlyData, TariffData, TimeRule } from '../types';
 
-/**
- * Convert time string "HH:MM" to minutes from midnight
- * @param time - Time in "HH:MM" format
- * @returns Minutes from midnight (0-1440)
- */
 const timeToMinutes = (time: string): number => {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
 };
+
+/**
+ * Result of financial savings calculation
+ */
+export interface FinancialSavingsResult {
+    totalSavings: number; // Total avoided cost from self-consumption (currency units)
+    totalRevenue: number; // Total revenue from grid export (currency units)
+    totalCost: number; // Total cost of grid import (currency units)
+    hourlyDetails: Array<{
+        hour: number;
+        selfConsumedKwh: number;
+        savingsPrice: number; // Grid price at this hour
+        savings: number;
+        exportKwh: number;
+        feedInTariff: number;
+        revenue: number;
+        importKwh: number;
+        importPrice: number;
+        importCost: number;
+    }>;
+}
+
+/**
+ * Calculate financial savings from self-consumption using tariff data
+ * Matches hourly data with tariff prices and calculates avoided costs
+ * 
+ * @param hourlyData - 24 hourly self-consumption data points
+ * @param tariffs - Tariff data for the month (filtered by province/category)
+ * @param feedInTariff - Feed-in tariff rate for exported energy (default 0.35)
+ * @returns FinancialSavingsResult with total savings, revenue, and hourly breakdown
+ */
+export const calculateFinancialSavings = (
+    hourlyData: SelfConsumptionHourlyData[],
+    tariffs: TariffData[],
+    feedInTariff: number = 0.35
+): FinancialSavingsResult => {
+    let totalSavings = 0;
+    let totalRevenue = 0;
+    let totalCost = 0;
+
+    const hourlyDetails = hourlyData.map((hour) => {
+        // Find price for this hour from tariffs
+        const hourStart = `${String(hour.hour).padStart(2, '0')}:00`;
+        const hourEnd = `${String(hour.hour + 1).padStart(2, '0')}:00`;
+        const hourStartMin = hour.hour * 60;
+        
+        // Get price for this hour by checking all tariffs and time rules
+        let savingsPrice = 0;
+        let importPrice = 0;
+
+        // Iterate through tariffs to find matching time rules
+        tariffs.forEach((tariff) => {
+            tariff.time_rules.forEach((rule) => {
+                const ruleStartMin = timeToMinutes(rule.start);
+                const ruleEndMin = timeToMinutes(rule.end);
+                
+                // Handle end time "00:00" as "24:00"
+                const adjustedEndMin = ruleEndMin === 0 && ruleStartMin !== 0 ? 1440 : ruleEndMin;
+                
+                // Check if hour falls within this rule (simple hour matching)
+                const isMatch = ruleStartMin <= hourStartMin && hourStartMin < adjustedEndMin;
+                
+                if (isMatch) {
+                    const price = tariff.prices[rule.type as keyof typeof tariff.prices] || 0;
+                    // Use first matching price found
+                    if (savingsPrice === 0) {
+                        savingsPrice = price;
+                        importPrice = price;
+                    }
+                }
+            });
+        });
+
+        // If no matching tariff found, use average of all available prices
+        if (savingsPrice === 0 && tariffs.length > 0) {
+            const allPrices: number[] = [];
+            tariffs.forEach((t) => {
+                Object.values(t.prices).forEach((p) => {
+                    if (typeof p === 'number' && p > 0) allPrices.push(p);
+                });
+            });
+            savingsPrice = allPrices.length > 0 ? allPrices.reduce((a, b) => a + b, 0) / allPrices.length : 0;
+            importPrice = savingsPrice;
+        }
+
+        const hourSavings = hour.selfConsumedKwh * savingsPrice;
+        const hourRevenue = hour.exportKwh * feedInTariff;
+        const hourImportCost = hour.importKwh * importPrice;
+
+        totalSavings += hourSavings;
+        totalRevenue += hourRevenue;
+        totalCost += hourImportCost;
+
+        return {
+            hour: hour.hour,
+            selfConsumedKwh: hour.selfConsumedKwh,
+            savingsPrice,
+            savings: hourSavings,
+            exportKwh: hour.exportKwh,
+            feedInTariff,
+            revenue: hourRevenue,
+            importKwh: hour.importKwh,
+            importPrice,
+            importCost: hourImportCost,
+        };
+    });
+
+    return {
+        totalSavings,
+        totalRevenue,
+        totalCost,
+        hourlyDetails,
+    };
+};
+
+
 
 /**
  * Get seasonal adjustment factor based on month
