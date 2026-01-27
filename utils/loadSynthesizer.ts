@@ -157,3 +157,94 @@ export function calculateBalance(
     selfSufficiencyRate,
   };
 }
+
+/**
+ * Aggregates hourly data into monthly totals for visualization.
+ */
+export function calculateMonthlyData(
+  loadCurve: HourlyLoad[],
+  pvCurve: HourlyPV[]
+) {
+  const pvByTime = new Map<string, number>();
+  pvCurve.forEach((pv) => pvByTime.set(pv.time, pv.pvKw));
+
+  const monthlyData = new Map<number, {
+    month: number;
+    selfConsumed: number;
+    gridFeedIn: number;
+    gridDraw: number;
+    totalLoad: number;
+    totalPv: number;
+  }>();
+
+  // Initialize all 12 months
+  for (let i = 1; i <= 12; i++) {
+    monthlyData.set(i, {
+      month: i,
+      selfConsumed: 0,
+      gridFeedIn: 0,
+      gridDraw: 0,
+      totalLoad: 0,
+      totalPv: 0
+    });
+  }
+
+  for (const load of loadCurve) {
+    const date = new Date(load.time);
+    const month = date.getMonth() + 1;
+    const data = monthlyData.get(month)!;
+
+    const pvKw = pvByTime.get(load.time) ?? 0;
+    const loadKw = load.loadKw;
+
+    const selfConsumed = Math.min(pvKw, loadKw);
+    const feedIn = Math.max(0, pvKw - loadKw);
+    const draw = Math.max(0, loadKw - pvKw);
+
+    data.selfConsumed += selfConsumed;
+    data.gridFeedIn += feedIn;
+    data.gridDraw += draw;
+    data.totalLoad += loadKw;
+    data.totalPv += pvKw;
+  }
+
+  return Array.from(monthlyData.values()).sort((a, b) => a.month - b.month);
+}
+
+/**
+ * Calculates average hourly profile for a specific month (Typical Day).
+ */
+export function calculateTypicalDay(
+  month: number,
+  loadCurve: HourlyLoad[],
+  pvCurve: HourlyPV[]
+) {
+  const targetMonth = month - 1; // JS Date month is 0-11
+  const hours = new Array(24).fill(0).map((_, i) => ({
+    hour: i,
+    loadKw: 0,
+    pvKw: 0,
+    count: 0
+  }));
+
+  const pvByTime = new Map<string, number>();
+  pvCurve.forEach((pv) => pvByTime.set(pv.time, pv.pvKw));
+
+  for (const load of loadCurve) {
+    const date = new Date(load.time);
+    if (date.getMonth() === targetMonth) {
+      const hour = date.getHours();
+      const pvKw = pvByTime.get(load.time) ?? 0;
+      
+      hours[hour].loadKw += load.loadKw;
+      hours[hour].pvKw += pvKw;
+      hours[hour].count += 1;
+    }
+  }
+
+  return hours.map(h => ({
+    hour: h.hour,
+    loadKw: h.count > 0 ? h.loadKw / h.count : 0,
+    pvKw: h.count > 0 ? h.pvKw / h.count : 0
+  }));
+}

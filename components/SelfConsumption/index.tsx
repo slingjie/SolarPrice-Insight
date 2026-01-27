@@ -1,10 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, Sun, MapPin, Battery, AlertCircle, Info, Loader2, Play } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { 
+  Upload, FileSpreadsheet, Sun, MapPin, Battery, AlertCircle, Info, Loader2, Play,
+  Zap, BarChart3, TrendingUp, Activity
+} from 'lucide-react';
+import { 
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer 
+} from 'recharts';
 import { PROVINCES } from '../../constants';
 import { parseConsumptionFile } from '../../utils/excelParser';
 import { MonthlyConsumption, ExcelParseError, HourlyLoad, HourlyPV, SelfConsumptionMetrics } from '../../types/analysis';
 import { TimeConfig } from '../../types';
-import { synthesizeLoadCurve, calculateBalance } from '../../utils/loadSynthesizer';
+import { synthesizeLoadCurve, calculateBalance, calculateMonthlyData, calculateTypicalDay } from '../../utils/loadSynthesizer';
 import { pvgisService } from '../../services/pvgisService';
 
 interface PvConfig {
@@ -42,6 +49,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({ timeConfigs })
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [results, setResults] = useState<AnalysisResults | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -80,21 +88,11 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({ timeConfigs })
   };
 
   const validateInputs = (): string | null => {
-    if (!province) {
-      return '请选择所在省份';
-    }
-    if (consumptionData.length === 0) {
-      return '请上传负荷数据';
-    }
-    if (pvConfig.capacity === '' || pvConfig.capacity <= 0) {
-      return '请输入有效的装机容量';
-    }
-    if (pvConfig.lat === '' || pvConfig.lat < -90 || pvConfig.lat > 90) {
-      return '请输入有效的纬度 (-90 ~ 90)';
-    }
-    if (pvConfig.lon === '' || pvConfig.lon < -180 || pvConfig.lon > 180) {
-      return '请输入有效的经度 (-180 ~ 180)';
-    }
+    if (!province) return '请选择所在省份';
+    if (consumptionData.length === 0) return '请上传负荷数据';
+    if (pvConfig.capacity === '' || pvConfig.capacity <= 0) return '请输入有效的装机容量';
+    if (pvConfig.lat === '' || pvConfig.lat < -90 || pvConfig.lat > 90) return '请输入有效的纬度 (-90 ~ 90)';
+    if (pvConfig.lon === '' || pvConfig.lon < -180 || pvConfig.lon > 180) return '请输入有效的经度 (-180 ~ 180)';
     return null;
   };
 
@@ -148,6 +146,8 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({ timeConfigs })
         pvCurve,
         metrics,
       });
+      // Reset selected month to 1 when new analysis is run
+      setSelectedMonth(1);
     } catch (err) {
       console.error('[SelfConsumption] Analysis failed:', err);
       setAnalysisError(
@@ -162,6 +162,17 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({ timeConfigs })
 
   const isAnalyzeDisabled = !province || consumptionData.length === 0 || 
     pvConfig.capacity === '' || pvConfig.lat === '' || pvConfig.lon === '' || isAnalyzing;
+
+  // Memoized data for charts
+  const monthlyData = useMemo(() => {
+    if (!results) return [];
+    return calculateMonthlyData(results.loadCurve, results.pvCurve);
+  }, [results]);
+
+  const typicalDayData = useMemo(() => {
+    if (!results) return [];
+    return calculateTypicalDay(selectedMonth, results.loadCurve, results.pvCurve);
+  }, [results, selectedMonth]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -397,65 +408,128 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({ timeConfigs })
           </section>
 
           {results && (
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <Sun className="w-5 h-5 text-green-600" />
-                  分析结果
-                </h2>
-              </div>
-              <div className="p-5">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-green-600 font-medium uppercase">自发自用率</p>
-                    <p className="text-2xl font-bold text-green-700 mt-1">
-                      {(results.metrics.selfConsumptionRate * 100).toFixed(1)}%
-                    </p>
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <Activity className="w-16 h-16 text-green-600" />
                   </div>
-                  <div className="bg-blue-50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-blue-600 font-medium uppercase">自给率</p>
-                    <p className="text-2xl font-bold text-blue-700 mt-1">
-                      {(results.metrics.selfSufficiencyRate * 100).toFixed(1)}%
-                    </p>
+                  <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
+                    自发自用率
+                  </p>
+                  <p className="text-2xl font-bold text-green-600 mt-2">
+                    {(results.metrics.selfConsumptionRate * 100).toFixed(1)}%
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <Zap className="w-16 h-16 text-orange-600" />
                   </div>
-                  <div className="bg-orange-50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-orange-600 font-medium uppercase">总发电量</p>
-                    <p className="text-2xl font-bold text-orange-700 mt-1">
-                      {(results.metrics.totalPvKwh / 1000).toFixed(0)}
-                      <span className="text-sm font-normal ml-1">MWh</span>
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <p className="text-xs text-purple-600 font-medium uppercase">总用电量</p>
-                    <p className="text-2xl font-bold text-purple-700 mt-1">
-                      {(results.metrics.totalLoadKwh / 1000).toFixed(0)}
-                      <span className="text-sm font-normal ml-1">MWh</span>
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-500 font-medium">上网率</p>
+                  <p className="text-2xl font-bold text-orange-500 mt-2">
+                    {((1 - results.metrics.selfConsumptionRate) * 100).toFixed(1)}%
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500 font-medium">自发自用电量</p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {results.metrics.selfConsumptionKwh.toLocaleString()} kWh
-                    </p>
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <Sun className="w-16 h-16 text-amber-500" />
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500 font-medium">上网电量</p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {results.metrics.gridFeedInKwh.toLocaleString()} kWh
-                    </p>
+                  <p className="text-sm text-gray-500 font-medium">总发电量 (MWh)</p>
+                  <p className="text-2xl font-bold text-amber-500 mt-2">
+                    {(results.metrics.totalPvKwh / 1000).toFixed(1)}
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <BarChart3 className="w-16 h-16 text-blue-600" />
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500 font-medium">购网电量</p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {results.metrics.gridDrawKwh.toLocaleString()} kWh
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-500 font-medium">总用电量 (MWh)</p>
+                  <p className="text-2xl font-bold text-blue-600 mt-2">
+                    {(results.metrics.totalLoadKwh / 1000).toFixed(1)}
+                  </p>
                 </div>
               </div>
-            </section>
+
+              {/* Monthly Chart */}
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="mb-6 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-gray-500" />
+                    月度电量分析
+                  </h3>
+                </div>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="month" tickFormatter={(val) => `${val}月`} />
+                      <YAxis label={{ value: 'kWh', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip 
+                        formatter={(value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        labelFormatter={(label) => `${label}月`}
+                      />
+                      <Legend />
+                      <Bar dataKey="selfConsumed" name="自发自用" stackId="a" fill="#16a34a" />
+                      <Bar dataKey="gridFeedIn" name="上网电量" stackId="a" fill="#f97316" />
+                      <Bar dataKey="gridDraw" name="网购电量" stackId="b" fill="#9ca3af" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+              {/* Hourly Chart */}
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="mb-6 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-gray-500" />
+                    典型日负荷曲线
+                  </h3>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                      <option key={m} value={m}>{m}月</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={typicalDayData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="hour" tickFormatter={(val) => `${val}:00`} />
+                      <YAxis label={{ value: 'kW', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip 
+                        formatter={(value: number) => value.toFixed(1)}
+                        labelFormatter={(label) => `${label}:00`}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="pvKw" 
+                        name="光伏出力" 
+                        stroke="#f59e0b" 
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="loadKw" 
+                        name="用电负荷" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+            </div>
           )}
         </div>
       </div>
