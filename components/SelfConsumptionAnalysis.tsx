@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './UI';
-import { simulateDailySolarCurve, simulateLoadCurve, calculateSelfConsumption } from '../services/solarCalculator';
-import { SolarSimulationResult } from '../types';
-import { Calculator, Sun, Battery, Zap, PieChart, BatteryCharging, Upload, Download } from 'lucide-react';
+import { simulateDailySolarCurve, simulateLoadCurve, calculateSelfConsumption, calculateFinancialSavings } from '../services/solarCalculator';
+import { SolarSimulationResult, TariffData } from '../types';
+import { Calculator, Sun, Battery, Zap, PieChart, BatteryCharging, Upload, Download, DollarSign } from 'lucide-react';
 import { 
     ComposedChart, 
     BarChart,
@@ -23,8 +23,11 @@ const SelfConsumptionAnalysis: React.FC = () => {
     const [workStart, setWorkStart] = useState<string>('09:00');
     const [workEnd, setWorkEnd] = useState<string>('18:00');
     const [selectedMonth, setSelectedMonth] = useState<number>(6);
+    const [feedInTariff, setFeedInTariff] = useState<number>(0.35);
+    const [tariffs, setTariffs] = useState<TariffData[]>([]);
 
     const [simulationResult, setSimulationResult] = useState<SolarSimulationResult | null>(null);
+    const [financialResult, setFinancialResult] = useState<ReturnType<typeof calculateFinancialSavings> | null>(null);
 
     const handleCalculate = () => {
         try {
@@ -36,6 +39,16 @@ const SelfConsumptionAnalysis: React.FC = () => {
             
             console.log('Simulation Result:', result);
             setSimulationResult(result);
+
+            // Calculate financial savings if tariffs are available
+            if (tariffs.length > 0) {
+                const financial = calculateFinancialSavings(result.hourlyData, tariffs, feedInTariff);
+                console.log('Financial Result:', financial);
+                setFinancialResult(financial);
+            } else {
+                console.warn('No tariffs available for financial calculation');
+                setFinancialResult(null);
+            }
         } catch (error) {
             console.error('Simulation failed:', error);
             alert('Simulation failed. Please check your inputs.');
@@ -133,6 +146,21 @@ const SelfConsumptionAnalysis: React.FC = () => {
                             </select>
                         </div>
 
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-green-600" />
+                                Feed-in Tariff (¥/kWh)
+                            </label>
+                            <input
+                                type="number"
+                                value={feedInTariff}
+                                onChange={(e) => setFeedInTariff(Number(e.target.value))}
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+
                         <button
                             onClick={handleCalculate}
                             className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -202,7 +230,39 @@ const SelfConsumptionAnalysis: React.FC = () => {
                                             </p>
                                         </CardContent>
                                     </Card>
+
+                                    {financialResult && (
+                                        <Card className="bg-purple-50 border-purple-100 shadow-sm">
+                                            <CardContent className="p-4 flex flex-col items-center text-center">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <DollarSign className="w-5 h-5 text-purple-600" />
+                                                    <p className="text-sm text-purple-600 font-medium">Bill Savings</p>
+                                                </div>
+                                                <p className="text-2xl font-bold text-purple-800">
+                                                    ¥{financialResult.totalSavings.toFixed(2)}
+                                                </p>
+                                                <p className="text-xs text-purple-500 mt-1">Avoided cost</p>
+                                            </CardContent>
+                                        </Card>
+                                    )}
                                 </div>
+
+                                {financialResult && (
+                                    <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                        <div className="flex flex-col items-center">
+                                            <p className="text-xs text-gray-600 mb-1">Daily Savings</p>
+                                            <p className="text-lg font-bold text-green-700">¥{financialResult.totalSavings.toFixed(2)}</p>
+                                        </div>
+                                        <div className="flex flex-col items-center border-l border-r border-gray-200">
+                                            <p className="text-xs text-gray-600 mb-1">Daily Revenue (Export)</p>
+                                            <p className="text-lg font-bold text-yellow-700">¥{financialResult.totalRevenue.toFixed(2)}</p>
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                            <p className="text-xs text-gray-600 mb-1">Daily Import Cost</p>
+                                            <p className="text-lg font-bold text-red-700">¥{financialResult.totalCost.toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 <div className="grid grid-cols-1 gap-6">
                                     <div className="h-80 w-full p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
