@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Sun, ArrowRight, Zap, Coins } from 'lucide-react';
+import { LayoutDashboard, Sun, ArrowRight, Zap, Coins, PieChart } from 'lucide-react';
 import { AppView } from '../types';
 
 interface LandingPageProps {
@@ -24,7 +24,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl w-full z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full z-10">
                 {/* Electricity Price Module */}
                 <button
                     onClick={() => onNavigate('dashboard')}
@@ -75,6 +75,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
                         <div className="flex items-center text-orange-600 font-semibold group-hover:translate-x-2 transition-transform duration-300">
                             开始测算 <ArrowRight className="ml-2" size={20} />
+                        </div>
+                    </div>
+                </button>
+
+                {/* Self-Consumption Analysis Module */}
+                <button
+                    onClick={() => onNavigate('self-consumption')}
+                    className="group relative bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 text-left overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-32 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 translate-x-1/2 -translate-y-1/2" />
+
+                    <div className="relative">
+                        <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:text-emerald-700 transition-colors duration-300">
+                            <PieChart size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2 group-hover:text-emerald-700 transition-colors">
+                            光伏消纳分析
+                        </h2>
+                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-6">
+                            Self-Consumption Analysis
+                        </h3>
+                        <p className="text-slate-600 mb-8 leading-relaxed">
+                            导入企业用电负荷数据，结合光伏发电曲线，精准测算自发自用比例与余电上网电量。
+                        </p>
+
+                        <div className="flex items-center text-emerald-600 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+                            开始分析 <ArrowRight className="ml-2" size={20} />
                         </div>
                     </div>
                 </button>
