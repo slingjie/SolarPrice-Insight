@@ -184,11 +184,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
-      {view !== 'pvgis' && view !== 'admin' && (
+      {view !== 'pvgis' && view !== 'admin' && view !== 'self-consumption' && (
         <Sidebar currentView={view} onNavigate={setView} />
       )}
 
-      <main className={`flex-1 ${view !== 'pvgis' && view !== 'admin' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
+      <main className={`flex-1 ${view !== 'pvgis' && view !== 'admin' && view !== 'self-consumption' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
         <div className="max-w-7xl mx-auto">
           {view === 'dashboard' && (
             <Dashboard
@@ -253,9 +253,11 @@ const App: React.FC = () => {
               onUpdateTariffs={handleUpdateTariffs}
             />
           )}
-           {view === 'self-consumption' && (
-             <SelfConsumption timeConfigs={timeConfigs} />
-           )}
+            {view === 'self-consumption' && (
+              <div className="-m-4 lg:-m-8">
+                <SelfConsumption timeConfigs={timeConfigs} onBack={() => setView('home')} />
+              </div>
+            )}
           {view === 'settings' && (
             <SettingsView
               tariffs={tariffs}
