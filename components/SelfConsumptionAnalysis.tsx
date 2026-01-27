@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './UI';
 import { simulateDailySolarCurve, simulateLoadCurve, calculateSelfConsumption } from '../services/solarCalculator';
 import { SolarSimulationResult } from '../types';
-import { Calculator, Sun, Battery, Zap } from 'lucide-react';
+import { Calculator, Sun, Battery, Zap, PieChart, BatteryCharging, Upload, Download } from 'lucide-react';
+import { 
+    ComposedChart, 
+    BarChart,
+    Bar, 
+    Line, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    Legend, 
+    ResponsiveContainer, 
+    Area 
+} from 'recharts';
 
 const SelfConsumptionAnalysis: React.FC = () => {
     const [systemSize, setSystemSize] = useState<number>(10);
@@ -141,29 +154,151 @@ const SelfConsumptionAnalysis: React.FC = () => {
                     <CardContent>
                         {simulationResult ? (
                             <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                        <p className="text-sm text-blue-600 font-medium">Self-Consumption Rate</p>
-                                        <p className="text-2xl font-bold text-blue-800">
-                                            {(simulationResult.selfConsumptionRate * 100).toFixed(1)}%
-                                        </p>
-                                    </div>
-                                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                                        <p className="text-sm text-green-600 font-medium">Self-Consumed Energy</p>
-                                        <p className="text-2xl font-bold text-green-800">
-                                            {simulationResult.totalSelfConsumedKwh.toFixed(1)} <span className="text-sm font-normal text-gray-500">kWh/day</span>
-                                        </p>
-                                    </div>
-                                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-                                        <p className="text-sm text-yellow-600 font-medium">Grid Export</p>
-                                        <p className="text-2xl font-bold text-yellow-800">
-                                            {simulationResult.totalExportKwh.toFixed(1)} <span className="text-sm font-normal text-gray-500">kWh/day</span>
-                                        </p>
-                                    </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Card className="bg-green-50 border-green-100 shadow-sm">
+                                        <CardContent className="p-4 flex flex-col items-center text-center">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <PieChart className="w-5 h-5 text-green-600" />
+                                                <p className="text-sm text-green-600 font-medium">Self-Consumption</p>
+                                            </div>
+                                            <p className="text-2xl font-bold text-green-800">
+                                                {(simulationResult.selfConsumptionRate * 100).toFixed(1)}%
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    
+                                    <Card className="bg-blue-50 border-blue-100 shadow-sm">
+                                        <CardContent className="p-4 flex flex-col items-center text-center">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <BatteryCharging className="w-5 h-5 text-blue-600" />
+                                                <p className="text-sm text-blue-600 font-medium">Consumed</p>
+                                            </div>
+                                            <p className="text-2xl font-bold text-blue-800">
+                                                {simulationResult.totalSelfConsumedKwh.toFixed(0)} <span className="text-xs font-normal text-blue-600">kWh</span>
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card className="bg-yellow-50 border-yellow-100 shadow-sm">
+                                        <CardContent className="p-4 flex flex-col items-center text-center">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Upload className="w-5 h-5 text-yellow-600" />
+                                                <p className="text-sm text-yellow-600 font-medium">Grid Export</p>
+                                            </div>
+                                            <p className="text-2xl font-bold text-yellow-800">
+                                                {simulationResult.totalExportKwh.toFixed(0)} <span className="text-xs font-normal text-yellow-600">kWh</span>
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card className="bg-red-50 border-red-100 shadow-sm">
+                                        <CardContent className="p-4 flex flex-col items-center text-center">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Download className="w-5 h-5 text-red-600" />
+                                                <p className="text-sm text-red-600 font-medium">Grid Import</p>
+                                            </div>
+                                            <p className="text-2xl font-bold text-red-800">
+                                                {simulationResult.totalImportKwh.toFixed(0)} <span className="text-xs font-normal text-red-600">kWh</span>
+                                            </p>
+                                        </CardContent>
+                                    </Card>
                                 </div>
                                 
-                                <div className="p-8 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 text-gray-400 min-h-[300px]">
-                                    Chart Placeholder - Will implement charts in next step
+                                <div className="grid grid-cols-1 gap-6">
+                                    <div className="h-80 w-full p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
+                                        <h3 className="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
+                                            <Sun className="w-4 h-4 text-orange-500" />
+                                            Solar Generation vs. Load Profile
+                                        </h3>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <ComposedChart data={simulationResult.hourlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorSolar" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0.05}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="hour" 
+                                                    tickFormatter={(tick) => `${tick}:00`} 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                    dy={10}
+                                                />
+                                                <YAxis 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                    formatter={(value: number) => [`${value.toFixed(2)} kWh`, '']}
+                                                    labelFormatter={(label) => `${label}:00 - ${label + 1}:00`}
+                                                />
+                                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                <Area 
+                                                    type="monotone" 
+                                                    dataKey="solarKwh" 
+                                                    name="Solar Generation" 
+                                                    fill="url(#colorSolar)" 
+                                                    stroke="#f97316" 
+                                                    strokeWidth={2}
+                                                />
+                                                <Line 
+                                                    type="step" 
+                                                    dataKey="loadKwh" 
+                                                    name="Load Consumption" 
+                                                    stroke="#3b82f6" 
+                                                    strokeWidth={2} 
+                                                    dot={false}
+                                                />
+                                            </ComposedChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="h-80 w-full p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
+                                        <h3 className="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
+                                            <Battery className="w-4 h-4 text-green-500" />
+                                            Energy Balance (Hourly)
+                                        </h3>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={simulationResult.hourlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="hour" 
+                                                    tickFormatter={(tick) => `${tick}:00`} 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                    dy={10}
+                                                />
+                                                <YAxis 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                    cursor={{ fill: '#f3f4f6' }}
+                                                    formatter={(value: number) => [`${value.toFixed(2)} kWh`, '']}
+                                                />
+                                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                <Bar dataKey="selfConsumedKwh" name="Self-Consumed" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} />
+                                                <Bar dataKey="exportKwh" name="Grid Export" stackId="a" fill="#eab308" radius={[4, 4, 0, 0]} />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="importKwh" 
+                                                    name="Grid Import" 
+                                                    stroke="#ef4444" 
+                                                    strokeWidth={2} 
+                                                    dot={false}
+                                                    strokeDasharray="5 5"
+                                                />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 </div>
 
                                 <div className="text-xs text-gray-400 text-center">
