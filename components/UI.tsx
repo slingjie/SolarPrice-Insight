@@ -8,6 +8,24 @@ export const Card: React.FC<{ children: React.ReactNode, className?: string }> =
   </div>
 );
 
+export const CardHeader: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = "" }) => (
+  <div className={`p-6 border-b border-slate-100 ${className}`}>
+    {children}
+  </div>
+);
+
+export const CardTitle: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = "" }) => (
+  <h3 className={`text-lg font-semibold text-slate-900 ${className}`}>
+    {children}
+  </h3>
+);
+
+export const CardContent: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = "" }) => (
+  <div className={`p-6 ${className}`}>
+    {children}
+  </div>
+);
+
 export const Badge: React.FC<{ type: string }> = ({ type }) => (
   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${type === 'tip' ? 'bg-red-100 text-red-700' :
     type === 'peak' ? 'bg-orange-100 text-orange-700' :
