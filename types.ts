@@ -192,3 +192,45 @@ export interface IrradianceCacheData {
   _deleted?: boolean;
 }
 
+// ========== 太阳能自消费分析类型 ==========
+
+/**
+ * 太阳能系统配置
+ */
+export interface SolarSystem {
+  systemSizeKw: number; // 系统容量，单位 kW
+  estimatedGenerationKwh?: number; // 预计年度发电量，单位 kWh（可选）
+}
+
+/**
+ * 负荷配置文件
+ */
+export interface LoadProfile {
+  monthlyConsumptionKwh: number; // 月度平均用电量，单位 kWh
+  workStartHour: string; // 工作开始时间，格式 HH:mm
+  workEndHour: string; // 工作结束时间，格式 HH:mm
+}
+
+/**
+ * 小时级别的太阳能自消费数据
+ */
+export interface SelfConsumptionHourlyData {
+  hour: number; // 小时数 (0-23)
+  solarKwh: number; // 太阳能发电量，单位 kWh
+  loadKwh: number; // 负荷用电量，单位 kWh
+  selfConsumedKwh: number; // 自消费量，单位 kWh
+  exportKwh: number; // 上网电量，单位 kWh
+  importKwh: number; // 从网购电量，单位 kWh
+}
+
+/**
+ * 太阳能自消费分析结果
+ */
+export interface SolarSimulationResult {
+  selfConsumptionRate: number; // 自消费率，范围 0-1
+  totalSelfConsumedKwh: number; // 总自消费量，单位 kWh
+  totalExportKwh: number; // 总上网电量，单位 kWh
+  totalImportKwh: number; // 总从网购电量，单位 kWh
+  hourlyData: SelfConsumptionHourlyData[]; // 小时级别数据
+}
+
