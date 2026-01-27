@@ -8,12 +8,13 @@ import { calculateAveragePrice, CalculationResult } from '../services/priceCalcu
 
 interface ComprehensivePriceCalculatorProps {
     tariffs: TariffData[];
+    onNavigate: (view: string) => void;
 }
 
 
 interface PriceResult extends CalculationResult {}
 
-export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs }) => {
+export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs, onNavigate }) => {
     const [dbProvinces, setDbProvinces] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [initLoading, setInitLoading] = useState(true);
@@ -272,20 +273,32 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
 
                         <div>
                             <label className="text-xs font-bold text-slate-500 mb-1 block">省份</label>
-                            <select
-                                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 font-bold"
-                                value={formData.province}
-                                onChange={e => setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] })}
-                                disabled={initLoading}
-                            >
-                                {initLoading ? (
-                                    <option>加载中...</option>
-                                ) : dbProvinces.length > 0 ? (
-                                    dbProvinces.map(p => <option key={p} value={p}>{p}</option>)
-                                ) : (
-                                    <option value="">暂无数据省份</option>
-                                )}
-                            </select>
+                            {dbProvinces.length === 0 && !initLoading ? (
+                                <div className="p-4 border border-dashed border-slate-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center gap-3">
+                                    <p className="text-sm text-slate-600 font-medium">暂无电价数据</p>
+                                    <button
+                                        onClick={() => onNavigate('upload')}
+                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all"
+                                    >
+                                        前往导入
+                                    </button>
+                                </div>
+                            ) : (
+                                <select
+                                    className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 font-bold"
+                                    value={formData.province}
+                                    onChange={e => setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] })}
+                                    disabled={initLoading}
+                                >
+                                    {initLoading ? (
+                                        <option>加载中...</option>
+                                    ) : dbProvinces.length > 0 ? (
+                                        dbProvinces.map(p => <option key={p} value={p}>{p}</option>)
+                                    ) : (
+                                        <option value="">暂无数据省份</option>
+                                    )}
+                                </select>
+                            )}
                             {dbProvinces.length === 0 && !initLoading && (
                                 <p className="text-[10px] text-red-500 mt-1">数据库中暂无任何省份的电价数据</p>
                             )}
