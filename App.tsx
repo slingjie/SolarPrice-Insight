@@ -7,15 +7,15 @@ import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
 
-import SelfConsumptionAnalysis from './components/SelfConsumptionAnalysis';
 import { SelfConsumption } from './components/SelfConsumption';
 import { AnalysisView } from './components/Analysis';
 import { PVGISModule } from './components/pvgis/PVGISModule';
 import { AdminModule } from './components/admin/AdminModule';
 import { SettingsView } from './components/Settings';
-import { AppView, TariffData, TimeConfig } from './types';
+import { AppView, HourlyData, PVGISParams, TariffData, TimeConfig } from './types';
 import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
 import { getDatabase } from './services/db';
+import { initDefaultHolidays } from './services/holidayService';
 
 import { LandingPage } from './components/LandingPage';
 
@@ -31,6 +31,11 @@ const App: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
   const [dashboardViewMode, setDashboardViewMode] = useState<'map' | 'list'>('map');
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
+
+  const [selfConsumptionSeed, setSelfConsumptionSeed] = useState<{
+    pvParams: PVGISParams;
+    hourly: HourlyData[];
+  } | null>(null);
 
   // 初始化数据库并建立订阅
   useEffect(() => {
@@ -74,6 +79,13 @@ const App: React.FC = () => {
             // 如果存储中没有数据或解析为空，加载默认配置
             await db.time_configs.bulkInsert(DEFAULT_TIME_CONFIGS);
           }
+        }
+
+        // 初始化默认节假日
+        const existingHolidayCount = await db.holidays.count().exec();
+        if (existingHolidayCount === 0) {
+          console.log('[App] Initializing default holidays');
+          await initDefaultHolidays();
         }
 
         // 2. 建立响应式订阅
@@ -242,7 +254,13 @@ const App: React.FC = () => {
              <ComprehensivePriceCalculator tariffs={tariffs} onNavigate={setView} />
            )}
           {view === 'pvgis' && (
-            <PVGISModule onBack={() => setView('home')} />
+            <PVGISModule
+              onBack={() => setView('home')}
+              onOpenSelfConsumption={(seed) => {
+                setSelfConsumptionSeed(seed);
+                setView('self-consumption');
+              }}
+            />
           )}
 
           {view === 'analysis' && analysisTarget && (
@@ -255,7 +273,13 @@ const App: React.FC = () => {
           )}
             {view === 'self-consumption' && (
               <div className="-m-4 lg:-m-8">
-                <SelfConsumption timeConfigs={timeConfigs} onBack={() => setView('home')} />
+                <SelfConsumption 
+                  timeConfigs={timeConfigs} 
+                  tariffs={tariffs}
+                  initialPvParams={selfConsumptionSeed?.pvParams}
+                  initialPvHourlyData={selfConsumptionSeed?.hourly}
+                  onBack={() => setView('home')} 
+                />
               </div>
             )}
           {view === 'settings' && (
