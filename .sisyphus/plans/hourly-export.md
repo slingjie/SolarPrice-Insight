@@ -52,10 +52,10 @@
 - `components/SelfConsumption/index.tsx` 结果区添加两个导出按钮
 
 ### 完成标准
-- [ ] 点击"导出逐时明细"后下载 CSV，包含 8760 行
-- [ ] 点击"导出月度汇总"后下载 CSV，包含 12 行
-- [ ] `npm run test` 通过
-- [ ] `npm run build` 通过
+- [ ] 点击"导出逐时明细"后下载 CSV，包含 8760 行 *(需手动 QA)*
+- [ ] 点击"导出月度汇总"后下载 CSV，包含 12 行 *(需手动 QA)*
+- [x] `npm run test` 通过
+- [x] `npm run build` 通过
 
 ### Must Have
 - 导出按钮在结果区显眼位置
