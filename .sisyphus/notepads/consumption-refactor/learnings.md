@@ -99,3 +99,157 @@
 - **Reuse**: `hourKeyToMonthDayHour()` enables weekday calculation without additional Date manipulation—critical for deterministic `workPattern` Level assignment (A/B/C).
 - **Display**: `toIsoLocalFromMonthDayHour()` avoids `new Date(string)` (locale-dependent). Always explicit +08:00.
 
+
+## Task 2: Consumption Excel Parser - Dual Format Support
+
+### Implementation Summary
+- **Files Modified**: `utils/excelParser.ts` (extended from 117 → 274 lines) + `utils/excelParser.test.ts` (extended from 226 → 432 lines)
+- **Test Coverage**: 24 test cases (all PASS)
+  - 13 existing month-row format tests (preserved, all pass)
+  - 11 new tou-row format tests (comprehensive coverage)
+- **Build Status**: ✓ PASS (no TypeScript errors)
+
+### Format Detection Strategy
+
+**Month-Row Format (existing, preserved)**
+- Columns: `月份/Month` (first column) + TOU fields (尖/峰/平/谷/深)
+- Rows: One row per month (1-12)
+- Example:
+  ```
+  月份  尖   峰   平   谷   深谷
+  1    100  200  300  400  50
+  2    110  210  310  410  55
+  ```
+
+**Tou-Row Format (new, reference-aligned)**
+- Columns: `tou` (first column) + month columns (Jan/1月/1, Feb/2月/2, ..., Dec/12月/12)
+- Rows: One row per TOU type (尖/峰/平/谷/深)
+- Example:
+  ```
+  tou  1月  2月  3月
+  尖   100  110  120
+  峰   200  210  220
+  平   300  310  320
+  谷   400  410  420
+  深   50   55   60
+  ```
+
+### Auto-Detection Logic
+
+```typescript
+detectFormat(headers, firstRow): 'month-row' | 'tou-row' | null {
+  1. Check for month-row: find "月份/Month" column + verify ≥1 TOU field exists
+  2. Check for tou-row: find "tou" column + verify first row has valid TOU label + ≥1 month column
+  3. Return null if neither detected → throw format detection error
+}
+```
+
+**Detection Edge Cases Handled**
+- Mixed case headers (尖峰 vs ZFPEAK) → normalized before matching
+- Case-insensitive matching for both formats
+- Numeric month columns (1, 2, 3) parsed directly via `parseInt(header)` fallback
+
+### TOU Label Normalization
+
+**Supported Aliases** (locked per plan):
+- tip: `tip`, `尖`, `尖峰`, `尖时`
+- peak: `peak`, `峰`, `高峰`
+- flat: `flat`, `平`, `平段`
+- valley: `valley`, `谷`, `低谷`
+- deep: `deep`, `深`, `深谷`
+
+**Month Detection** (English/Chinese/Numeric):
+- English: `Jan`, `Feb`, ..., `Dec` + full names (`January`, `February`, ...)
+- Chinese: `1月`, `2月`, ..., `12月`
+- Numeric: Direct `parseInt()` for columns labeled 1-12
+
+### Parsing Implementation Details
+
+**Month-Row Parser** (`parseMonthRowFormat`)
+- Maps header columns to TOU field names via regex patterns
+- Iterates rows, extracts month + TOU values
+- Skips rows with invalid month values
+- Returns sorted `MonthlyConsumption[]` (month 1-12)
+
+**Tou-Row Parser** (`parseTouRowFormat`)
+- Identifies tou column + all month columns
+- Initializes `monthMap` only for detected months (no zero-filling of all 12)
+- Iterates rows, normalizes TOU label, extracts consumption per month
+- **Accumulates** duplicate TOU labels (e.g., two "尖" rows → sum their values)
+- Returns sorted `MonthlyConsumption[]` (month 1-12)
+
+### Output Guarantee
+
+Both formats produce identical `MonthlyConsumption[]` output:
+```typescript
+interface MonthlyConsumption {
+  month: 1-12,
+  tip: number,     // alias for 尖
+  peak: number,    // alias for 峰
+  flat: number,    // alias for 平
+  valley: number,  // alias for 谷
+  deep: number     // alias for 深, defaults to 0 if missing
+}
+```
+
+**Cross-Format Equivalence Test** ✓ PASS
+```
+Same data in month-row format → identical output ✓
+Same data in tou-row format  → identical output ✓
+Both outputs equal            → true ✓
+```
+
+### Test Coverage Highlights
+
+**Month-Row Format (13 tests)**
+- Standard Chinese headers ✓
+- English headers ✓
+- Alternative labels (尖峰, 高峰, 平段, 低谷) ✓
+- Month formats (1月, 2月, numeric) ✓
+- Missing columns (default to 0) ✓
+- Empty cells (default to 0) ✓
+- Number parsing (comma separators, strings) ✓
+- Error cases (empty file, no month, invalid months) ✓
+- Row ordering (skips invalid, preserves valid) ✓
+
+**Tou-Row Format (11 tests)**
+- Chinese month names (1月, 2月, 3月) ✓
+- English month names (Jan, Feb, Mar) ✓
+- Numeric month columns (1, 2, 3) ✓
+- Missing TOU fields (default to 0) ✓
+- Alternative TOU labels (尖峰, 高峰, etc.) ✓
+- Invalid TOU labels (skip rows) ✓
+- Empty cells (default to 0) ✓
+- Duplicate TOU rows (accumulate values) ✓
+- Cross-format equivalence (month-row = tou-row) ✓
+- Mixed English/Chinese months ✓
+- Month sorting ✓
+
+### Critical Design Decisions (Locked)
+
+1. **Only-Detected-Months Initialization**: Tou-row parser initializes monthMap only for months found in column headers. This prevents zero-filling months not in data (critical for scenarios with partial-year data).
+
+2. **Duplicate Accumulation**: Tou-row format can have multiple rows for same TOU label (data quality variation). Parser **sums** them rather than replacing. Matches reference repo behavior.
+
+3. **Numeric Month Fallback**: After regex patterns fail, parser tries direct `parseInt(header)` to catch numeric columns that XLSX may preserve as numbers or strings.
+
+4. **Deep Field Default**: Both formats default `deep` to 0 if missing (consistent with existing month-row behavior and plan semantics).
+
+5. **Error Priority**: Format detection throws single unified error ("Unable to detect...") rather than cascading specific errors. Avoids user confusion with multiple error messages.
+
+### Dependencies & Integration
+
+**No New Dependencies**: Reuses existing XLSX library.
+
+**Consumers (Next Waves)**
+- `services/consumptionAlignedService.ts` (Task 5): Will receive `MonthlyConsumption[]` regardless of input format
+- UI File Upload: Can accept both formats transparently
+- Testing: Reference repo tou-row example files now compatible
+
+### Notes for Future Waves
+
+- **Format Flexibility**: Parser auto-detects without user hints; UI doesn't need "choose format" dropdown
+- **Data Resilience**: Duplicate TOU rows, mixed month formats, partial data all handled deterministically
+- **Error Clarity**: Failing imports now clearly state "Unable to detect format" + expected column patterns
+- **Month Completeness**: Output always sorted by month; missing months appear as zero-valued entries (for month-row only; tou-row omits them)
+
