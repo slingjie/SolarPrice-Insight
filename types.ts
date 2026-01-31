@@ -211,6 +211,60 @@ export interface LoadProfile {
   workEndHour: string; // 工作结束时间，格式 HH:mm
 }
 
+// ========== 用电数据导入 / 负荷曲线生成 ==========
+
+export interface MonthlyLoadData {
+  month: number; // 1-12
+  consumption: number; // kWh
+}
+
+export interface HourlyLoadData {
+  time: string; // "MM-DD HH:00"
+  load: number; // kWh
+}
+
+export type ParsedLoadData =
+  | {
+      format: 'monthly';
+      monthly: MonthlyLoadData[];
+      totalAnnual: number;
+    }
+  | {
+      format: 'hourly';
+      hourly: HourlyLoadData[];
+      totalAnnual: number;
+    };
+
+export interface LoadProfileConfig {
+  workdayStart: number; // 0-23
+  workdayEnd: number; // 0-23
+  workdayRatio: number; // 0-1
+
+  weekendAsHoliday: boolean;
+  holidayRatio: number; // 0-1, relative to workday
+
+  summerMonths: number[]; // 1-12
+  summerMultiplier: number;
+
+  winterMonths: number[]; // 1-12
+  winterMultiplier: number;
+}
+
+export const DEFAULT_LOAD_PROFILE_CONFIG: LoadProfileConfig = {
+  workdayStart: 9,
+  workdayEnd: 17,
+  workdayRatio: 0.8,
+
+  weekendAsHoliday: true,
+  holidayRatio: 0.5,
+
+  summerMonths: [6, 7, 8],
+  summerMultiplier: 1.2,
+
+  winterMonths: [12, 1, 2],
+  winterMultiplier: 1.1,
+};
+
 /**
  * 小时级别的太阳能自消费数据
  */
@@ -231,6 +285,74 @@ export interface SolarSimulationResult {
   totalSelfConsumedKwh: number; // 总自消费量，单位 kWh
   totalExportKwh: number; // 总上网电量，单位 kWh
   totalImportKwh: number; // 总从网购电量，单位 kWh
+
   hourlyData: SelfConsumptionHourlyData[]; // 小时级别数据
 }
 
+export interface HourlyConsumptionResult {
+  time: string;
+  pvGeneration: number;
+  loadDemand: number;
+  selfConsumption: number;
+  gridExport: number;
+  gridImport: number;
+}
+
+export interface MonthlyConsumptionData {
+  month: number;
+  pvGeneration: number;
+  loadDemand: number;
+  selfConsumption: number;
+  gridExport: number;
+  gridImport: number;
+  selfConsumptionRate: number;
+  selfSufficiencyRate: number;
+}
+
+export interface ConsumptionSummary {
+  totalPvGeneration: number;
+  totalLoadDemand: number;
+  totalSelfConsumption: number;
+  totalGridExport: number;
+  totalGridImport: number;
+  selfConsumptionRate: number;
+  selfSufficiencyRate: number;
+  hourlyData: HourlyConsumptionResult[];
+  monthlyData: MonthlyConsumptionData[];
+}
+
+// ========== 节假日相关类型 ==========
+
+/**
+ * 节假日定义
+ */
+export interface HolidayDefinition {
+  id: string;              // UUID
+  name: string;            // 如 "春节"、"国庆节"
+  startDate: string;       // MM-DD 格式，如 "01-31"
+  endDate: string;         // MM-DD 格式，如 "02-06"
+  isDefault: boolean;      // 是否为预填充的默认节假日
+  updated_at: string;      // ISO timestamp
+}
+
+/**
+ * 工作日程配置
+ */
+export interface WorkSchedule {
+  id: string;
+  name: string;
+  R_D: number;                    // 节假日负荷比例（默认 0.2）
+  selectedHolidayIds: string[];   // 选中的节假日 ID 列表
+  updated_at: string;             // ISO timestamp
+  _deleted?: boolean;
+}
+
+/**
+ * 日期类型
+ */
+export type DayType = 'workday' | 'restday' | 'holiday';
+
+/**
+ * 负荷等级
+ */
+export type LoadLevel = 'A' | 'B' | 'C' | 'D';

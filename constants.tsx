@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TimeConfig } from './types';
+import { TimeConfig, HolidayDefinition } from './types';
 
 export const PROVINCES = [
   "江苏省", "浙江省", "广东省", "山东省", "河南省",
@@ -70,3 +70,64 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
     ]
   }
 ];
+
+export const DEFAULT_HOLIDAYS: HolidayDefinition[] = [
+  {
+    id: 'holiday-new-year',
+    name: '元旦',
+    startDate: '01-01',
+    endDate: '01-01',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-spring-festival',
+    name: '春节',
+    startDate: '01-29',
+    endDate: '02-04',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-qingming',
+    name: '清明节',
+    startDate: '04-04',
+    endDate: '04-06',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-labor-day',
+    name: '劳动节',
+    startDate: '05-01',
+    endDate: '05-05',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-dragon-boat',
+    name: '端午节',
+    startDate: '06-10',
+    endDate: '06-12',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-mid-autumn',
+    name: '中秋节',
+    startDate: '09-15',
+    endDate: '09-17',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  },
+  {
+    id: 'holiday-national-day',
+    name: '国庆节',
+    startDate: '10-01',
+    endDate: '10-07',
+    isDefault: true,
+    updated_at: '2026-01-31T00:00:00.000Z'
+  }
+];
+
+export const DEFAULT_R_D = 0.2;
