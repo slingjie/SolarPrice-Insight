@@ -38,7 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const results = await db.comprehensive_results.find().exec();
         const mapping: Record<string, ComprehensiveResult> = {};
         results.forEach(r => {
-          mapping[r.province] = r.toJSON();
+          mapping[r.province] = r.toJSON() as unknown as ComprehensiveResult;
         });
         setCompResults(mapping);
       } catch (err) {
