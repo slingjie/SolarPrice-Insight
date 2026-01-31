@@ -253,3 +253,85 @@ Both outputs equal            → true ✓
 - **Error Clarity**: Failing imports now clearly state "Unable to detect format" + expected column patterns
 - **Month Completeness**: Output always sorted by month; missing months appear as zero-valued entries (for month-row only; tou-row omits them)
 
+
+## Task 4: TimeConfig month_pattern Resolver (Wave 1 - Foundations)
+
+### Implementation Summary
+- **Files Created**: `utils/timeConfigResolver.ts` (78 lines) + `utils/timeConfigResolver.test.ts` (127 lines)
+- **Test Coverage**: 11 test cases, 100% pass rate
+- **Build Status**: ✓ PASS
+
+### Key Function Implemented
+
+**resolveTimeConfigForMonth(timeConfigs, provinceName, month): ResolvedTimeConfig | null**
+- Input: Array of TimeConfig, province name, target month (1-12)
+- Output: `{ timeRules, touGrid }` where touGrid is TimeType[24] from rulesToGrid()
+- Returns null if no match found
+
+### month_pattern Parsing Rules
+
+**"All" (case-insensitive)**:
+- Matches all months 1-12
+- Normalized: `all`, `All`, `ALL` → all valid
+
+**Comma-separated**:
+- Format: `"6,7,8"` → months [6, 7, 8]
+- Invalid tokens silently ignored: `"6,invalid,7,99,-1"` → only [6, 7] kept
+- Range 1-12 enforced
+
+### Priority Tiers (Exact Order)
+
+1. **province exact + month in pattern**
+2. **province exact + month_pattern === "All"**
+3. **province === "全部" + month in pattern**
+4. **province === "全部" + month_pattern === "All"**
+
+### Conflict Resolution (Same Priority)
+
+**Primary**: `last_modified` newest (Date comparison)
+**Fallback**: `id` lexicographic smallest (string compare)
+
+Example: Same province + pattern + last_modified → choose smallest id
+
+### Integration Points
+
+**Consumers** (Wave 2):
+- `services/consumptionAlignedService.ts` (3-level load engine) - uses touGrid for TOU assignment
+- Tariff matching logic - extracts month from TimeKey for tariff selection
+
+**Dependencies**:
+- `utils/timeUtils.ts:rulesToGrid()` - generates 24-hour TOU grid from rules
+- `types.ts:TimeConfig/TimeRule/TimeType` - core data structures
+
+### Test Coverage Highlights
+
+**month_pattern Parsing** (3 tests):
+- ✓ Case-insensitive "All" (all/All/ALL)
+- ✓ Comma-separated months ("6,7,8")
+- ✓ Invalid token filtering (NaN, <1, >12 ignored)
+
+**Priority Matching** (4 tests):
+- ✓ Tier 1: province exact + month
+- ✓ Tier 2: province exact + All
+- ✓ Tier 3: 全部 + month
+- ✓ Tier 4: 全部 + All
+
+**Conflict Resolution** (2 tests):
+- ✓ last_modified newest wins
+- ✓ id smallest wins (when last_modified equal)
+
+**Edge Cases** (2 tests):
+- ✓ No match found → null
+- ✓ touGrid generation via rulesToGrid
+
+### Wave 1 Completion Status
+
+✅ Task 1: TimeKey utilities (39 tests)
+✅ Task 2: Excel parser tou-row (24 tests)
+✅ Task 3: PV Excel 24x12 parser (8 tests)
+✅ Task 4: TimeConfig month_pattern resolver (11 tests)
+
+**Total**: 82 tests, 100% pass rate, 4/4 tasks complete
+
+**Next**: Wave 2 (Core Engine) - Tasks 5-6
+
