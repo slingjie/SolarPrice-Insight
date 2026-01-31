@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getDatabase } from '../services/db';
-import { TariffData, TimeConfig, SavedTimeRange } from '../types';
+import { TariffData, TimeConfig, SavedTimeRange, HolidayDefinition } from '../types';
 
 /**
  * 监听所有电价数据的 Hook
@@ -94,4 +94,31 @@ export function useTimeConfigs() {
     }, []);
 
     return { configs, loading };
+}
+
+/**
+ * 监听节假日定义的 Hook
+ */
+export function useHolidays() {
+    const [holidays, setHolidays] = useState<HolidayDefinition[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let subscription: any;
+
+        const init = async () => {
+            const db = await getDatabase();
+            const query = db.holidays.find();
+
+            subscription = query.$.subscribe(docs => {
+                setHolidays(docs.map(doc => doc.toJSON() as HolidayDefinition));
+                setLoading(false);
+            });
+        };
+
+        init();
+        return () => subscription?.unsubscribe();
+    }, []);
+
+    return { holidays, loading };
 }

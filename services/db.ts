@@ -12,7 +12,7 @@ import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
-import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData, OperationLog } from '../types';
+import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData, OperationLog, HolidayDefinition } from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -170,6 +170,22 @@ const operationLogSchema = {
     required: ['id', 'timestamp', 'target_collection', 'action', 'count']
 };
 
+const holidaysSchema = {
+    title: 'holidays schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        name: { type: 'string' },
+        startDate: { type: 'string' },
+        endDate: { type: 'string' },
+        isDefault: { type: 'boolean' },
+        updated_at: { type: 'string', format: 'date-time' }
+    },
+    required: ['id', 'name', 'startDate', 'endDate', 'isDefault', 'updated_at']
+};
+
 
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
@@ -177,6 +193,7 @@ type SavedTimeRangeCollection = RxCollection<SavedTimeRange>;
 type ComprehensiveResultCollection = RxCollection<ComprehensiveResult>;
 type PVGISCacheCollection = RxCollection<PVGISCacheData>;
 type OperationLogCollection = RxCollection<OperationLog>;
+type HolidaysCollection = RxCollection<HolidayDefinition>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
@@ -185,6 +202,7 @@ export type SolarDatabaseCollections = {
     comprehensive_results: ComprehensiveResultCollection;
     pvgis_cache: PVGISCacheCollection;
     operation_logs: OperationLogCollection;
+    holidays: HolidaysCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -204,7 +222,6 @@ const createDatabase = async () => {
             tariffs: {
                 schema: tariffSchema,
                 migrationStrategies: {
-                    // 从 v0 迁移到 v1 的策略
                     1: (oldDoc: any) => {
                         oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
                         oldDoc._deleted = oldDoc._deleted || false;
@@ -240,6 +257,9 @@ const createDatabase = async () => {
             },
             operation_logs: {
                 schema: operationLogSchema
+            },
+            holidays: {
+                schema: holidaysSchema
             }
         });
 
