@@ -30,8 +30,18 @@ export const exportHourlyDataToCSV = (data: any[], filename: string = 'solar_dat
         let clipboardSuccess = false;
         try {
             if (navigator.clipboard?.writeText) {
-                navigator.clipboard.writeText(csvContent);
-                clipboardSuccess = true;
+                navigator.clipboard
+                  .writeText(csvContent)
+                  .then(() => {
+                    console.log('剪贴板写入成功');
+                    // 延迟显示，避免与下载冲突
+                    setTimeout(() => {
+                      alert('数据已复制到剪贴板！\n\n请打开 Excel，选中单元格后按 Cmd+V 粘贴即可。\n\n（如果文件已自动下载，可忽略此提示）');
+                    }, 100);
+                  })
+                  .catch((e) => {
+                    console.warn('剪贴板写入失败:', e);
+                  });
             } else {
                 const ta = document.createElement('textarea');
                 ta.value = csvContent;
@@ -41,8 +51,8 @@ export const exportHourlyDataToCSV = (data: any[], filename: string = 'solar_dat
                 document.execCommand('copy');
                 document.body.removeChild(ta);
                 clipboardSuccess = true;
+                console.log('剪贴板写入成功');
             }
-            console.log('剪贴板写入成功');
         } catch (e) {
             console.warn('剪贴板写入失败:', e);
         }
@@ -124,8 +134,15 @@ export const exportSelfConsumptionHourlyCSV = (
       // 格式化时间 "MM-DD HH:00"
       const timeStr = `${String(aligned.month).padStart(2, '0')}-${String(aligned.day).padStart(2, '0')} ${String(aligned.hour).padStart(2, '0')}:00`;
       
-      // 时段（直接输出 touType）
-      const touType = aligned.touType;
+       // 时段（映射为中文）
+       const touTypeMap: Record<string, string> = {
+         tip: '尖',
+         peak: '峰',
+         flat: '平',
+         valley: '谷',
+         deep: '深谷',
+       };
+       const touTypeLabel = touTypeMap[aligned.touType] || aligned.touType;
       
       // 数值字段保留 2 位小数
       const loadKwh = aligned.loadKwh.toFixed(2);
@@ -139,7 +156,7 @@ export const exportSelfConsumptionHourlyCSV = (
       const importCost = financial ? financial.importCost.toFixed(2) : '0.00';
       const exportRevenue = financial ? financial.exportRevenue.toFixed(2) : '0.00';
       
-      return `${timeStr},${aligned.month},${aligned.day},${aligned.hour},${dayTypeLabel},${touType},${loadKwh},${pvKwh},${selfKwh},${gridExportKwh},${gridImportKwh},${unitPrice},${importCost},${exportRevenue}`;
+       return `${timeStr},${aligned.month},${aligned.day},${aligned.hour},${dayTypeLabel},${touTypeLabel},${loadKwh},${pvKwh},${selfKwh},${gridExportKwh},${gridImportKwh},${unitPrice},${importCost},${exportRevenue}`;
     }).join('\r\n');
 
     const csvContent = '\uFEFF' + headers + rows;
@@ -148,8 +165,18 @@ export const exportSelfConsumptionHourlyCSV = (
     let clipboardSuccess = false;
     try {
       if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(csvContent);
-        clipboardSuccess = true;
+        navigator.clipboard
+          .writeText(csvContent)
+          .then(() => {
+            console.log('剪贴板写入成功');
+            // 延迟显示，避免与下载冲突
+            setTimeout(() => {
+              alert('消纳分析数据已复制到剪贴板！\n\n请打开 Excel，选中单元格后按 Cmd+V 粘贴即可。\n\n（如果文件已自动下载，可忽略此提示）');
+            }, 100);
+          })
+          .catch((e) => {
+            console.warn('剪贴板写入失败:', e);
+          });
       } else {
         const ta = document.createElement('textarea');
         ta.value = csvContent;
@@ -159,8 +186,8 @@ export const exportSelfConsumptionHourlyCSV = (
         document.execCommand('copy');
         document.body.removeChild(ta);
         clipboardSuccess = true;
+        console.log('剪贴板写入成功');
       }
-      console.log('剪贴板写入成功');
     } catch (e) {
       console.warn('剪贴板写入失败:', e);
     }
@@ -265,8 +292,18 @@ export const exportSelfConsumptionMonthlyCSV = (
     let clipboardSuccess = false;
     try {
       if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(csvContent);
-        clipboardSuccess = true;
+        navigator.clipboard
+          .writeText(csvContent)
+          .then(() => {
+            console.log('剪贴板写入成功');
+            // 延迟显示，避免与下载冲突
+            setTimeout(() => {
+              alert('消纳分析月度数据已复制到剪贴板！\n\n请打开 Excel，选中单元格后按 Cmd+V 粘贴即可。\n\n（如果文件已自动下载，可忽略此提示）');
+            }, 100);
+          })
+          .catch((e) => {
+            console.warn('剪贴板写入失败:', e);
+          });
       } else {
         const ta = document.createElement('textarea');
         ta.value = csvContent;
@@ -276,8 +313,8 @@ export const exportSelfConsumptionMonthlyCSV = (
         document.execCommand('copy');
         document.body.removeChild(ta);
         clipboardSuccess = true;
+        console.log('剪贴板写入成功');
       }
-      console.log('剪贴板写入成功');
     } catch (e) {
       console.warn('剪贴板写入失败:', e);
     }
