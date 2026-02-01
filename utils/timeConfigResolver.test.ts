@@ -13,6 +13,7 @@ describe('timeConfigResolver', () => {
       { start: '20:00', end: '24:00', type: 'valley' as TimeType },
       { start: '00:00', end: '08:00', type: 'valley' as TimeType },
     ],
+    updated_at: lastModified,
     last_modified: lastModified,
   });
 
@@ -126,5 +127,11 @@ describe('timeConfigResolver', () => {
     expect(result!.touGrid[12]).toBe('flat'); // 12:00-20:00
     expect(result!.touGrid[20]).toBe('valley'); // 20:00-24:00
     expect(result!.touGrid[0]).toBe('valley'); // 00:00-08:00
+  });
+
+  it('should match province names after normalization', () => {
+    const configs = [createConfig('cfg1', '江苏省', 'All', '2024-01-01')];
+    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
+    expect(result).not.toBeNull();
   });
 });

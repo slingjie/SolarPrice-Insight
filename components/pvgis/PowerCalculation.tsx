@@ -7,7 +7,7 @@ import { FormulaCard } from './FormulaCard';
 import { PVGISParams, PVSummary, HourlyData } from '../../types';
 import { PVGISNavParams } from './PVGISModule';
 import { pvgisService } from '../../services/pvgisService';
-import { AlertCircle, Printer, ArrowLeft, Sun, Download } from 'lucide-react';
+import { AlertCircle, Printer, ArrowLeft, Sun, Download, PieChart } from 'lucide-react';
 import { exportHourlyDataToCSV } from '../../utils/exportUtils';
 
 const DEFAULT_PARAMS: PVGISParams = {
@@ -22,9 +22,10 @@ const DEFAULT_PARAMS: PVGISParams = {
 interface PowerCalculationProps {
     onBack?: () => void;
     initialParams?: PVGISNavParams;
+    onOpenSelfConsumption?: (seed: { pvParams: PVGISParams; hourly: HourlyData[] }) => void;
 }
 
-export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack, initialParams }) => {
+export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack, initialParams, onOpenSelfConsumption }) => {
     const [params, setParams] = useState<PVGISParams>(DEFAULT_PARAMS);
     const [summary, setSummary] = useState<PVSummary | null>(null);
     const [hourly, setHourly] = useState<HourlyData[] | null>(null);
@@ -122,6 +123,15 @@ export const PowerCalculation: React.FC<PowerCalculationProps> = ({ onBack, init
                 <div className="flex items-center gap-4 pb-2 print:hidden">
                     <h2 className="text-xl font-bold text-slate-900 hidden md:block">测算结果</h2>
                     <div className="ml-auto flex items-center gap-4">
+                        {hourly && onOpenSelfConsumption && (
+                            <button
+                                onClick={() => onOpenSelfConsumption({ pvParams: params, hourly })}
+                                className="text-sm flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors"
+                                title="将当前发电量数据带入消纳分析"
+                            >
+                                <PieChart size={16} /> 消纳分析
+                            </button>
+                        )}
                         {hourly && (
                             <button
                                 onClick={() => {

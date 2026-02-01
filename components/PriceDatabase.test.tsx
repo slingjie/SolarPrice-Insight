@@ -15,7 +15,8 @@ const mockTariffs: TariffData[] = [
         voltage_level: '1-10kV',
         prices: { tip: 1.5, peak: 1.2, flat: 0.8, valley: 0.4 },
         time_rules: [],
-        currency_unit: 'CNY'
+        currency_unit: 'CNY',
+        last_modified: '2024-01-01T00:00:00Z'
     },
     {
         id: '2',
@@ -27,7 +28,8 @@ const mockTariffs: TariffData[] = [
         voltage_level: '35kV',
         prices: { tip: 1.6, peak: 1.3, flat: 0.9, valley: 0.5 },
         time_rules: [],
-        currency_unit: 'CNY'
+        currency_unit: 'CNY',
+        last_modified: '2024-01-01T00:00:00Z'
     }
 ];
 

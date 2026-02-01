@@ -56,9 +56,27 @@ const MOCK_PVCALC_RESPONSE = {
 
 const MOCK_SERIESCALC_RESPONSE = {
     outputs: {
+        tmy_hourly: [
+            { "time(UTC)": "20200101:1000", P: 500, "G(i)": 600 },
+            { "time(UTC)": "20200101:1100", P: 800, "G(i)": 900 },
+        ]
+    }
+};
+
+const MOCK_TMY_NO_P_RESPONSE = {
+    outputs: {
+        tmy_hourly: [
+            { "time(UTC)": "20200101:1000", "G(h)": 200, "Gb(n)": 100, "Gd(h)": 100 },
+            { "time(UTC)": "20200101:1100", "G(h)": 300, "Gb(n)": 200, "Gd(h)": 100 },
+        ]
+    }
+};
+
+const MOCK_SERIESCALC_HOURLY_RESPONSE = {
+    outputs: {
         hourly: [
-            { time: "20200101:1000", P: 500, "G(i)": 600 },
-            { time: "20200101:1100", P: 800, "G(i)": 900 },
+            { time: '20200101:0030', P: 1000, 'G(i)': 500 },
+            { time: '20200101:0130', P: 2000, 'G(i)': 600 },
         ]
     }
 };
@@ -86,7 +104,7 @@ describe('pvgisService', () => {
             })
             .mockResolvedValueOnce({
                 ok: true,
-                json: async () => MOCK_SERIESCALC_RESPONSE // seriescalc
+                json: async () => MOCK_SERIESCALC_RESPONSE // tmy
             });
 
         const result = await pvgisService.getPVData(MOCK_PARAMS);
@@ -101,6 +119,35 @@ describe('pvgisService', () => {
         expect(result.hourly[0].pvPower).toBe(500);
 
         // Verify DB Cache Upsert
+        expect(mockUpsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fallback to seriescalc when tmy_hourly has no P field', async () => {
+        mockFindOneExec.mockResolvedValueOnce(null);
+
+        (global.fetch as any)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => MOCK_PVCALC_RESPONSE // PVcalc
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ outputs: { monthly: [] } }) // MRcalc
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => MOCK_TMY_NO_P_RESPONSE // tmy without P
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => MOCK_SERIESCALC_HOURLY_RESPONSE // seriescalc hourly
+            });
+
+        const result = await pvgisService.getPVData(MOCK_PARAMS);
+        expect(result.hourly).toHaveLength(2);
+        expect(result.hourly[0].pvPower).toBe(1000);
+        expect(result.hourly[1].pvPower).toBe(2000);
+
         expect(mockUpsert).toHaveBeenCalledTimes(1);
     });
 
@@ -134,7 +181,7 @@ describe('pvgisService', () => {
             if (url.includes('MRcalc')) {
                 return { ok: true, json: async () => ({ outputs: { monthly: [] } }) };
             }
-            if (url.includes('seriescalc')) {
+            if (url.includes('/tmy?')) {
                 return { ok: true, json: async () => MOCK_SERIESCALC_RESPONSE };
             }
             return { ok: false, statusText: 'Unknown URL' };
