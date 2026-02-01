@@ -50,7 +50,8 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in slide-in-from-right-4 duration-500">
+    <div className="max-w-7xl mx-auto">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in slide-in-from-right-4 duration-500">
       {/* Left: Province List */}
       <div className="w-full lg:w-1/4 flex flex-col gap-4 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200">
         <div className="p-4 border-b bg-slate-50">
@@ -163,6 +164,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
         confirmText="清空"
         danger
       />
+      </div>
     </div>
   );
 };
