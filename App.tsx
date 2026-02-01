@@ -201,8 +201,7 @@ const App: React.FC = () => {
       )}
 
       <main className={`flex-1 ${view !== 'pvgis' && view !== 'admin' && view !== 'self-consumption' ? 'ml-20 lg:ml-64' : ''} p-4 lg:p-8 overflow-y-auto min-h-screen`}>
-        <div className="max-w-7xl mx-auto">
-          {view === 'dashboard' && (
+        {view === 'dashboard' && (
             <Dashboard
               tariffs={tariffs}
               onOpenAnalysis={openAnalysis}
@@ -291,8 +290,7 @@ const App: React.FC = () => {
               onNavigate={setView}
             />
           )}
-        </div>
-      </main>
+        </main>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
