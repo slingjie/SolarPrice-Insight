@@ -4,7 +4,7 @@ import { getDatabase } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE_URL = '/api/pvgis'; // Uses Vite Proxy
-const CACHE_VERSION = 'v2_ghi_fix'; // Increment to invalidate cache
+const CACHE_VERSION = 'v3_hourly_fallback'; // Increment to invalidate cache
 
 /**
  * Calculate SHA-256 hash for params to use as cache key
@@ -221,17 +221,73 @@ async function fetchHourlyData(params: PVGISParams): Promise<HourlyData[]> {
     }
 
     const data = await response.json();
-    const hourly = data.outputs.tmy_hourly;
+    const hourly = data.outputs?.tmy_hourly;
 
     if (!hourly) {
         throw new Error('No hourly data returned from PVGIS TMY');
     }
 
-    return hourly.map((h: any) => ({
-        time: parsePvgisTimeToIsoUtc(h['time(UTC)']),
-        pvPower: h.P ?? 0, // Watts
-        poaIrradiance: h['G(i)'] ?? 0, // W/m2 In-plane irradiance
-    }));
+    // PVGIS TMY may not include PV output fields even when pvcalculation=1.
+    // If P is missing, fall back to seriescalc for hourly PV power.
+    const hasP = Array.isArray(hourly) && hourly.some((h: any) => typeof h?.P === 'number' && Number.isFinite(h.P));
+    if (!hasP) {
+        return fetchHourlyDataFromSeriescalc(params);
+    }
+
+    return hourly.map((h: any) => {
+        const rawTime = h['time(UTC)'];
+        if (typeof rawTime !== 'string') throw new Error('PVGIS TMY missing time(UTC)');
+        return {
+            time: parsePvgisTimeToIsoUtc(rawTime),
+            pvPower: typeof h.P === 'number' && Number.isFinite(h.P) ? h.P : 0, // W
+            poaIrradiance: typeof h['G(i)'] === 'number' && Number.isFinite(h['G(i)']) ? h['G(i)'] : 0, // W/m2
+        };
+    });
+}
+
+async function fetchHourlyDataFromSeriescalc(params: PVGISParams): Promise<HourlyData[]> {
+    const query = new URLSearchParams({
+        lat: params.lat.toString(),
+        lon: params.lon.toString(),
+        peakpower: params.peakPower.toString(),
+        loss: params.loss.toString(),
+        outputformat: 'json',
+        pvcalculation: '1',
+        startyear: '2020',
+        endyear: '2020',
+        browser: '0',
+    });
+
+    if (params.angle !== undefined) {
+        query.append('angle', params.angle.toString());
+    } else {
+        query.append('optimalinclination', '1');
+    }
+
+    if (params.azimuth !== undefined) {
+        query.append('aspect', params.azimuth.toString());
+    }
+
+    const response = await fetch(`${API_BASE_URL}/seriescalc?${query.toString()}`);
+    if (!response.ok) {
+        throw new Error(`PVGIS Series API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const hourly = data.outputs?.hourly;
+    if (!Array.isArray(hourly) || hourly.length === 0) {
+        throw new Error('No hourly data returned from PVGIS seriescalc');
+    }
+
+    return hourly.map((h: any) => {
+        const rawTime = h.time;
+        if (typeof rawTime !== 'string') throw new Error('PVGIS series missing time');
+        return {
+            time: parsePVGISTime(rawTime),
+            pvPower: typeof h.P === 'number' && Number.isFinite(h.P) ? h.P : 0, // W
+            poaIrradiance: typeof h['G(i)'] === 'number' && Number.isFinite(h['G(i)']) ? h['G(i)'] : 0, // W/m2
+        };
+    });
 }
 
 /**
@@ -440,4 +496,3 @@ function parsePvgisTimeToIsoUtc(raw: string): string {
     const minute = raw.substring(11, 13);
     return `${year}-${month}-${day}T${hour}:${minute}:00Z`;
 }
-

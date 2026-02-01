@@ -1,5 +1,6 @@
 import { TimeConfig, TimeRule, TimeType } from '../types';
 import { rulesToGrid } from './timeUtils';
+import { provinceMatches } from './provinceNormalize';
 
 /**
  * Parses month_pattern string into a Set of month numbers (1-12)
@@ -86,7 +87,10 @@ export function resolveTimeConfigForMonth(
     const monthSet = parseMonthPattern(config.month_pattern);
     const isAllPattern = config.month_pattern.trim().toLowerCase() === 'all';
 
-    if (config.province === provinceName) {
+    const isWildcard = config.province.trim() === '全部';
+    const isProvinceMatch = !isWildcard && provinceMatches(config.province, provinceName);
+
+    if (isProvinceMatch) {
       if (monthSet.has(month)) {
         // Tier 1: exact province + month match
         tier1.push(config);
@@ -94,7 +98,7 @@ export function resolveTimeConfigForMonth(
         // Tier 2: exact province + All pattern
         tier2.push(config);
       }
-    } else if (config.province === '全部') {
+    } else if (isWildcard) {
       if (monthSet.has(month)) {
         // Tier 3: 全部 + month match
         tier3.push(config);

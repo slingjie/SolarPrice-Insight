@@ -335,3 +335,242 @@ Example: Same province + pattern + last_modified → choose smallest id
 
 **Next**: Wave 2 (Core Engine) - Tasks 5-6
 
+
+## Task 4: TimeConfig Month Pattern Resolver + TOU Grid Selection
+
+### Implementation Summary
+- **Files Created**: `utils/timeConfigResolver.ts` (165 lines) + `utils/timeConfigResolver.test.ts` (test suite with 11 tests)
+- **Test Coverage**: 11 test cases, 100% pass rate
+- **Build Status**: ✓ PASS (npm run build successful)
+
+### Functions Implemented
+
+1. **parseMonthPattern(pattern: string): Set<number>**
+   - Parses month_pattern into a Set of valid months (1-12)
+   - "All" (case-insensitive) expands to all 12 months
+   - Comma-separated format "1,2,3,6,7,8" parsed correctly
+   - Invalid tokens (NaN, <1, >12, non-numeric) silently ignored
+   - Whitespace trimmed from each token
+   - Returns empty Set for malformed input
+
+2. **resolveTimeConfigForMonth(timeConfigs, provinceName, month): { timeRules, touGrid } | null**
+   - Implements locked 4-tier priority system:
+     * Tier 1: `province === provinceName && month in month_pattern`
+     * Tier 2: `province === provinceName && month_pattern === 'All'`
+     * Tier 3: `province === '全部' && month in month_pattern`
+     * Tier 4: `province === '全部' && month_pattern === 'All'`
+   - Returns object with `timeRules: TimeRule[]` and `touGrid: TimeType[24]`
+   - Calls `rulesToGrid(timeRules)` to generate 24-hour TOU grid
+
+3. **resolveConflict(candidates: TimeConfig[]): TimeConfig | null** (internal)
+   - Conflict resolution for same-tier candidates:
+     * Primary: Sort by `last_modified` descending (newest first)
+     * Fallback: Sort by `id` ascending (lexicographically smallest)
+   - Returns selected config or null if empty
+
+### Test Coverage Highlights
+
+**Month Pattern Parsing (3 tests)**
+- ✓ "All" case-insensitivity (All, all, ALL)
+- ✓ Comma-separated parsing (6,7,8 → Set{6,7,8})
+- ✓ Invalid token filtering (6,invalid,7,99,-1 → ignores invalid)
+
+**Priority Resolution (7 tests)**
+- ✓ Tier 1 exact match over all others
+- ✓ Tier 1 month in pattern vs outside
+- ✓ Tier 2 fallback (province exact + All)
+- ✓ Tier 3 fallback (全部 + month match)
+- ✓ Tier 4 fallback (全部 + All)
+- ✓ Conflict: newest `last_modified` wins
+- ✓ Conflict: smallest `id` wins when dates equal
+
+**Output Format (2 tests)**
+- ✓ Returns null when no match found
+- ✓ Returns `{ timeRules, touGrid }` with touGrid.length === 24
+
+### Critical Design Decisions (Locked)
+
+1. **Month Pattern Case-Insensitivity**: "All", "all", "ALL" all map to [1..12]. Supports future variants without code changes.
+
+2. **Silent Invalid Token Handling**: Non-numeric tokens and out-of-range numbers (>12 or <1) are silently filtered. Data resilience: partial bad data doesn't fail entire parse.
+
+3. **Exact Province Matching**: No normalization here (Task 7 handles that). Tier 3-4 use exact string "全部" (Chinese for "all/global").
+
+4. **Conflict Tiebreaker Determinism**: 
+   - `last_modified` as ISO string parsed via `new Date(string).getTime()` enables cross-timezone reproducibility
+   - `id` lexicographic sort provides stable secondary fallback (no randomness)
+
+5. **Deleted Config Filtering**: `_deleted` flag checked early; inactive configs never enter priority tiers.
+
+6. **TOU Grid Generation**: Delegates to existing `rulesToGrid()` utility (from Task 1). Resolver responsible only for selection logic.
+
+### Dependencies & Integration
+
+**No new external dependencies**: Uses only TypeScript stdlib and existing utilities.
+
+**Expected Consumers (Tasks 5+)**:
+- `services/consumptionAlignedService.ts`: Will call `resolveTimeConfigForMonth()` for each month (1..12) to fetch month-specific rules
+- UI components: May call resolver to preview TOU grid for selected province/month
+
+### Notes for Future Waves
+
+- **Task 5 Integration**: Engine will iterate months 1-12, calling resolver for each; aggregate results across all months
+- **Task 7 Province Normalization**: Once enabled, normalization layer will wrap resolver calls to handle "江苏" vs "江苏省" equivalence
+- **Leaf node responsibility**: Resolver is purely selection logic. All business rules (priority, conflict, pattern parsing) are explicit and tested
+
+
+## Task 3: PV Excel 24x12 Parser (Wave 1 - Foundations)
+
+### Implementation Summary
+- **Files Created**: `utils/pvExcelParser.ts` (158 lines) + `utils/pvExcelParser.test.ts` (140 lines)
+- **Test Coverage**: 8 test cases, 100% pass rate
+- **Build Status**: ✓ PASS (npm run test -- utils/pvExcelParser.test.ts)
+
+### Key Function Implemented
+
+**parsePVExcelFile(file: File | Buffer | ArrayBuffer): Promise<Map<string, number>>**
+- Input: Excel file with 24-hour rows × 12-month columns in Wh/kWp format
+- Output: `Map<TimeKey, Wh/kWp>` with 8760 entries (365 days × 24 hours)
+- Each monthly 24-hour profile repeated across all days in that month (baseYear=2021, non-leap)
+- TimeKey format: `MM-DD HH:00` (zero-padded)
+
+### Month Column Detection Strategy
+
+**Reused from Task 2 (excelParser.ts)**:
+- English months: `Jan`, `Feb`, ..., `Dec` (full names also supported)
+- Chinese months: `1月`, `2月`, ..., `12月`
+- Numeric columns: Direct `parseInt()` for 1-12
+
+**Pattern matching**: Case-insensitive regex patterns, consistent with excelParser.ts
+
+### Hour Label Parsing
+
+**Supported formats**:
+- `"0 - 1"`, `"0-1"` → hour 0
+- `"23 - 24"`, `"23-24"` → hour 23
+- Regex: `/^(\d+)\s*-\s*(\d+)$/`
+- Extracts first number as hourStart (must be 0-23)
+
+**Validation**: Rejects invalid hour labels with error message including row number
+
+### 24-Row Validation
+
+**Strict enforcement**:
+- Exactly 24 data rows required (after header)
+- Rejects files with <24 or >24 rows
+- Error includes actual count: `"Expected 24 hour rows, got N"`
+
+### 8760-Hour Expansion Logic
+
+**Days per month** (baseYear=2021, non-leap):
+```
+[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+```
+
+**Algorithm**:
+1. Parse 24 hour rows into `Map<month, Map<hour, Wh/kWp>>`
+2. For each month (1-12):
+   - For each day in month:
+     - For each hour (0-23):
+       - Generate TimeKey: `toHourKeyFromMonthDayHour(month, day, hour)`
+       - Copy value from hourly profile (or 0 if missing)
+
+**Result**: Exactly 8760 entries (verified by test)
+
+### Numerical Value Parsing
+
+**Robust handling**:
+- Empty cells → 0
+- Invalid strings (non-numeric) → 0
+- Valid numbers (int/float) → parsed as-is
+- Missing cells → 0
+
+**Strategy**: `parseFloat(String(value))` with isNaN fallback
+
+### File Format Support
+
+**Input types**:
+- `File` (browser File API)
+- `Buffer` (Node.js buffer)
+- `ArrayBuffer` (raw binary)
+
+**XLSX usage**:
+- `XLSX.read(buffer, { type: 'buffer' })`
+- `sheet_to_json(sheet, { header: 1 })` → `unknown[][]` format
+- No sheet selection: uses first sheet by name
+
+### Error Handling
+
+**All errors are thrown with name `PVExcelParseError`**:
+- No sheets → "Excel file has no sheets"
+- Insufficient rows → "Excel file must have header row + data rows"
+- No months → "No valid month columns detected"
+- Row count mismatch → "Expected 24 hour rows, got N"
+- Invalid hour label → "Invalid hour label at row N: ..."
+
+### Test Coverage Highlights
+
+**Month Detection (3 tests)**:
+- ✓ English names (Jan-Dec)
+- ✓ Chinese names (1月-12月)
+- ✓ Numeric columns (1-12)
+
+**24-Hour Validation (3 tests)**:
+- ✓ Accepts exactly 24 rows
+- ✓ Rejects <24 rows with error
+- ✓ Rejects >24 rows with error
+
+**Hour Label Parsing (3 tests)**:
+- ✓ "0 - 1" format (with spaces)
+- ✓ "0-1" format (no spaces)
+- ✓ "23 - 24" correctly mapped to hour 23
+
+**Numerical Parsing (3 tests)**:
+- ✓ Numeric values preserved as-is (150.5)
+- ✓ Empty cells → 0
+- ✓ Invalid text → 0
+
+**8760 Expansion (5 tests)**:
+- ✓ Total size = 8760
+- ✓ Monthly profile repeated for all days
+- ✓ Each day in January has 24 identical hour entries
+- ✓ TimeKey format matches `MM-DD HH:00`
+- ✓ February has 28 days (no Feb 29 in 2021)
+
+**Output Type (1 test)**:
+- ✓ Returns `Map<string, number>`
+- ✓ All keys match TimeKey regex
+- ✓ All values are numbers
+
+### Critical Design Decisions (Locked)
+
+1. **No Unit Conversion**: Parser outputs Wh/kWp as-is. Conversion to kWh happens in engine: `pvKwh = (WhPerKwp/1000) * pvCapacity`
+
+2. **BaseYear=2021 (Non-Leap)**: Fixed in DAYS_IN_MONTH array. 365 total days, no Feb 29. Aligns with plan requirement.
+
+3. **Month Pattern Reuse**: 100% identical MONTH_PATTERNS from excelParser.ts (Task 2). Ensures consistent month detection across parsers.
+
+4. **TimeKey Generation**: Delegates to `toHourKeyFromMonthDayHour()` from timeKey.ts (Task 1). No duplicate logic.
+
+5. **Silent Month Omission**: If Excel has only 6 months, result has only 8760/2 entries (not zero-padded to 12 months). Caller must handle.
+
+6. **File Format Flexibility**: Accepts File, Buffer, or ArrayBuffer. Enables both browser and Node.js consumers.
+
+### Dependencies & Integration
+
+**No new external dependencies**: Uses existing XLSX library.
+
+**Dependencies** (internal):
+- `utils/timeKey.ts:toHourKeyFromMonthDayHour()` (Task 1)
+- `utils/excelParser.ts:MONTH_PATTERNS` (Task 2, pattern reference only)
+
+**Expected Consumers** (Tasks 5+):
+- `services/consumptionAlignedService.ts` (3-level load engine): Will receive 8760 map and use per-hour values
+- UI upload component: Will call parser and display 8760-hour result or error
+
+### Notes for Future Waves
+
+- **Task 5 Engine Integration**: Engine will iterate 8760 entries and match against load/TOU data by TimeKey
+- **PVGIS Comparison**: PVGIS produces similar 8760-hour output; both align to same TimeKey format for deterministic join
+- **Excel Format Flexibility**: Parser auto-detects month columns; UI can support multiple Excel layouts without code changes
+

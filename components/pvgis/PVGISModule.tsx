@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Sun, Zap, ArrowLeft } from 'lucide-react';
 import { IrradianceQuery } from './IrradianceQuery';
 import { PowerCalculation } from './PowerCalculation';
+import type { HourlyData, PVGISParams } from '../../types';
 
 type TabType = 'irradiance' | 'power';
 
@@ -20,9 +21,10 @@ export interface PVGISNavParams {
 
 interface PVGISModuleProps {
     onBack?: () => void;
+    onOpenSelfConsumption?: (seed: { pvParams: PVGISParams; hourly: HourlyData[] }) => void;
 }
 
-export const PVGISModule: React.FC<PVGISModuleProps> = ({ onBack }) => {
+export const PVGISModule: React.FC<PVGISModuleProps> = ({ onBack, onOpenSelfConsumption }) => {
     const [activeTab, setActiveTab] = useState<TabType>('irradiance');
     const [navParams, setNavParams] = useState<PVGISNavParams>({});
 
@@ -93,6 +95,7 @@ export const PVGISModule: React.FC<PVGISModuleProps> = ({ onBack }) => {
                 ) : (
                     <PowerCalculation
                         initialParams={navParams}
+                        onOpenSelfConsumption={onOpenSelfConsumption}
                     />
                 )}
             </div>
