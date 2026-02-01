@@ -432,7 +432,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
       <AnalysisSidebar onBack={onBack || (() => {})} />
 
       <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8 overflow-y-auto h-screen">
-        <div className="max-w-7xl mx-auto space-y-8 pb-20">
+        <div className="max-w-7xl 2xl:max-w-none mx-auto space-y-8 pb-20" data-testid="sc-container">
           <header>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Sun className="w-8 h-8 text-orange-500" />
@@ -445,7 +445,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* LEFT COLUMN: Inputs */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-4 space-y-6">
               
               {/* 1. Project Info */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -808,7 +808,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
             </div>
 
             {/* RIGHT COLUMN: Results */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-8 space-y-6">
                {/* 1. Load Preview (if no results) */}
                {!results && (
                  <section className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[400px] flex flex-col">
