@@ -250,7 +250,7 @@ const App: React.FC = () => {
             />
           )}
            {view === 'calculator' && (
-             <ComprehensivePriceCalculator tariffs={tariffs} onNavigate={setView} />
+             <ComprehensivePriceCalculator tariffs={tariffs} timeConfigs={timeConfigs} onNavigate={setView} />
            )}
           {view === 'pvgis' && (
             <PVGISModule
