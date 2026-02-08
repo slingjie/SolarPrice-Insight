@@ -1,20 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calculator, Calendar, ArrowRight, Save, Trash2, Clock, PlusCircle } from 'lucide-react';
+import { Calculator, Calendar, ArrowRight, Save, Trash2, Clock, TrendingUp, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from './UI';
-import { TariffData, TimeType, SavedTimeRange, ComprehensiveResult } from '../types';
+import { TariffData, SavedTimeRange, ComprehensiveResult, TimeConfig } from '../types';
 import { PROVINCES, DEFAULT_TIME_CONFIGS, getTypeColor, getTypeLabel } from '../constants.tsx';
 import { getDatabase } from '../services/db';
 import { calculateAveragePrice, CalculationResult } from '../services/priceCalculator';
+import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
 
 interface ComprehensivePriceCalculatorProps {
     tariffs: TariffData[];
+    timeConfigs: TimeConfig[];
     onNavigate: (view: string) => void;
 }
 
 
 interface PriceResult extends CalculationResult {}
 
-export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs, onNavigate }) => {
+export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs, timeConfigs, onNavigate }) => {
     const [dbProvinces, setDbProvinces] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [initLoading, setInitLoading] = useState(true);
@@ -82,6 +85,8 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         };
         loadSaved();
     }, []);
+
+    const [isDetailExpanded, setIsDetailExpanded] = useState(false);
 
 
     const handleSaveRange = async () => {
@@ -201,6 +206,26 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         ).map(t => t.month))).sort(),
         [provinceTariffs, formData.category, formData.voltage]);
 
+    const getMonthToken = (monthValue: string): string => {
+        const trimmed = monthValue.trim();
+        const directMonthMatch = trimmed.match(/^(\d{1,2})$/);
+        if (directMonthMatch) return directMonthMatch[1].padStart(2, '0');
+
+        const yearMonthMatch = trimmed.match(/-(\d{1,2})$/);
+        if (yearMonthMatch) return yearMonthMatch[1].padStart(2, '0');
+
+        return trimmed;
+    };
+
+    const parseMonthNumber = (monthValue: string): number | null => {
+        const monthToken = getMonthToken(monthValue);
+        const parsed = Number.parseInt(monthToken, 10);
+        if (!Number.isFinite(parsed) || parsed < 1 || parsed > 12) {
+            return null;
+        }
+        return parsed;
+    };
+
 
     const handleCalculate = () => {
         setCalcMsg(null);
@@ -211,11 +236,50 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         }
 
         // Filter tariffs for selected province, category, voltage
-        const filteredTariffs = provinceTariffs.filter(t =>
-            t.category === formData.category &&
-            t.voltage_level === formData.voltage &&
-            formData.months.includes(t.month)
+        const selectedMonthSet = new Set(formData.months);
+        const hasLegacyShortMonthSelection = formData.months.some(m => /^\d{1,2}$/.test(m.trim()));
+        const selectedMonthTokenSet = new Set(
+            hasLegacyShortMonthSelection ? formData.months.map(getMonthToken) : []
         );
+
+        const filteredTariffs = provinceTariffs.filter((t) => {
+            if (t.category !== formData.category || t.voltage_level !== formData.voltage) {
+                return false;
+            }
+
+            if (selectedMonthSet.has(t.month)) {
+                return true;
+            }
+
+            if (hasLegacyShortMonthSelection) {
+                return selectedMonthTokenSet.has(getMonthToken(t.month));
+            }
+
+            return false;
+        });
+
+        const normalizedTariffs = filteredTariffs.map((tariff) => {
+            if (Array.isArray(tariff.time_rules) && tariff.time_rules.length > 0) {
+                return tariff;
+            }
+
+            const monthNumber = parseMonthNumber(tariff.month);
+            if (!monthNumber) {
+                return tariff;
+            }
+
+            const resolved = resolveTimeConfigForMonth(timeConfigs, tariff.province, monthNumber);
+            if (!resolved || resolved.timeRules.length === 0) {
+                return tariff;
+            }
+
+            return {
+                ...tariff,
+                time_rules: resolved.timeRules,
+            };
+        });
+
+        const monthsToCalculate: string[] = Array.from(new Set<string>(normalizedTariffs.map(t => t.month))).sort();
 
         if (filteredTariffs.length === 0) {
             setCalcMsg({ type: 'error', msg: "在所选时段内未找到有效的电价规则" });
@@ -225,8 +289,8 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
 
         // Call service to calculate average prices
         const calcResults = calculateAveragePrice(
-            filteredTariffs,
-            formData.months,
+            normalizedTariffs,
+            monthsToCalculate,
             formData.startTime,
             formData.endTime
         );
@@ -264,7 +328,7 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Configuration Panel */}
-                <Card className="p-6 space-y-6 lg:col-span-1 h-fit">
+                <Card className="p-6 space-y-6 lg:col-span-1 flex flex-col h-full">
                     <div className="space-y-4">
                         <div className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                             <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
@@ -287,7 +351,10 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                                 <select
                                     className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 font-bold"
                                     value={formData.province}
-                                    onChange={e => setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] });
+                                        setResults([]);
+                                    }}
                                     disabled={initLoading}
                                 >
                                     {initLoading ? (
@@ -340,10 +407,7 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                             <div className="flex gap-2 flex-wrap">
                                 <button
                                     onClick={() => {
-                                        const allMonths = Array.from({ length: 12 }, (_, i) =>
-                                            String(i + 1).padStart(2, '0')
-                                        );
-                                        setFormData({ ...formData, months: allMonths });
+                                        setFormData(prev => ({ ...prev, months: availableMonths }));
                                     }}
                                     className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                                 >
@@ -351,8 +415,17 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                                 </button>
                                 <button
                                     onClick={() => {
-                                        const summerMonths = ['06', '07', '08', '09'];
-                                        setFormData({ ...formData, months: summerMonths });
+                                        setFormData(prev => ({ ...prev, months: [] }));
+                                    }}
+                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const summerMonthSet = new Set(['06', '07', '08', '09']);
+                                        const summerMonths = availableMonths.filter(m => summerMonthSet.has(getMonthToken(m)));
+                                        setFormData(prev => ({ ...prev, months: summerMonths }));
                                     }}
                                     className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                                 >
@@ -360,8 +433,9 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                                 </button>
                                 <button
                                     onClick={() => {
-                                        const winterMonths = ['12', '01', '02'];
-                                        setFormData({ ...formData, months: winterMonths });
+                                        const winterMonthSet = new Set(['12', '01', '02']);
+                                        const winterMonths = availableMonths.filter(m => winterMonthSet.has(getMonthToken(m)));
+                                        setFormData(prev => ({ ...prev, months: winterMonths }));
                                     }}
                                     className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                                 >
@@ -478,7 +552,7 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                         )}
                     </div>
 
-                    <div className="relative">
+                    <div className="relative mt-auto">
                         {calcMsg && (
                             <div className={`absolute -top-12 left-0 right-0 p-2 text-center text-xs font-bold rounded-lg animate-in fade-in slide-in-from-bottom-1 z-10 ${calcMsg.type === 'error' ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
                                 {calcMsg.msg}
@@ -495,79 +569,196 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                 </Card>
 
                 {/* Right: Results Panel */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 h-full flex flex-col gap-6">
                     {results.length > 0 ? (
                         <>
                             {/* Summary Card */}
-                            <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 border-none shadow-xl shadow-indigo-200 relative overflow-hidden group">
-                                <div className="flex items-center justify-between mb-2 opacity-90 relative z-10">
-                                    <span className="text-sm font-medium">所选月份平均综合电价</span>
-                                    <Calendar size={20} />
+                            <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 border-none shadow-xl shadow-indigo-200 relative overflow-hidden group min-h-[220px] shrink-0">
+                                <div className="flex items-center justify-between mb-4 opacity-90 relative z-10">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <TrendingUp size={20} className="text-white" />
+                                        </div>
+                                        <span className="text-sm font-medium">所选月份平均综合电价</span>
+                                    </div>
+                                    <Calendar size={20} className="opacity-70" />
                                 </div>
                                 <div className="flex items-end justify-between relative z-10">
-                                    <div className="text-4xl font-bold font-mono tracking-tight">
-                                        {totalAvgPrice.toFixed(4)} <span className="text-lg opacity-75 font-sans font-normal">元/kWh</span>
+                                    <div className="text-5xl font-bold font-mono tracking-tight drop-shadow-sm">
+                                        {totalAvgPrice.toFixed(4)} <span className="text-xl opacity-75 font-sans font-normal">元/kWh</span>
                                     </div>
                                     <button
                                         onClick={handleSaveResult}
                                         disabled={isSavingResult}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${isSavingResult ? 'bg-white/20 text-white/50' : 'bg-white text-indigo-600 hover:bg-white/90 active:scale-95 shadow-lg'}`}
+                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${isSavingResult ? 'bg-white/20 text-white/50' : 'bg-white text-indigo-600 hover:bg-white/90 active:scale-95 shadow-lg shadow-black/10'}`}
                                     >
                                         <Save size={16} />
                                         {isSavingResult ? '已保存' : '存至数据中心'}
                                     </button>
                                 </div>
-                                <div className="mt-4 flex gap-4 text-sm opacity-90 relative z-10">
-                                    <div>已选月份: <span className="font-bold">{formData.months.length}</span> 个</div>
-                                    <div>计算时长: <span className="font-bold">{averageHours.toFixed(1)}</span> 小时/日</div>
+                                <div className="mt-8 flex flex-wrap gap-6 text-sm relative z-10">
+                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
+                                        <span className="opacity-70 text-xs block mb-1">已选月份</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-bold text-2xl">{formData.months.length}</span> <span className="text-xs opacity-70">个</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
+                                        <span className="opacity-70 text-xs block mb-1">日均时长</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-bold text-2xl">{averageHours.toFixed(1)}</span> <span className="text-xs opacity-70">h</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
+                                        <span className="opacity-70 text-xs block mb-1">最高单价</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-bold text-2xl">{Math.max(...results.map(r => r.avgPrice)).toFixed(4)}</span> <span className="text-xs opacity-70">元</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
+                                        <span className="opacity-70 text-xs block mb-1">最低单价</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-bold text-2xl">{Math.min(...results.map(r => r.avgPrice)).toFixed(4)}</span> <span className="text-xs opacity-70">元</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 {/* Decorative background element */}
-                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+                                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl group-hover:bg-purple-500/40 transition-all duration-700"></div>
                             </Card>
 
+                            <Card className="p-6 border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[350px]">
+                                <div className="flex items-center justify-between mb-6 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md">
+                                            <BarChart3 size={18} />
+                                        </div>
+                                        <h3 className="font-bold text-slate-700">月度价格趋势分析</h3>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>均价
+                                        <div className="w-2 h-2 rounded-full bg-indigo-300 ml-2"></div>趋势
+                                    </div>
+                                </div>
+                                <div className="w-full flex-1 min-h-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={results} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.2} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis 
+                                                dataKey="month" 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fill: '#64748b', fontSize: 11 }} 
+                                                dy={10}
+                                                tickFormatter={(value) => value.split('-')[1] + '月'}
+                                            />
+                                            <YAxis 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fill: '#64748b', fontSize: 11 }} 
+                                                domain={['dataMin - 0.1', 'dataMax + 0.1']}
+                                                tickFormatter={(value) => value.toFixed(2)}
+                                            />
+                                            <RechartsTooltip
+                                                cursor={{ fill: '#f8fafc' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                labelStyle={{ color: '#64748b', marginBottom: '4px', fontWeight: 'bold' }}
+                                                formatter={(value: number) => [value.toFixed(4) + ' 元/kWh', '平均电价']}
+                                            />
+                                            <Bar dataKey="avgPrice" barSize={32} fill="url(#colorPrice)" radius={[6, 6, 0, 0]}>
+                                                {results.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.avgPrice === Math.max(...results.map(r => r.avgPrice)) ? '#ef4444' : (entry.avgPrice === Math.min(...results.map(r => r.avgPrice)) ? '#10b981' : '#6366f1')} fillOpacity={0.8} />
+                                                ))}
+                                            </Bar>
+                                            <Line type="monotone" dataKey="avgPrice" stroke="#818cf8" strokeWidth={2} dot={{ r: 3, fill: '#fff', strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </Card>
 
-                            {/* Detail List */}
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-slate-700">月度明细</h3>
-                                {results.map((res, idx) => (
-                                    <Card key={res.month} className="p-0 overflow-hidden hover:shadow-md transition-shadow">
-                                        <div className="bg-slate-50 p-3 border-b flex items-center justify-between">
-                                            <div className="font-bold text-slate-700 flex items-center gap-2">
-                                                <span className="bg-white border px-2 py-0.5 rounded text-xs text-slate-500">{idx + 1}</span>
-                                                {res.month}
-                                            </div>
-                                            <div className="font-mono font-bold text-indigo-600 text-lg">
-                                                {res.avgPrice.toFixed(4)} 元/kWh
-                                            </div>
-                                        </div>
-                                        <div className="p-4">
-                                            <div className="text-xs text-slate-400 mb-2">价格构成分析</div>
-                                            <div className="flex bg-slate-100 rounded-full h-4 overflow-hidden mb-3">
-                                                {res.details.map((d, i) => (
-                                                    <div
-                                                        key={i}
-                                                        style={{ width: `${(d.hours / res.totalHours) * 100}%`, backgroundColor: getTypeColor(d.type) }}
-                                                        title={`${getTypeLabel(d.type)}: ${d.hours.toFixed(1)}h`}
-                                                    />
-                                                ))}
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                                                {res.details.map((d, i) => (
-                                                    <div key={i} className="flex items-center gap-1.5">
-                                                        <div className="w-2 h-2 rounded-full" style={{ background: getTypeColor(d.type) }}></div>
-                                                        <span className="text-slate-500">{getTypeLabel(d.type)}</span>
-                                                        <span className="font-mono font-bold">{d.price.toFixed(4)}</span>
-                                                        <span className="text-slate-400 scale-90">× {d.hours.toFixed(1)}h</span>
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
+                                <button
+                                    onClick={() => setIsDetailExpanded(!isDetailExpanded)}
+                                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
+                                >
+                                    <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                        <Clock size={18} className="text-indigo-600" />
+                                        月度详细数据
+                                        <span className="text-xs font-normal text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                            {results.length} 个月份
+                                        </span>
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                        {isDetailExpanded ? '收起' : '展开'}
+                                        {isDetailExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                    </div>
+                                </button>
+                                
+                                {isDetailExpanded && (
+                                    <div className="p-6 border-t border-slate-200 animate-in slide-in-from-top-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                            {results.map((res, idx) => (
+                                                <Card key={res.month} className="p-0 overflow-hidden hover:shadow-lg transition-all duration-300 border-slate-200 group">
+                                                    <div className="bg-slate-50/50 p-4 border-b flex items-center justify-between group-hover:bg-indigo-50/30 transition-colors">
+                                                        <div className="font-bold text-slate-700 flex items-center gap-2">
+                                                            <span className="bg-white border px-2 py-0.5 rounded text-xs text-slate-400 font-mono">{idx + 1}</span>
+                                                            <span className="text-lg">{res.month}</span>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="font-mono font-bold text-indigo-600 text-xl leading-none">
+                                                                {res.avgPrice.toFixed(4)}
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-400 mt-0.5">元/kWh</div>
+                                                        </div>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <div className="p-4 space-y-4">
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between text-[10px] text-slate-400">
+                                                                <span>时段构成</span>
+                                                                <span>{res.totalHours.toFixed(1)}h</span>
+                                                            </div>
+                                                            <div className="flex bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                                                {res.details.map((d, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        style={{ width: `${(d.hours / res.totalHours) * 100}%`, backgroundColor: getTypeColor(d.type) }}
+                                                                        title={`${getTypeLabel(d.type)}: ${d.hours.toFixed(1)}h`}
+                                                                        className="hover:opacity-80 transition-opacity cursor-help"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-y-2 gap-x-1 text-xs bg-slate-50/50 rounded-lg p-2">
+                                                            {res.details.map((d, i) => (
+                                                                <div key={i} className="flex flex-col">
+                                                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: getTypeColor(d.type) }}></div>
+                                                                        <span className="text-slate-500 scale-90 origin-left">{getTypeLabel(d.type)}</span>
+                                                                    </div>
+                                                                    <div className="pl-3 flex items-baseline justify-between">
+                                                                        <span className="font-mono font-bold text-slate-700">{d.price.toFixed(4)}</span>
+                                                                        <span className="text-[10px] text-slate-400 scale-90 origin-right">{d.hours.toFixed(1)}h</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            ))}
                                         </div>
-                                    </Card>
-                                ))}
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 min-h-[400px]">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 min-h-[600px] flex-1">
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                 <Calculator size={32} className="text-slate-300" />
                             </div>
