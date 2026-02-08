@@ -86,3 +86,28 @@ This document provides context and rules for AI agents (and human developers) wo
 2. **Plan**: Check `types.ts` for data structures.
 3. **Implement**: Write code following the style above.
 4. **Verify**: Run `npm run build` to check for TS errors. Run relevant tests.
+
+## 8. Lessons Learned
+
+### Excel 导入空行问题 (2026-02)
+
+**问题**: 用户导入 Excel 后，数据库中出现大量字段为空的垃圾记录。
+
+**根因**: SheetJS `sheet_to_json` 对"空行"的处理与直觉不同：
+
+| 空行类型 | 表现 | `sheet_to_json` 行为 |
+|---|---|---|
+| 从未编辑过的行 | 真空行 | ✅ 自动跳过 |
+| 编辑后按 Delete 清空的行 | 单元格存在但值为 `""` | ❌ 返回 `{ '省份': '', ... }` |
+| 含空格/制表符的行 | 肉眼看是空的 | ❌ 返回 `{ '省份': '  ', ... }` |
+
+用户在 Excel 中"删除内容" ≠ "删除单元格"。SheetJS 只要检测到单元格对象存在就会输出该行。
+
+**教训**:
+1. 任何外部数据源（Excel/CSV）导入后，必须在转换前做 required-field 校验，不能信任 `sheet_to_json` 会过滤空行。
+2. 转换函数（如 `rowToTariff`）不应无条件生成 UUID 和默认值——这会让无效数据"看起来合法"。
+3. 矩阵解析路径（`parseMatrixConfigs`）因为恰好校验了 `month` 范围而幸免，但这是偶然防御，不是设计。
+
+**修复方式**: 在 `parseSpreadsheetFile` 的通用路径中添加 `isRowNonEmpty` + `rowValidators` 两层过滤，在 `rows.map(convert)` 之前拦截。
+
+**相关文件**: `utils/dataImport.ts`, `utils/dataImport.test.ts`

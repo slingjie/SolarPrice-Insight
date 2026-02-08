@@ -195,54 +195,7 @@ async function fetchPVSummary(params: PVGISParams): Promise<PVSummary> {
  * Changed from seriescalc(2020) to tmy to align with Irradiance Query results
  */
 async function fetchHourlyData(params: PVGISParams): Promise<HourlyData[]> {
-    const query = new URLSearchParams({
-        lat: params.lat.toString(),
-        lon: params.lon.toString(),
-        peakpower: params.peakPower.toString(),
-        loss: params.loss.toString(),
-        outputformat: 'json',
-        pvcalculation: '1', // Include PV output in TMY
-    });
-
-    if (params.angle !== undefined) {
-        query.append('angle', params.angle.toString());
-    } else {
-        query.append('optimalinclination', '1');
-    }
-
-    if (params.azimuth !== undefined) {
-        query.append('aspect', params.azimuth.toString());
-    }
-
-
-    const response = await fetch(`${API_BASE_URL}/tmy?${query.toString()}`);
-    if (!response.ok) {
-        throw new Error(`PVGIS API Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const hourly = data.outputs?.tmy_hourly;
-
-    if (!hourly) {
-        throw new Error('No hourly data returned from PVGIS TMY');
-    }
-
-    // PVGIS TMY may not include PV output fields even when pvcalculation=1.
-    // If P is missing, fall back to seriescalc for hourly PV power.
-    const hasP = Array.isArray(hourly) && hourly.some((h: any) => typeof h?.P === 'number' && Number.isFinite(h.P));
-    if (!hasP) {
-        return fetchHourlyDataFromSeriescalc(params);
-    }
-
-    return hourly.map((h: any) => {
-        const rawTime = h['time(UTC)'];
-        if (typeof rawTime !== 'string') throw new Error('PVGIS TMY missing time(UTC)');
-        return {
-            time: parsePvgisTimeToIsoUtc(rawTime),
-            pvPower: typeof h.P === 'number' && Number.isFinite(h.P) ? h.P : 0, // W
-            poaIrradiance: typeof h['G(i)'] === 'number' && Number.isFinite(h['G(i)']) ? h['G(i)'] : 0, // W/m2
-        };
-    });
+    return fetchHourlyDataFromSeriescalc(params);
 }
 
 async function fetchHourlyDataFromSeriescalc(params: PVGISParams): Promise<HourlyData[]> {

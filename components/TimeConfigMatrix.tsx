@@ -14,9 +14,14 @@ interface TimeConfigMatrixProps {
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
+type DayKind = 'weekday' | 'weekend';
+
 export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, selectedProvince, onSave }) => {
-    // 12个月 x 24小时 的矩阵状态
-    const [matrix, setMatrix] = useState<Record<number, TimeType[]>>({});
+    const [activeDay, setActiveDay] = useState<DayKind>('weekday');
+    const [matrix, setMatrix] = useState<Record<DayKind, Record<number, TimeType[]>>>({
+        weekday: {},
+        weekend: {},
+    });
     const [activeType, setActiveType] = useState<TimeType>('valley');
     const [isDragging, setIsDragging] = useState(false);
     const [showToast, setShowToast] = useState(false);
@@ -26,39 +31,48 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
     useEffect(() => {
         if (!selectedProvince) return;
 
-        // 默认空矩阵（全为 valley）
-        const initialMatrix: Record<number, TimeType[]> = {};
+        const initialWeekday: Record<number, TimeType[]> = {};
+        const initialWeekend: Record<number, TimeType[]> = {};
         MONTHS.forEach(m => {
-            initialMatrix[m] = Array(24).fill('valley');
+            initialWeekday[m] = Array(24).fill('valley');
+            initialWeekend[m] = Array(24).fill('valley');
         });
 
         // 从 configs 中填充数据
         const provinceConfigs = configs.filter(c => c.province === selectedProvince);
 
         provinceConfigs.forEach(cfg => {
-            const grid = rulesToGrid(cfg.time_rules);
+            const weekdayGrid = rulesToGrid(cfg.time_rules);
+            const weekendGrid = rulesToGrid((cfg.weekend_time_rules && cfg.weekend_time_rules.length > 0) ? cfg.weekend_time_rules : cfg.time_rules);
 
             if (cfg.month_pattern === 'All') {
-                MONTHS.forEach(m => initialMatrix[m] = [...grid]);
+                MONTHS.forEach(m => {
+                    initialWeekday[m] = [...weekdayGrid];
+                    initialWeekend[m] = [...weekendGrid];
+                });
             } else {
                 // 解析 "1,2,3" 这种格式
                 const targetMonths = cfg.month_pattern.split(',')
                     .map(s => parseInt(s.trim()))
                     .filter(n => !isNaN(n) && n >= 1 && n <= 12);
 
-                targetMonths.forEach(m => initialMatrix[m] = [...grid]);
+                targetMonths.forEach(m => {
+                    initialWeekday[m] = [...weekdayGrid];
+                    initialWeekend[m] = [...weekendGrid];
+                });
             }
         });
 
-        setMatrix(initialMatrix);
+        setMatrix({ weekday: initialWeekday, weekend: initialWeekend });
     }, [selectedProvince, configs]);
 
     // 鼠标交互处理
     const handleCellClick = (month: number, hour: number) => {
         setMatrix(prev => {
-            const newRow = [...prev[month]];
+            const current = prev[activeDay];
+            const newRow = [...(current[month] ?? Array(24).fill('valley'))];
             newRow[hour] = activeType;
-            return { ...prev, [month]: newRow };
+            return { ...prev, [activeDay]: { ...current, [month]: newRow } };
         });
     };
 
@@ -74,9 +88,19 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
         const groups: Record<string, number[]> = {};
 
         MONTHS.forEach(m => {
-            const grid = matrix[m];
-            const rules = gridToRules(grid);
-            const key = JSON.stringify(rules);
+            const weekdayGrid = matrix.weekday[m];
+            const weekendGrid = matrix.weekend[m];
+
+            const weekdayRules = gridToRules(weekdayGrid);
+            const weekendRules = gridToRules(weekendGrid);
+
+            const weekdayKey = JSON.stringify(weekdayRules);
+            const weekendKey = JSON.stringify(weekendRules);
+
+            const key = JSON.stringify({
+                weekday: weekdayRules,
+                weekend: weekendKey === weekdayKey ? null : weekendRules,
+            });
 
             if (!groups[key]) groups[key] = [];
             groups[key].push(m);
@@ -89,20 +113,21 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
         const uniqueKeys = Object.keys(groups);
         if (uniqueKeys.length === 1 && groups[uniqueKeys[0]].length === 12) {
             // 全年统一
-            const rules = JSON.parse(uniqueKeys[0]) as TimeRule[];
+            const parsed = JSON.parse(uniqueKeys[0]) as { weekday: TimeRule[]; weekend: TimeRule[] | null };
             newConfigs.push({
                 id: crypto.randomUUID(),
                 province: selectedProvince,
                 month_pattern: 'All',
-                time_rules: rules,
+                time_rules: parsed.weekday,
+                ...(parsed.weekend ? { weekend_time_rules: parsed.weekend } : {}),
                 updated_at: new Date().toISOString(),
                 last_modified: new Date().toISOString()
             });
         } else {
             // 分组保存
             Object.entries(groups).forEach(([rulesJson, months]) => {
-                const rules = JSON.parse(rulesJson) as TimeRule[];
-                if (rules.length === 0) return; // 忽略空规则（理论上不会有，gridToRules 哪怕全是默认也会返回一段）
+                const parsed = JSON.parse(rulesJson) as { weekday: TimeRule[]; weekend: TimeRule[] | null };
+                if (parsed.weekday.length === 0) return;
 
                 // 排序月份并生成 "1,2,5" 字符串
                 const pattern = months.sort((a, b) => a - b).join(',');
@@ -111,7 +136,8 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
                     id: crypto.randomUUID(),
                     province: selectedProvince,
                     month_pattern: pattern,
-                    time_rules: rules,
+                    time_rules: parsed.weekday,
+                    ...(parsed.weekend ? { weekend_time_rules: parsed.weekend } : {}),
                     updated_at: new Date().toISOString(),
                     last_modified: new Date().toISOString()
                 });
@@ -128,7 +154,10 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
     const applyRow = (month: number) => {
         setMatrix(prev => ({
             ...prev,
-            [month]: Array(24).fill(activeType)
+            [activeDay]: {
+                ...prev[activeDay],
+                [month]: Array(24).fill(activeType),
+            },
         }));
     };
 
@@ -137,7 +166,17 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
         if (currentMonth === 1) return;
         setMatrix(prev => ({
             ...prev,
-            [currentMonth]: [...prev[currentMonth - 1]]
+            [activeDay]: {
+                ...prev[activeDay],
+                [currentMonth]: [...prev[activeDay][currentMonth - 1]],
+            },
+        }));
+    };
+
+    const copyWeekdayToWeekend = () => {
+        setMatrix(prev => ({
+            ...prev,
+            weekend: { ...prev.weekday },
         }));
     };
 
@@ -150,6 +189,37 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
                         {selectedProvince}
                         <span className="text-xs font-normal text-slate-400 px-2 py-0.5 bg-slate-100 rounded">12个月全量编辑模式</span>
                     </h3>
+
+                    <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setActiveDay('weekday')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeDay === 'weekday'
+                                ? 'bg-white shadow text-slate-800 ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                                }`}
+                        >
+                            工作日
+                        </button>
+                        <button
+                            onClick={() => setActiveDay('weekend')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeDay === 'weekend'
+                                ? 'bg-white shadow text-slate-800 ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                                }`}
+                        >
+                            周末
+                        </button>
+                    </div>
+
+                    {activeDay === 'weekend' && (
+                        <button
+                            onClick={copyWeekdayToWeekend}
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700 underline underline-offset-4"
+                            title="将工作日矩阵复制到周末（未配置周末时将视为沿用工作日）"
+                        >
+                            从工作日复制
+                        </button>
+                    )}
 
                     <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                         {(['tip', 'peak', 'flat', 'valley', 'deep'] as TimeType[]).map(t => (
@@ -219,7 +289,7 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({ configs, sel
                                     className="flex-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 border border-slate-200 rounded overflow-hidden cursor-crosshair h-8"
                                     onMouseDown={() => setIsDragging(true)}
                                 >
-                                    {matrix[m]?.map((type, h) => (
+                                    {matrix[activeDay][m]?.map((type, h) => (
                                         <div
                                             key={h}
                                             className="h-full transition-colors"

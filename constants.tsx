@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TimeConfig, HolidayDefinition } from './types';
+import { LoadPersona, TimeConfig, HolidayDefinition } from './types';
 
 export const PROVINCES = [
   "江苏省", "浙江省", "广东省", "山东省", "河南省",
@@ -131,3 +131,170 @@ export const DEFAULT_HOLIDAYS: HolidayDefinition[] = [
 ];
 
 export const DEFAULT_R_D = 0.2;
+
+function normalizeShares24(raw: number[]): number[] {
+  if (!Array.isArray(raw) || raw.length !== 24) {
+    return new Array(24).fill(1 / 24);
+  }
+  let sum = 0;
+  for (const v of raw) {
+    if (Number.isFinite(v) && v > 0) sum += v;
+  }
+  if (sum <= 0) return new Array(24).fill(1 / 24);
+  return raw.map((v) => (Number.isFinite(v) && v > 0 ? v / sum : 0));
+}
+
+export const DEFAULT_PERSONAS: LoadPersona[] = (() => {
+  const now = new Date().toISOString();
+
+  const manufacturing_general = normalizeShares24([
+    0.015, 0.015, 0.015, 0.015, 0.015, 0.02,
+    0.03, 0.05,
+    0.07, 0.075, 0.075, 0.07,
+    0.06,
+    0.075, 0.08, 0.08, 0.075,
+    0.06, 0.045,
+    0.03, 0.025, 0.02, 0.02, 0.02,
+  ]);
+
+  const process_continuous = normalizeShares24(new Array(24).fill(1));
+
+  const commercial_mall = normalizeShares24([
+    0.005, 0.005, 0.005, 0.005, 0.005, 0.01,
+    0.02, 0.04,
+    0.06, 0.07, 0.075,
+    0.08, 0.08, 0.08, 0.08, 0.075,
+    0.07, 0.065,
+    0.06, 0.055,
+    0.04, 0.025, 0.01, 0.01,
+  ]);
+
+  const office = normalizeShares24([
+    0.004, 0.004, 0.004, 0.004, 0.004, 0.008,
+    0.02, 0.045,
+    0.075, 0.085, 0.085,
+    0.08, 0.07,
+    0.08, 0.085, 0.085,
+    0.07, 0.05,
+    0.03, 0.02,
+    0.015, 0.01, 0.008, 0.008,
+  ]);
+
+  const cold_chain = normalizeShares24([
+    0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
+    0.04, 0.045,
+    0.05, 0.055, 0.055,
+    0.06, 0.06, 0.06, 0.06, 0.055,
+    0.05, 0.045,
+    0.045, 0.045,
+    0.045, 0.045, 0.045, 0.045,
+  ]);
+
+  const data_center = normalizeShares24([
+    0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
+    0.04, 0.04,
+    0.042, 0.042, 0.042, 0.042,
+    0.042, 0.042, 0.042, 0.042,
+    0.042, 0.042,
+    0.041, 0.041,
+    0.04, 0.04, 0.04, 0.04,
+  ]);
+
+  const hospital = data_center;
+
+  const manufacturing_2shift = normalizeShares24([
+    0.02, 0.02, 0.02, 0.02, 0.02, 0.025,
+    0.035, 0.05,
+    0.065, 0.07, 0.07, 0.07,
+    0.06,
+    0.07, 0.075, 0.075, 0.07,
+    0.06, 0.055,
+    0.05, 0.045, 0.03, 0.025, 0.025,
+  ]);
+
+  const manufacturing_3shift = process_continuous;
+
+  const supermarket = normalizeShares24([
+    0.008, 0.008, 0.008, 0.008, 0.01, 0.015,
+    0.03, 0.045,
+    0.06, 0.07, 0.075, 0.08,
+    0.08, 0.08, 0.08, 0.075,
+    0.07, 0.065,
+    0.06, 0.055, 0.045, 0.03,
+    0.02, 0.012,
+  ]);
+
+  const school = normalizeShares24([
+    0.004, 0.004, 0.004, 0.004, 0.004, 0.008,
+    0.02, 0.05,
+    0.08, 0.09, 0.085, 0.075,
+    0.06,
+    0.075, 0.085, 0.08, 0.06,
+    0.04, 0.03,
+    0.02, 0.015, 0.01, 0.008, 0.008,
+  ]);
+
+  const hotel = normalizeShares24([
+    0.03, 0.03, 0.028, 0.028, 0.028, 0.03,
+    0.035, 0.04,
+    0.045, 0.05, 0.05, 0.05,
+    0.048,
+    0.05, 0.05, 0.05, 0.05,
+    0.055, 0.06,
+    0.06, 0.055, 0.045, 0.038, 0.035,
+  ]);
+
+  const restaurant = normalizeShares24([
+    0.01, 0.01, 0.01, 0.01, 0.012, 0.015,
+    0.02, 0.03,
+    0.045, 0.06, 0.07, 0.085,
+    0.07,
+    0.06, 0.055, 0.06, 0.075,
+    0.095, 0.09,
+    0.06, 0.04, 0.025, 0.018, 0.012,
+  ]);
+
+  const ev_charging = normalizeShares24([
+    0.06, 0.06, 0.055, 0.05, 0.045, 0.04,
+    0.03, 0.025,
+    0.02, 0.02, 0.02, 0.02,
+    0.02,
+    0.02, 0.02, 0.02, 0.025,
+    0.03, 0.04,
+    0.05, 0.055, 0.055, 0.06, 0.06,
+  ]);
+
+  const water_wastewater = normalizeShares24([
+    0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
+    0.04, 0.04,
+    0.042, 0.042, 0.042, 0.042,
+    0.042,
+    0.042, 0.042, 0.042, 0.042,
+    0.042, 0.042,
+    0.04, 0.04, 0.04, 0.04,
+  ]);
+
+  const make = (p: Omit<LoadPersona, 'updated_at' | 'last_modified'>): LoadPersona => ({
+    ...p,
+    updated_at: now,
+    last_modified: now,
+  });
+
+  return [
+    make({ id: 'persona-manufacturing_general', slug: 'manufacturing_general', name: '一般制造业（白班）', weekday_shares: manufacturing_general, isDefault: true }),
+    make({ id: 'persona-manufacturing_2shift', slug: 'manufacturing_2shift', name: '制造业（两班倒）', weekday_shares: manufacturing_2shift, isDefault: true }),
+    make({ id: 'persona-manufacturing_3shift', slug: 'manufacturing_3shift', name: '制造业（三班倒/24h）', weekday_shares: manufacturing_3shift, isDefault: true }),
+    make({ id: 'persona-process_continuous', slug: 'process_continuous', name: '连续型工业（化工/冶金/水泥）', weekday_shares: process_continuous, isDefault: true }),
+    make({ id: 'persona-cold_chain', slug: 'cold_chain', name: '冷链/仓储', weekday_shares: cold_chain, isDefault: true }),
+    make({ id: 'persona-data_center', slug: 'data_center', name: '数据中心', weekday_shares: data_center, isDefault: true }),
+    make({ id: 'persona-hospital', slug: 'hospital', name: '医院', weekday_shares: hospital, isDefault: true }),
+    make({ id: 'persona-commercial_mall', slug: 'commercial_mall', name: '商业综合体/商场', weekday_shares: commercial_mall, isDefault: true }),
+    make({ id: 'persona-supermarket', slug: 'supermarket', name: '超市/便利店', weekday_shares: supermarket, isDefault: true }),
+    make({ id: 'persona-office', slug: 'office', name: '办公楼/园区办公', weekday_shares: office, isDefault: true }),
+    make({ id: 'persona-school', slug: 'school', name: '学校', weekday_shares: school, isDefault: true }),
+    make({ id: 'persona-hotel', slug: 'hotel', name: '酒店', weekday_shares: hotel, isDefault: true }),
+    make({ id: 'persona-restaurant', slug: 'restaurant', name: '餐饮（午晚高峰）', weekday_shares: restaurant, isDefault: true }),
+    make({ id: 'persona-ev_charging', slug: 'ev_charging', name: '充电站/停车场充电', weekday_shares: ev_charging, isDefault: true }),
+    make({ id: 'persona-water_wastewater', slug: 'water_wastewater', name: '自来水/污水处理', weekday_shares: water_wastewater, isDefault: true }),
+  ];
+})();

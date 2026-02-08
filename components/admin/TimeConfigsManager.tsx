@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -8,6 +8,7 @@ import {
     flexRender,
     createColumnHelper,
     SortingState,
+    RowSelectionState,
 } from '@tanstack/react-table';
 import { ArrowUpDown, Search, Trash2, Edit2, X, Filter, Plus } from 'lucide-react'; // Added Plus
 import { TimeConfig } from '../../types';
@@ -25,6 +26,7 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
     const [globalFilter, setGlobalFilter] = useState('');
     const [editingConfig, setEditingConfig] = useState<{ province: string, configs: TimeConfig[] } | null>(null);
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ ids: string[], message: string } | null>(null);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
     // Create Mode States
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,6 +35,39 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
     const columnHelper = createColumnHelper<TimeConfig>();
 
     const columns = useMemo(() => [
+        columnHelper.display({
+            id: 'select',
+            size: 40,
+            header: ({ table }) => {
+                const isAllSelected = table.getIsAllRowsSelected();
+                const isPartiallySelected = table.getIsSomeRowsSelected() && !isAllSelected;
+
+                return (
+                    <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={table.getToggleAllRowsSelectedHandler()}
+                        ref={el => {
+                            if (el) {
+                                el.indeterminate = isPartiallySelected;
+                            }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        aria-label="选择全部"
+                    />
+                );
+            },
+            cell: ({ row }) => (
+                <input
+                    type="checkbox"
+                    checked={row.getIsSelected()}
+                    onChange={row.getToggleSelectedHandler()}
+                    disabled={!row.getCanSelect()}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    aria-label="选择此行"
+                />
+            ),
+        }),
         columnHelper.accessor('province', {
             header: ({ column }) => (
                 <button
@@ -49,7 +84,11 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
             header: '适用月份',
             cell: info => {
                 const val = info.getValue();
-                return val === 'All' ? <span className="text-green-600 font-bold">全年统一</span> : `${val}月`;
+                if (val === 'All') return <span className="text-green-600 font-bold">全年统一</span>;
+                if (!val || val.trim() === '') return <span className="text-slate-400 italic">未设置</span>;
+                const months = val.split(',').map(s => s.trim()).filter(Boolean);
+                if (months.length === 0) return <span className="text-slate-400 italic">未设置</span>;
+                return `${months.join(',')}月`;
             },
         }),
         columnHelper.accessor('last_modified', {
@@ -80,20 +119,35 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
         }),
     ], []);
 
-    const table = useReactTable({
+    useEffect(() => {
+        setRowSelection({});
+    }, [globalFilter]);
+
+    const table = useReactTable<TimeConfig>({
         data: configs,
         columns,
         state: {
             sorting,
             globalFilter,
+            rowSelection,
         },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
+        onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        getRowId: row => row.id,
+        enableRowSelection: true,
     });
+
+    const selectedIds = useMemo(() => {
+        const currentConfigIds = new Set(configs.map(c => c.id));
+        return Object.keys(rowSelection).filter(id => Boolean(rowSelection[id]) && currentConfigIds.has(id));
+    }, [rowSelection, configs]);
+
+    const selectedCount = selectedIds.length;
 
     const handleDelete = (id: string) => {
         setDeleteConfirmation({
@@ -110,6 +164,7 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
         onUpdateConfigs(newConfigs);
         recordLog('time_configs', 'delete', count);
         setDeleteConfirmation(null);
+        setRowSelection({});
     };
 
     const handleEdit = (province: string) => {
@@ -173,6 +228,30 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
                         </div>
                     </div>
 
+                    {selectedCount > 0 && (
+                        <div className="sticky top-4 z-20 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
+                            <span className="text-sm font-medium text-blue-800">已选 {selectedCount} 条</span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setRowSelection({})}
+                                    className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-100"
+                                >
+                                    取消选择
+                                </button>
+                                <button
+                                    onClick={() => setDeleteConfirmation({
+                                        ids: selectedIds,
+                                        message: `确定要删除选中的 ${selectedCount} 条时段配置吗？`
+                                    })}
+                                    className="px-4 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                                >
+                                    <Trash2 size={16} />
+                                    批量删除
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                         {/* Table Content (unchanged) */}
                         <div className="overflow-x-auto">
@@ -181,7 +260,10 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
                                     {table.getHeaderGroups().map(headerGroup => (
                                         <tr key={headerGroup.id}>
                                             {headerGroup.headers.map(header => (
-                                                <th key={header.id} className="px-6 py-4 border-b">
+                                                <th
+                                                    key={header.id}
+                                                    className={header.id === 'select' ? 'px-3 py-4 border-b w-10' : 'px-6 py-4 border-b'}
+                                                >
                                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                                 </th>
                                             ))}
@@ -193,7 +275,7 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
                                         table.getRowModel().rows.map(row => (
                                             <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                                                 {row.getVisibleCells().map(cell => (
-                                                    <td key={cell.id} className="px-6 py-4">
+                                                    <td key={cell.id} className={cell.column.id === 'select' ? 'px-3 py-4' : 'px-6 py-4'}>
                                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                     </td>
                                                 ))}

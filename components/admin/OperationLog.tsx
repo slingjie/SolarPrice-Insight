@@ -19,7 +19,8 @@ const ACTION_LABELS: Record<LogAction, string> = {
 const COLLECTION_LABELS: Record<LogCollection, string> = {
     tariffs: '电价数据',
     time_configs: '时段配置',
-    comprehensive_results: '综合电价'
+    comprehensive_results: '综合电价',
+    personas: '行业画像'
 };
 
 // 操作类型对应的颜色
@@ -144,6 +145,7 @@ export const OperationLog: React.FC = () => {
                         <option value="tariffs">电价数据</option>
                         <option value="time_configs">时段配置</option>
                         <option value="comprehensive_results">综合电价</option>
+                        <option value="personas">行业画像</option>
                     </select>
                     <select
                         value={actionFilter}

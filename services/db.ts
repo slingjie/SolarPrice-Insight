@@ -2,6 +2,7 @@
 import {
     createRxDatabase,
     addRxPlugin,
+    removeRxDatabase,
     RxDatabase,
     RxCollection,
     RxDocument
@@ -12,7 +13,16 @@ import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
-import { TariffData, TimeConfig, SavedTimeRange, ComprehensiveResult, PVGISCacheData, OperationLog, HolidayDefinition } from '../types';
+import {
+    TariffData,
+    TimeConfig,
+    SavedTimeRange,
+    ComprehensiveResult,
+    PVGISCacheData,
+    OperationLog,
+    HolidayDefinition,
+    LoadPersona,
+} from '../types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -69,7 +79,7 @@ const tariffSchema = {
 // 定义 TimeConfig Schema
 const timeConfigSchema = {
     title: 'time config schema',
-    version: 1, // 升级版本
+    version: 2,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -87,12 +97,42 @@ const timeConfigSchema = {
                 }
             }
         },
+        weekend_time_rules: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    start: { type: 'string' },
+                    end: { type: 'string' },
+                    type: { type: 'string' }
+                }
+            }
+        },
         updated_at: { type: 'string', format: 'date-time' },
         // Supabase 兼容性字段
         last_modified: { type: 'string', format: 'date-time' },
         _deleted: { type: 'boolean', default: false }
     },
     required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at', 'last_modified']
+};
+
+const personaSchema = {
+    title: 'persona schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        slug: { type: 'string' },
+        name: { type: 'string' },
+        weekday_shares: { type: 'array', items: { type: 'number' } },
+        weekend_shares: { type: 'array', items: { type: 'number' } },
+        isDefault: { type: 'boolean' },
+        updated_at: { type: 'string', format: 'date-time' },
+        last_modified: { type: 'string', format: 'date-time' },
+        _deleted: { type: 'boolean', default: false },
+    },
+    required: ['id', 'slug', 'name', 'weekday_shares', 'isDefault', 'updated_at', 'last_modified'],
 };
 
 // 定义 SavedTimeRange Schema
@@ -194,10 +234,12 @@ type ComprehensiveResultCollection = RxCollection<ComprehensiveResult>;
 type PVGISCacheCollection = RxCollection<PVGISCacheData>;
 type OperationLogCollection = RxCollection<OperationLog>;
 type HolidaysCollection = RxCollection<HolidayDefinition>;
+type PersonaCollection = RxCollection<LoadPersona>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
     time_configs: TimeConfigCollection;
+    personas: PersonaCollection;
     saved_time_ranges: SavedTimeRangeCollection;
     comprehensive_results: ComprehensiveResultCollection;
     pvgis_cache: PVGISCacheCollection;
@@ -209,13 +251,14 @@ export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
 
 let dbPromise: Promise<SolarDatabase> | null = null;
 
-const createDatabase = async () => {
+const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
     try {
         const db: SolarDatabase = await createRxDatabase<SolarDatabaseCollections>({
             name: 'solardb',
             storage: wrappedValidateAjvStorage({
                 storage: getRxStorageDexie()
-            })
+            }),
+            closeDuplicates: true,
         });
 
         await db.addCollections({
@@ -236,8 +279,21 @@ const createDatabase = async () => {
                         oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
                         oldDoc._deleted = oldDoc._deleted || false;
                         return oldDoc;
+                    },
+                    2: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+
+                        if (oldDoc.weekend_time_rules !== undefined && !Array.isArray(oldDoc.weekend_time_rules)) {
+                            delete oldDoc.weekend_time_rules;
+                        }
+
+                        return oldDoc;
                     }
                 }
+            },
+            personas: {
+                schema: personaSchema,
             },
             saved_time_ranges: {
                 schema: savedTimeRangeSchema,
@@ -266,14 +322,29 @@ const createDatabase = async () => {
         return db;
     } catch (err) {
         console.error('[RxDB] Error during database creation:', err);
+
+        const isDexieClosed = err instanceof Error &&
+            (err.message?.includes('is closed') || (err as any)?.code === 'DM4');
+        if (isDexieClosed && !isRetry) {
+            console.warn('[RxDB] Migration failed (Dexie storage closed). Removing corrupted DB and retrying...');
+            try {
+                await removeRxDatabase('solardb', getRxStorageDexie());
+            } catch (removeErr) {
+                console.error('[RxDB] Failed to remove corrupted DB:', removeErr);
+            }
+            return createDatabase(true);
+        }
+
         throw err;
     }
 };
 
 export const getDatabase = () => {
     if (!dbPromise) {
-        dbPromise = createDatabase();
+        dbPromise = createDatabase().catch(err => {
+            dbPromise = null;
+            throw err;
+        });
     }
     return dbPromise;
 };
-

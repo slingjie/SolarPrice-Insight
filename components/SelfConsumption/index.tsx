@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { 
   Upload, FileSpreadsheet, Sun, MapPin, Battery, AlertCircle, Info, Loader2, Play,
-  Zap, BarChart3, TrendingUp, Activity, Briefcase, Settings, Coins, FileText, Download
+  Zap, BarChart3, TrendingUp, Activity, Briefcase, Settings, Coins, FileText, Download,
+  ChevronDown, ChevronUp, CheckCircle, HelpCircle, Layers
 } from 'lucide-react';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import { PROVINCES, DEFAULT_R_D } from '../../constants';
-import { parseConsumptionFile } from '../../utils/excelParser';
+import { parseSelfConsumptionLoadFile } from '../../utils/excelParser';
 import { parsePVExcelFile } from '../../utils/pvExcelParser';
 import { inferProvince } from '../../services/provinceLookupService';
 import { provinceMatches } from '../../utils/provinceNormalize';
@@ -24,14 +25,15 @@ import {
   calculateConsumptionFinancials, 
   ConsumptionFinancialResult 
 } from '../../services/consumptionFinancials';
-import { MonthlyConsumption, ExcelParseError } from '../../types/analysis';
+import { MonthlyConsumption, MonthlyTotalConsumption, ExcelParseError } from '../../types/analysis';
 import { PVGISParams, TimeConfig, TariffData, HourlyData } from '../../types';
 import { pvgisService } from '../../services/pvgisService';
 import { AnalysisSidebar } from './AnalysisSidebar';
 import { exportSelfConsumptionHourlyCSV, exportSelfConsumptionMonthlyCSV } from '../../utils/exportUtils';
-import { useHolidays } from '../../hooks/useDatabase';
+import { useHolidays, usePersonas } from '../../hooks/useDatabase';
 import { expandHolidayDates } from '../../services/holidayService';
 import { HolidayManager } from './HolidayManager';
+import { PersonaManager } from './PersonaManager';
 
 interface SelfConsumptionProps {
   timeConfigs: TimeConfig[];
@@ -73,7 +75,9 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
   }, [province]);
   
   // Load Data State
-  const [consumptionData, setConsumptionData] = useState<MonthlyConsumption[]>([]);
+  const [consumptionFormat, setConsumptionFormat] = useState<'by-tou' | 'monthly-total' | null>(null);
+  const [consumptionByTou, setConsumptionByTou] = useState<MonthlyConsumption[]>([]);
+  const [consumptionMonthlyTotal, setConsumptionMonthlyTotal] = useState<MonthlyTotalConsumption[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   
@@ -104,6 +108,11 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
     R_D: DEFAULT_R_D,
   });
 
+  const [loadModel, setLoadModel] = useState<'persona' | 'abcd'>('persona');
+  const { personas, loading: personasLoading } = usePersonas();
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
+  const [isPersonaManagerOpen, setIsPersonaManagerOpen] = useState(false);
+
   // Holiday State
   const { holidays, loading: holidaysLoading } = useHolidays();
   const [selectedHolidayIds, setSelectedHolidayIds] = useState<string[]>([]);
@@ -121,6 +130,24 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number>(1);
+  
+  // Layout State
+  const [expandedSections, setExpandedSections] = useState<string[]>(() => {
+    const sections = ['project', 'load', 'tariff'];
+    // If we don't have initial PV params, we need to configure it, so expand it.
+    // If we DO have initial PV params, it's treated as "complete" for initial expansion.
+    if (!initialPvParams) {
+      sections.push('pv');
+    }
+    return sections;
+  });
+  const [showLoadPreview, setShowLoadPreview] = useState(false);
+
+  const toggleSection = (id: string) => {
+    setExpandedSections(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pvFileInputRef = useRef<HTMLInputElement>(null);
@@ -148,7 +175,14 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
   useEffect(() => {
     // Clear stale run errors as inputs change.
     setAnalysisError(null);
-  }, [province, consumptionData, pvSourceType, pvConfig, pvExcelMap, tariffConfig, workSchedule]);
+  }, [province, consumptionFormat, consumptionByTou, consumptionMonthlyTotal, pvSourceType, pvConfig, pvExcelMap, tariffConfig, workSchedule, loadModel, selectedPersonaId]);
+
+  useEffect(() => {
+    if (selectedPersonaId) return;
+    if (personasLoading) return;
+    if (personas.length === 0) return;
+    setSelectedPersonaId(personas[0].id);
+  }, [personasLoading, personas, selectedPersonaId]);
 
   function isSamePvgisParams(a: PVGISParams | null, b: PVGISParams): boolean {
     if (!a) return false;
@@ -194,8 +228,16 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
     setUploadError(null);
 
     try {
-      const data = await parseConsumptionFile(file);
-      setConsumptionData(data);
+      const parsed = await parseSelfConsumptionLoadFile(file);
+      if (parsed.format === 'by-tou') {
+        setConsumptionFormat('by-tou');
+        setConsumptionByTou(parsed.monthly);
+        setConsumptionMonthlyTotal([]);
+      } else {
+        setConsumptionFormat('monthly-total');
+        setConsumptionMonthlyTotal(parsed.monthly);
+        setConsumptionByTou([]);
+      }
     } catch (err) {
       console.error('Upload failed:', err);
       setUploadError(err instanceof ExcelParseError ? err.message : '文件解析失败，请检查格式');
@@ -271,18 +313,28 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
   const validateInputs = (): string | null => {
     if (!province) return '请选择所在省份';
     if (tariffsForProvince.length === 0) return '当前省份暂无电价数据，请先在电价库导入/生成';
-    if (consumptionData.length === 0) return '请上传负荷数据';
+    if (!consumptionFormat) return '请上传负荷数据';
+    if (consumptionFormat === 'by-tou' && consumptionByTou.length === 0) return '请上传负荷数据';
+    if (consumptionFormat === 'monthly-total' && consumptionMonthlyTotal.length === 0) return '请上传负荷数据';
 
-    if (!Number.isFinite(workSchedule.workStartHour) || workSchedule.workStartHour < 0 || workSchedule.workStartHour > 23) {
-      return '请输入有效的工作开始小时 (0~23)';
+    if (loadModel === 'persona') {
+      if (!selectedPersonaId) return '请选择行业画像';
+      const selectedPersona = personas.find((p) => p.id === selectedPersonaId);
+      if (!selectedPersona) return '请选择行业画像';
     }
-    if (!Number.isFinite(workSchedule.workEndHour) || workSchedule.workEndHour < 0 || workSchedule.workEndHour > 23) {
-      return '请输入有效的工作结束小时 (0~23)';
+
+    if (loadModel === 'abcd') {
+      if (!Number.isFinite(workSchedule.workStartHour) || workSchedule.workStartHour < 0 || workSchedule.workStartHour > 23) {
+        return '请输入有效的工作开始小时 (0~23)';
+      }
+      if (!Number.isFinite(workSchedule.workEndHour) || workSchedule.workEndHour < 0 || workSchedule.workEndHour > 23) {
+        return '请输入有效的工作结束小时 (0~23)';
+      }
+      if (workSchedule.workStartHour >= workSchedule.workEndHour) return '工作时间需满足：开始小时 < 结束小时';
+      if (!Number.isFinite(workSchedule.R_B) || workSchedule.R_B <= 0) return '请输入有效的 R_B (需 > 0)';
+      if (!Number.isFinite(workSchedule.R_C) || workSchedule.R_C <= 0) return '请输入有效的 R_C (需 > 0)';
+      if (workSchedule.R_D !== undefined && (!Number.isFinite(workSchedule.R_D) || workSchedule.R_D < 0)) return '请输入有效的 R_D (需 >= 0)';
     }
-    if (workSchedule.workStartHour >= workSchedule.workEndHour) return '工作时间需满足：开始小时 < 结束小时';
-    if (!Number.isFinite(workSchedule.R_B) || workSchedule.R_B <= 0) return '请输入有效的 R_B (需 > 0)';
-    if (!Number.isFinite(workSchedule.R_C) || workSchedule.R_C <= 0) return '请输入有效的 R_C (需 > 0)';
-    if (workSchedule.R_D !== undefined && (!Number.isFinite(workSchedule.R_D) || workSchedule.R_D < 0)) return '请输入有效的 R_D (需 >= 0)';
 
     if (pvConfig.capacity === '' || pvConfig.capacity <= 0) return '请输入有效的装机容量';
     if (!Number.isFinite(pvConfig.loss) || pvConfig.loss < 0 || pvConfig.loss > 100) return '请输入有效的系统损耗 (0~100)';
@@ -350,13 +402,31 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
       const selectedHolidays = holidays.filter(h => selectedHolidayIds.includes(h.id));
       const expandedHolidays = selectedHolidays.flatMap(h => expandHolidayDates(h));
 
+      const monthlyConsumption: MonthlyConsumption[] =
+        consumptionFormat === 'monthly-total'
+          ? consumptionMonthlyTotal.map((m) => ({
+              month: m.month,
+              tip: 0,
+              peak: 0,
+              flat: m.total,
+              valley: 0,
+              deep: 0,
+            }))
+          : consumptionByTou;
+
+      const selectedPersona = personas.find((p) => p.id === selectedPersonaId) ?? null;
+
       const alignedResult = calculateAlignedConsumption({
         provinceName: province,
         timeConfigs,
-        monthlyConsumption: consumptionData,
+        monthlyConsumption,
         pvSource,
         workSchedule: {
           ...workSchedule,
+          loadModel,
+          ...(loadModel === 'persona' && selectedPersona
+            ? { weekday_shares: selectedPersona.weekday_shares, weekend_shares: selectedPersona.weekend_shares }
+            : {}),
           holidays: expandedHolidays
         }
       });
@@ -427,441 +497,736 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
     return Array.from(new Set(list));
   }, [results]);
 
+  // Section Summaries
+  const loadMonthsCount =
+    consumptionFormat === 'by-tou'
+      ? consumptionByTou.length
+      : consumptionFormat === 'monthly-total'
+        ? consumptionMonthlyTotal.length
+        : 0;
+  const loadSummary = loadMonthsCount > 0
+    ? `${loadMonthsCount}个月${consumptionFormat === 'monthly-total' ? '(总电量)' : ''}`
+    : '待导入';
+
+  const selectedPersonaName = personas.find((p) => p.id === selectedPersonaId)?.name;
+
+  const sectionSummaryTags = {
+    project: [province || '未选择省份'],
+    load: [loadSummary, loadModel === 'persona' ? (selectedPersonaName || '画像') : 'ABCD', workSchedule.workPattern],
+    tariff: [tariffConfig.category || '待配置', tariffConfig.voltage || '—', `上网¥${tariffConfig.feedInPrice}/kWh`],
+    pv: [
+      pvConfig.capacity ? `${pvConfig.capacity}kWp` : '待配置',
+      pvSourceType === 'pvgis' ? 'PVGIS' : '发电表',
+      Number.isFinite(pvConfig.loss) ? `损耗${pvConfig.loss}%` : '损耗—',
+    ],
+  };
+
+  const sectionSummaries = {
+    project: sectionSummaryTags.project.join(' · '),
+    load: sectionSummaryTags.load.join(' · '),
+    tariff: sectionSummaryTags.tariff.join(' · '),
+    pv: sectionSummaryTags.pv.join(' · '),
+  };
+
+  const isSectionComplete = {
+    project: !!province,
+    load: consumptionFormat !== null && loadMonthsCount > 0,
+    tariff: !!(tariffConfig.category && tariffConfig.voltage),
+    pv: !!pvConfig.capacity && Number.isFinite(pvConfig.loss),
+  };
+
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="flex bg-slate-50 font-sans text-slate-900">
       <AnalysisSidebar onBack={onBack || (() => {})} />
 
-      <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8 overflow-y-auto h-screen">
+       <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8" data-testid="sc-main">
         <div className="max-w-7xl 2xl:max-w-none mx-auto space-y-8 pb-20" data-testid="sc-container">
-          <header>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Sun className="w-8 h-8 text-orange-500" />
-              光伏消纳分析 (Aligned Engine)
-            </h1>
-            <p className="mt-2 text-gray-600">
-              基于8760小时对齐引擎，精确测算分时电价下的光伏自用与收益。
-            </p>
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Sun className="w-8 h-8 text-orange-500" />
+                光伏消纳分析 (Aligned Engine)
+              </h1>
+              <p className="mt-2 text-gray-600">
+                基于8760小时对齐引擎，精确测算分时电价下的光伏自用与收益。
+              </p>
+            </div>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* LEFT COLUMN: Inputs */}
-            <div className="lg:col-span-4 space-y-6">
-              
-              {/* 1. Project Info */}
-              <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  <h2 className="font-semibold text-gray-800">项目基础信息</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: Inputs (Accordion) */}
+            <div className="lg:col-span-4 space-y-4" data-testid="sc-input-column">
+              <div className="flex justify-between items-center px-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">配置参数</span>
+                <div className="flex gap-2 text-xs text-blue-600">
+                   <button onClick={() => setExpandedSections(['project', 'load', 'tariff', 'pv'])} className="hover:underline">展开全部</button>
+                   <span className="text-gray-300">|</span>
+                   <button onClick={() => setExpandedSections([])} className="hover:underline">收起全部</button>
                 </div>
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">所在省份</label>
-                    <div className="flex gap-2">
-                      <select
-                        value={province}
-                        onChange={(e) => setProvince(e.target.value)}
-                        className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      >
-                        <option value="">请选择省份</option>
-                        {provinceOptions.map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                      {(typeof pvConfig.lat === 'number' && typeof pvConfig.lon === 'number') && (
-                        <button 
-                          onClick={() => detectProvince({ force: true })}
-                          disabled={isDetectingProvince}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            isDetectingProvince
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                          }`}
-                          title="根据经纬度自动识别"
-                        >
-                          {isDetectingProvince ? '识别中...' : '识别'}
-                        </button>
+              </div>
+
+              {/* 1. Project Info */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-testid="section-project">
+                <button 
+                  onClick={() => toggleSection('project')}
+                  className="w-full p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <MapPin className={`w-5 h-5 flex-shrink-0 ${isSectionComplete.project ? 'text-blue-600' : 'text-gray-400'}`} />
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-800 text-sm">项目基础信息</h2>
+                      {!expandedSections.includes('project') && (
+                        <p className="text-xs text-gray-500 mt-0.5">{sectionSummaries.project}</p>
                       )}
                     </div>
-                    {provinceDetectError && (
-                      <p className="mt-2 text-sm text-amber-700 flex items-center gap-1">
-                        <Info className="w-4 h-4" />
-                        {provinceDetectError}
-                      </p>
-                    )}
                   </div>
-                </div>
-              </section>
+                  {expandedSections.includes('project') ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+                
+                {expandedSections.includes('project') && (
+                  <div className="p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">所在省份</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={province}
+                          onChange={(e) => setProvince(e.target.value)}
+                          className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        >
+                          <option value="">请选择省份</option>
+                          {provinceOptions.map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                        {(typeof pvConfig.lat === 'number' && typeof pvConfig.lon === 'number') && (
+                          <button 
+                            onClick={() => detectProvince({ force: true })}
+                            disabled={isDetectingProvince}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isDetectingProvince
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                            }`}
+                            title="根据经纬度自动识别"
+                          >
+                             {isDetectingProvince ? '识别中...' : '识别'}
+                          </button>
+                        )}
+                      </div>
+                      {provinceDetectError && (
+                        <p className="mt-2 text-xs text-amber-700 flex items-center gap-1">
+                          <Info className="w-3 h-3" />
+                          {provinceDetectError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* 2. Load Data */}
-              <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                  <h2 className="font-semibold text-gray-800">负荷数据</h2>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div 
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer hover:bg-gray-50 ${uploadError ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                    />
-                    <Upload className={`w-10 h-10 mx-auto mb-3 ${uploadError ? 'text-red-400' : 'text-gray-400'}`} />
-                    <p className="text-sm font-medium text-gray-700">
-                      {isUploading ? '正在解析...' : (consumptionData.length > 0 ? `已导入 ${consumptionData.length} 个月数据` : '点击上传 Excel 负荷表')}
-                    </p>
-                    {uploadError && <p className="text-xs text-red-500 mt-2">{uploadError}</p>}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-testid="section-load">
+                <button 
+                  onClick={() => toggleSection('load')}
+                  className="w-full p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <FileSpreadsheet className={`w-5 h-5 flex-shrink-0 ${isSectionComplete.load ? 'text-green-600' : 'text-gray-400'}`} />
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-800 text-sm">负荷数据</h2>
+                      {!expandedSections.includes('load') && (
+                        <p className="text-xs text-gray-500 mt-0.5">{sectionSummaries.load}</p>
+                      )}
+                    </div>
                   </div>
+                  {expandedSections.includes('load') ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
 
-                  {/* Work Schedule */}
-                  <div className="pt-2 border-t border-gray-100">
-                     <div className="flex items-center gap-2 mb-3">
-                        <Briefcase className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700">工作作息配置</span>
-                     </div>
-                     <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">工作时间</label>
-                          <div className="flex items-center gap-1">
-                             <input type="number" min={0} max={23} className="w-full rounded border-gray-300 py-1 text-center"
-                               value={workSchedule.workStartHour} onChange={e => setWorkSchedule(prev => ({...prev, workStartHour: Number(e.target.value)}))} />
-                             <span>-</span>
-                             <input type="number" min={0} max={23} className="w-full rounded border-gray-300 py-1 text-center"
-                               value={workSchedule.workEndHour} onChange={e => setWorkSchedule(prev => ({...prev, workEndHour: Number(e.target.value)}))} />
+                {expandedSections.includes('load') && (
+                  <div className="p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer hover:bg-gray-50 ${uploadError ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                      />
+                      <Upload className={`w-8 h-8 mx-auto mb-2 ${uploadError ? 'text-red-400' : 'text-gray-400'}`} />
+                      <p className="text-xs font-medium text-gray-700">
+                        {isUploading
+                          ? '正在解析...'
+                          : (loadMonthsCount > 0
+                            ? `已导入 ${loadMonthsCount} 个月数据${consumptionFormat === 'monthly-total' ? '(总电量)' : ''}`
+                            : '点击上传 Excel 负荷表')}
+                      </p>
+                      {uploadError && <p className="text-xs text-red-500 mt-2">{uploadError}</p>}
+                    </div>
+
+                    {/* Work Schedule */}
+                    <div className="pt-2 border-t border-gray-100">
+                       <div className="flex items-center gap-2 mb-3">
+                          <Briefcase className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm font-medium text-slate-700">工作作息配置</span>
+                       </div>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="col-span-1 sm:col-span-2">
+                            <label className="block text-xs text-gray-500 mb-1">负荷模型</label>
+                            <div className="flex bg-gray-100 p-1 rounded-lg">
+                              <button
+                                type="button"
+                                onClick={() => setLoadModel('persona')}
+                                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${loadModel === 'persona'
+                                  ? 'bg-white shadow text-blue-600'
+                                  : 'text-gray-500 hover:text-gray-700'
+                                  }`}
+                              >
+                                行业画像曲线
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setLoadModel('abcd')}
+                                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${loadModel === 'abcd'
+                                  ? 'bg-white shadow text-blue-600'
+                                  : 'text-gray-500 hover:text-gray-700'
+                                  }`}
+                              >
+                                ABCD(旧)
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-1">
+                              行业画像：按 24 点占比分配月总电量；ABCD：按作息与系数生成档位负荷。
+                            </p>
                           </div>
-                        </div>
+
+                          {loadModel === 'persona' && (
+                            <div className="col-span-1 sm:col-span-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs text-gray-500">行业画像</label>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsPersonaManagerOpen(true)}
+                                  className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                >
+                                  管理画像库
+                                </button>
+                              </div>
+                              <select
+                                className="w-full rounded border-gray-300 py-1 text-sm"
+                                value={selectedPersonaId}
+                                onChange={(e) => setSelectedPersonaId(e.target.value)}
+                                disabled={personasLoading}
+                              >
+                                <option value="">{personasLoading ? '加载中...' : '请选择行业画像'}</option>
+                                {personas.map((p) => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                              </select>
+                              {consumptionFormat === 'by-tou' && (
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                  提示：画像曲线模式仅使用“月总电量”（按分时导入会自动求和）。
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">休假模式</label>
+                            <select
+                              className="w-full rounded border-gray-300 py-1 text-sm"
+                              value={workSchedule.workPattern}
+                              onChange={e => setWorkSchedule(prev => ({ ...prev, workPattern: e.target.value as WorkPattern }))}
+                            >
+                              <option value="双休">双休</option>
+                              <option value="单休">单休</option>
+                              <option value="无休">无休</option>
+                            </select>
+                          </div>
+
+                          {loadModel === 'abcd' && (
+                            <>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">工作时间</label>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={23}
+                                    className="w-full rounded border-gray-300 py-1 text-center text-sm"
+                                    value={workSchedule.workStartHour}
+                                    onChange={e => setWorkSchedule(prev => ({ ...prev, workStartHour: Number(e.target.value) }))}
+                                  />
+                                  <span>-</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={23}
+                                    className="w-full rounded border-gray-300 py-1 text-center text-sm"
+                                    value={workSchedule.workEndHour}
+                                    onChange={e => setWorkSchedule(prev => ({ ...prev, workEndHour: Number(e.target.value) }))}
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">工作日非工作系数 (R_B)</label>
+                                <input
+                                  type="number"
+                                  step={0.1}
+                                  className="w-full rounded border-gray-300 py-1 text-sm"
+                                  value={workSchedule.R_B}
+                                  onChange={e => setWorkSchedule(prev => ({ ...prev, R_B: Number(e.target.value) }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">休息日系数 (R_C)</label>
+                                <input
+                                  type="number"
+                                  step={0.1}
+                                  className="w-full rounded border-gray-300 py-1 text-sm"
+                                  value={workSchedule.R_C}
+                                  onChange={e => setWorkSchedule(prev => ({ ...prev, R_C: Number(e.target.value) }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">节假日系数 (R_D)</label>
+                                <input
+                                  type="number"
+                                  step={0.1}
+                                  className="w-full rounded border-gray-300 py-1 text-sm"
+                                  value={workSchedule.R_D}
+                                  onChange={e => setWorkSchedule(prev => ({ ...prev, R_D: Number(e.target.value) }))}
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Holiday Selection */}
+                          <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 mt-2">
+                             <div className="flex items-center justify-between mb-2">
+                                <label className="text-xs font-medium text-gray-700">节假日配置</label>
+                                <button
+                                  onClick={() => setIsHolidayManagerOpen(true)}
+                                  className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                >
+                                  编辑节假日库
+                                </button>
+                             </div>
+                             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                               {holidaysLoading ? (
+                                 <span className="text-xs text-gray-400">加载中...</span>
+                               ) : holidays.length === 0 ? (
+                                 <span className="text-xs text-gray-400">暂无节假日数据</span>
+                               ) : (
+                                 holidays.map((holiday) => (
+                                   <label key={holiday.id} className="flex items-center gap-1.5 text-xs border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 cursor-pointer transition-colors bg-white">
+                                     <input
+                                       type="checkbox"
+                                       checked={selectedHolidayIds.includes(holiday.id)}
+                                       onChange={(e) => {
+                                         if (e.target.checked) {
+                                           setSelectedHolidayIds(prev => [...prev, holiday.id]);
+                                         } else {
+                                           setSelectedHolidayIds(prev => prev.filter(id => id !== holiday.id));
+                                         }
+                                       }}
+                                       className="rounded border-gray-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500"
+                                     />
+                                     <span className="font-medium text-gray-700">{holiday.name}</span>
+                                   </label>
+                                 ))
+                               )}
+                             </div>
+                          </div>
+                       </div>
+                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Tariff Config */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-testid="section-tariff">
+                <button 
+                  onClick={() => toggleSection('tariff')}
+                  className="w-full p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                >
+                   <div className="flex items-center gap-3 overflow-hidden">
+                    <Coins className={`w-5 h-5 flex-shrink-0 ${isSectionComplete.tariff ? 'text-amber-600' : 'text-gray-400'}`} />
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-800 text-sm">电价配置</h2>
+                      {!expandedSections.includes('tariff') && (
+                        <p className="text-xs text-gray-500 mt-0.5">{sectionSummaries.tariff}</p>
+                      )}
+                    </div>
+                  </div>
+                  {expandedSections.includes('tariff') ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+
+                {expandedSections.includes('tariff') && (
+                  <div className="p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">休假模式</label>
-                          <select className="w-full rounded border-gray-300 py-1"
-                             value={workSchedule.workPattern} 
-                             onChange={e => setWorkSchedule(prev => ({...prev, workPattern: e.target.value as WorkPattern}))}
+                          <label className="block text-xs font-medium text-gray-500 mb-1">用电分类</label>
+                          <select 
+                            className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                            value={tariffConfig.category}
+                            onChange={e => setTariffConfig(prev => ({ ...prev, category: e.target.value, voltage: '' }))}
+                            disabled={!province}
                           >
-                             <option value="双休">双休</option>
-                             <option value="单休">单休</option>
-                             <option value="无休">无休</option>
+                            <option value="">请选择</option>
+                            {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">工作日非工作系数 (R_B)</label>
-                          <input type="number" step={0.1} className="w-full rounded border-gray-300 py-1"
-                             value={workSchedule.R_B} onChange={e => setWorkSchedule(prev => ({...prev, R_B: Number(e.target.value)}))} />
+                          <label className="block text-xs font-medium text-gray-500 mb-1">电压等级</label>
+                          <select 
+                            className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                            value={tariffConfig.voltage}
+                            onChange={e => setTariffConfig(prev => ({ ...prev, voltage: e.target.value }))}
+                            disabled={!tariffConfig.category}
+                          >
+                            <option value="">请选择</option>
+                            {availableVoltages.map(v => <option key={v} value={v}>{v}</option>)}
+                          </select>
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">休息日系数 (R_C)</label>
-                          <input type="number" step={0.1} className="w-full rounded border-gray-300 py-1"
-                             value={workSchedule.R_C} onChange={e => setWorkSchedule(prev => ({...prev, R_C: Number(e.target.value)}))} />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">节假日系数 (R_D)</label>
-                          <input type="number" step={0.1} className="w-full rounded border-gray-300 py-1"
-                             value={workSchedule.R_D} onChange={e => setWorkSchedule(prev => ({...prev, R_D: Number(e.target.value)}))} />
-                        </div>
-                        
-                        {/* Holiday Selection */}
-                        <div className="col-span-2 pt-2 border-t border-gray-100 mt-2">
-                           <div className="flex items-center justify-between mb-2">
-                              <label className="text-xs font-medium text-gray-700">节假日配置</label>
-                              <button
-                                onClick={() => setIsHolidayManagerOpen(true)}
-                                className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                              >
-                                编辑节假日库
-                              </button>
-                           </div>
-                           <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                             {holidaysLoading ? (
-                               <span className="text-xs text-gray-400">加载中...</span>
-                             ) : holidays.length === 0 ? (
-                               <span className="text-xs text-gray-400">暂无节假日数据</span>
-                             ) : (
-                               holidays.map((holiday) => (
-                                 <label key={holiday.id} className="flex items-center gap-1.5 text-xs border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 cursor-pointer transition-colors bg-white">
-                                   <input
-                                     type="checkbox"
-                                     checked={selectedHolidayIds.includes(holiday.id)}
-                                     onChange={(e) => {
-                                       if (e.target.checked) {
-                                         setSelectedHolidayIds(prev => [...prev, holiday.id]);
-                                       } else {
-                                         setSelectedHolidayIds(prev => prev.filter(id => id !== holiday.id));
-                                       }
-                                     }}
-                                     className="rounded border-gray-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500"
-                                   />
-                                   <span className="font-medium text-gray-700">{holiday.name}</span>
-                                   <span className="text-gray-400 text-[10px] scale-95 font-mono">
-                                     {holiday.startDate === holiday.endDate ? holiday.startDate : `${holiday.startDate}~${holiday.endDate}`}
-                                   </span>
-                                 </label>
-                               ))
-                             )}
-                           </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">上网电价 (元/kWh)</label>
+                          <input 
+                            type="number" 
+                            step={0.01}
+                            className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                            value={tariffConfig.feedInPrice}
+                            onChange={e => {
+                              const next = Number(e.target.value);
+                              setTariffConfig(prev => ({...prev, feedInPrice: Number.isFinite(next) ? next : 0 }));
+                            }}
+                          />
                         </div>
                      </div>
                   </div>
-                </div>
-              </section>
-
-              {/* 3. Tariff Config */}
-              <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-600" />
-                  <h2 className="font-semibold text-gray-800">电价配置</h2>
-                </div>
-                <div className="p-5 space-y-4">
-                   <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">用电分类</label>
-                        <select 
-                          className="w-full rounded-md border-gray-300 shadow-sm text-sm"
-                          value={tariffConfig.category}
-                          onChange={e => setTariffConfig(prev => ({ ...prev, category: e.target.value, voltage: '' }))}
-                          disabled={!province}
-                        >
-                          <option value="">请选择</option>
-                          {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">电压等级</label>
-                        <select 
-                          className="w-full rounded-md border-gray-300 shadow-sm text-sm"
-                          value={tariffConfig.voltage}
-                          onChange={e => setTariffConfig(prev => ({ ...prev, voltage: e.target.value }))}
-                          disabled={!tariffConfig.category}
-                        >
-                          <option value="">请选择</option>
-                          {availableVoltages.map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">上网电价 (元/kWh)</label>
-                        <input 
-                          type="number" 
-                          step={0.01}
-                          className="w-full rounded-md border-gray-300 shadow-sm"
-                          value={tariffConfig.feedInPrice}
-                          onChange={e => {
-                            const next = Number(e.target.value);
-                            setTariffConfig(prev => ({...prev, feedInPrice: Number.isFinite(next) ? next : 0 }));
-                          }}
-                        />
-                      </div>
-                   </div>
-                </div>
-              </section>
+                )}
+              </div>
 
               {/* 4. PV System */}
-              <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <Battery className="w-5 h-5 text-orange-600" />
-                  <h2 className="font-semibold text-gray-800">光伏系统参数</h2>
-                </div>
-                <div className="p-5 space-y-4">
-                  
-                  {/* Source Toggle */}
-                  <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
-                    <button 
-                      className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${pvSourceType === 'pvgis' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                      onClick={() => setPvSourceType('pvgis')}
-                    >
-                      PVGIS 模拟
-                    </button>
-                    <button 
-                      className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${pvSourceType === 'pv-excel' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                      onClick={() => setPvSourceType('pv-excel')}
-                    >
-                      导入发电表
-                    </button>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-testid="section-pv">
+                <button 
+                  onClick={() => toggleSection('pv')}
+                  className="w-full p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+                >
+                   <div className="flex items-center gap-3 overflow-hidden">
+                    <Battery className={`w-5 h-5 flex-shrink-0 ${isSectionComplete.pv ? 'text-orange-600' : 'text-gray-400'}`} />
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-800 text-sm">光伏系统参数</h2>
+                      {!expandedSections.includes('pv') && (
+                        <p className="text-xs text-gray-500 mt-0.5">{sectionSummaries.pv}</p>
+                      )}
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                       <label className="block text-xs font-medium text-gray-500 uppercase mb-1">装机容量 (kWp)</label>
-                       <input
-                         type="number"
-                         placeholder="例如: 1000"
-                         value={pvConfig.capacity}
-                         onChange={(e) => handlePvConfigChange('capacity', e.target.value)}
-                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                       />
+                  {expandedSections.includes('pv') ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+                
+                {expandedSections.includes('pv') && (
+                  <div className="p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+                      <button 
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${pvSourceType === 'pvgis' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setPvSourceType('pvgis')}
+                      >
+                        PVGIS 模拟
+                      </button>
+                      <button 
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${pvSourceType === 'pv-excel' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setPvSourceType('pv-excel')}
+                      >
+                        导入发电表
+                      </button>
                     </div>
 
-                    {pvSourceType === 'pvgis' ? (
-                      <>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">纬度 (Lat)</label>
-                          <input
-                            type="number"
-                            placeholder="31.23"
-                            value={pvConfig.lat}
-                            onChange={(e) => {
-                              handlePvConfigChange('lat', e.target.value);
-                              // Detect province on change/blur could be triggered here
-                            }}
-                            onBlur={() => detectProvince({ force: false })}
-                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">经度 (Lon)</label>
-                          <input
-                            type="number"
-                            placeholder="121.47"
-                            value={pvConfig.lon}
-                            onChange={(e) => handlePvConfigChange('lon', e.target.value)}
-                            onBlur={() => detectProvince({ force: false })}
-                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">倾角 (°)</label>
-                          <input
-                            type="number"
-                            placeholder="20"
-                            value={pvConfig.tilt}
-                            onChange={(e) => handlePvConfigChange('tilt', e.target.value)}
-                            className="w-full rounded-md border-gray-300 shadow-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">方位角 (°)</label>
-                          <input
-                            type="number"
-                            placeholder="0 (正南)"
-                            value={pvConfig.azimuth}
-                            onChange={(e) => handlePvConfigChange('azimuth', e.target.value)}
-                            className="w-full rounded-md border-gray-300 shadow-sm"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                           <label className="block text-xs font-medium text-gray-500 uppercase mb-1">系统损耗 (%)</label>
-                           <input
-                             type="number"
-                             value={pvConfig.loss}
-                             onChange={(e) => handlePvConfigChange('loss', e.target.value)}
-                             className="w-full rounded-md border-gray-300 shadow-sm"
-                           />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="col-span-2">
-                        <div 
-                          className={`border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 ${pvUploadError ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                          onClick={() => pvFileInputRef.current?.click()}
-                        >
-                          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={pvFileInputRef} onChange={handlePvExcelUpload} />
-                          <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">
-                             {pvExcelMap ? '已导入数据' : '上传 24x12 发电表'}
-                          </p>
-                          {pvUploadError && <p className="text-xs text-red-500 mt-1">{pvUploadError}</p>}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2">
-                           格式要求：首列为小时(0-23)，表头包含月份(1-12月)，单元格单位 Wh/kWp。
-                        </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="col-span-1 sm:col-span-2">
+                         <label className="block text-xs font-medium text-gray-500 uppercase mb-1">装机容量 (kWp)</label>
+                         <input
+                           type="number"
+                           placeholder="例如: 1000"
+                           value={pvConfig.capacity}
+                           onChange={(e) => handlePvConfigChange('capacity', e.target.value)}
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                         />
                       </div>
-                    )}
 
-                    <div className="col-span-2 pt-2">
-                      <button
-                        onClick={handleAnalyze}
-                        disabled={!!isAnalyzeDisabled}
-                        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
-                          isAnalyzeDisabled
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-md hover:shadow-lg'
-                        }`}
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            分析中...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-5 h-5" />
-                            开始分析
-                          </>
+                      {pvSourceType === 'pvgis' ? (
+                        <>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">纬度 (Lat)</label>
+                            <input
+                              type="number"
+                              placeholder="31.23"
+                              value={pvConfig.lat}
+                              onChange={(e) => {
+                                handlePvConfigChange('lat', e.target.value);
+                              }}
+                              onBlur={() => detectProvince({ force: false })}
+                              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">经度 (Lon)</label>
+                            <input
+                              type="number"
+                              placeholder="121.47"
+                              value={pvConfig.lon}
+                              onChange={(e) => handlePvConfigChange('lon', e.target.value)}
+                              onBlur={() => detectProvince({ force: false })}
+                              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">倾角 (°)</label>
+                            <input
+                              type="number"
+                              placeholder="20"
+                              value={pvConfig.tilt}
+                              onChange={(e) => handlePvConfigChange('tilt', e.target.value)}
+                              className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">方位角 (°)</label>
+                            <input
+                              type="number"
+                              placeholder="0 (正南)"
+                              value={pvConfig.azimuth}
+                              onChange={(e) => handlePvConfigChange('azimuth', e.target.value)}
+                              className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                            />
+                          </div>
+                          <div className="col-span-1 sm:col-span-2">
+                             <label className="block text-xs font-medium text-gray-500 uppercase mb-1">系统损耗 (%)</label>
+                             <input
+                               type="number"
+                               value={pvConfig.loss}
+                               onChange={(e) => handlePvConfigChange('loss', e.target.value)}
+                               className="w-full rounded-md border-gray-300 shadow-sm text-sm"
+                             />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="col-span-1 sm:col-span-2">
+                          <div 
+                            className={`border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 ${pvUploadError ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                            onClick={() => pvFileInputRef.current?.click()}
+                          >
+                            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={pvFileInputRef} onChange={handlePvExcelUpload} />
+                            <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-600">
+                               {pvExcelMap ? '已导入数据' : '上传 24x12 发电表'}
+                            </p>
+                            {pvUploadError && <p className="text-xs text-red-500 mt-1">{pvUploadError}</p>}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-2">
+                             格式要求：首列为小时(0-23)，表头包含月份(1-12月)，单元格单位 Wh/kWp。
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <button
+                          onClick={handleAnalyze}
+                          disabled={!!isAnalyzeDisabled}
+                          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
+                            isAnalyzeDisabled
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 shadow-md hover:shadow-lg'
+                          }`}
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              分析中...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-5 h-5" />
+                              开始分析
+                            </>
+                          )}
+                        </button>
+                        {analysisError && (
+                          <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            {analysisError}
+                          </p>
                         )}
-                      </button>
-                      {analysisError && (
-                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                          <AlertCircle className="w-4 h-4" />
-                          {analysisError}
+                      </div>
+                      {province && tariffsForProvince.length === 0 && (
+                        <p className="text-sm text-amber-700 flex items-center gap-1">
+                          <Info className="w-4 h-4" />
+                          当前省份暂无电价数据，请先在电价库导入/生成。
                         </p>
                       )}
                     </div>
-                    {province && tariffsForProvince.length === 0 && (
-                      <p className="text-sm text-amber-700 flex items-center gap-1">
-                        <Info className="w-4 h-4" />
-                        当前省份暂无电价数据，请先在电价库导入/生成。
-                      </p>
-                    )}
                   </div>
-                </div>
-              </section>
+                )}
+              </div>
             </div>
 
-            {/* RIGHT COLUMN: Results */}
-            <div className="lg:col-span-8 space-y-6">
-               {/* 1. Load Preview (if no results) */}
-               {!results && (
-                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[400px] flex flex-col">
-                   <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                     <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                       <FileSpreadsheet className="w-5 h-5 text-gray-500" />
-                       负荷数据预览
-                     </h2>
-                   </div>
-                   <div className="flex-1 overflow-auto p-0 relative">
-                      {consumptionData.length === 0 ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                          <FileSpreadsheet className="w-16 h-16 mb-4 opacity-20" />
-                          <p>暂无数据</p>
-                        </div>
-                      ) : (
-                        <table className="w-full text-sm text-left">
-                          <thead className="bg-gray-50 text-gray-500 font-medium sticky top-0 z-10">
-                            <tr>
-                              <th className="p-3 pl-6">月份</th>
-                              <th className="p-3 text-right">尖 (kWh)</th>
-                              <th className="p-3 text-right">峰 (kWh)</th>
-                              <th className="p-3 text-right">平 (kWh)</th>
-                              <th className="p-3 text-right">谷 (kWh)</th>
-                              <th className="p-3 text-right">深 (kWh)</th>
-                              <th className="p-3 text-right font-bold">总计</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {consumptionData.map((row) => {
-                              const total = row.tip + row.peak + row.flat + row.valley + row.deep;
-                              return (
-                                <tr key={row.month} className="hover:bg-blue-50">
-                                  <td className="p-3 pl-6 font-medium">{row.month}月</td>
-                                  <td className="p-3 text-right text-red-600">{row.tip.toLocaleString()}</td>
-                                  <td className="p-3 text-right text-orange-500">{row.peak.toLocaleString()}</td>
-                                  <td className="p-3 text-right text-green-600">{row.flat.toLocaleString()}</td>
-                                  <td className="p-3 text-right text-blue-500">{row.valley.toLocaleString()}</td>
-                                  <td className="p-3 text-right text-indigo-500">{row.deep.toLocaleString()}</td>
-                                  <td className="p-3 text-right font-bold bg-gray-50/50">{total.toLocaleString()}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                   </div>
-                 </section>
-               )}
+            {/* RIGHT COLUMN: Results or Guidance */}
+            <div className="lg:col-span-8 space-y-6" data-testid="sc-result-column">
+              {!results ? (
+                /* Guidance State */
+                <div className="space-y-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center min-h-[400px] flex flex-col items-center justify-center" data-testid="sc-empty-state">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                       <Layers className="w-10 h-10 text-blue-600 opacity-80" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-3">开始您的光伏消纳分析</h2>
+                    <p className="text-gray-500 mb-8 max-w-lg mx-auto leading-relaxed">
+                      请完成以下配置步骤，系统将通过 8760 小时逐时对齐引擎，为您精确测算分时电价下的自用比例与经济收益。
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 w-full max-w-4xl text-left">
+                       <div className={`p-3 rounded-lg border transition-colors ${isSectionComplete.project ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${isSectionComplete.project ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>1</span>
+                             <span className={`text-sm font-semibold ${isSectionComplete.project ? 'text-blue-800' : 'text-gray-500'}`}>基础信息</span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate" title={isSectionComplete.project ? `已选: ${province}` : "设置项目省份"}>
+                            {isSectionComplete.project ? `已选: ${province}` : "设置项目省份"}
+                          </p>
+                       </div>
 
-               {/* 2. Analysis Results */}
-                {results && (
-                   <div className="space-y-6">
+                        <div className={`p-3 rounded-lg border transition-colors ${isSectionComplete.load ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${isSectionComplete.load ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>2</span>
+                             <span className={`text-sm font-semibold ${isSectionComplete.load ? 'text-blue-800' : 'text-gray-500'}`}>负荷数据</span>
+                          </div>
+                          <p
+                            className="text-xs text-gray-500 truncate"
+                            title={
+                              isSectionComplete.load
+                                ? `已导入 ${loadMonthsCount} 个月${consumptionFormat === 'monthly-total' ? '(总电量)' : ''}`
+                                : '导入用电负荷'
+                            }
+                          >
+                            {isSectionComplete.load
+                              ? `已导入 ${loadMonthsCount} 个月${consumptionFormat === 'monthly-total' ? '(总电量)' : ''}`
+                              : '导入用电负荷'}
+                          </p>
+                        </div>
+
+                       <div className={`p-3 rounded-lg border transition-colors ${isSectionComplete.tariff ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${isSectionComplete.tariff ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>3</span>
+                             <span className={`text-sm font-semibold ${isSectionComplete.tariff ? 'text-blue-800' : 'text-gray-500'}`}>电价配置</span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate" title={isSectionComplete.tariff ? `${tariffConfig.category}` : "选择分时电价"}>
+                            {isSectionComplete.tariff ? `${tariffConfig.category}` : "选择分时电价"}
+                          </p>
+                       </div>
+
+                       <div className={`p-3 rounded-lg border transition-colors ${isSectionComplete.pv ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${isSectionComplete.pv ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>4</span>
+                             <span className={`text-sm font-semibold ${isSectionComplete.pv ? 'text-blue-800' : 'text-gray-500'}`}>光伏系统</span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate" title={isSectionComplete.pv ? `${pvConfig.capacity}kWp` : "配置容量/损耗"}>
+                            {isSectionComplete.pv ? `${pvConfig.capacity}kWp` : "配置容量/损耗"}
+                          </p>
+                       </div>
+
+                       <div className={`p-3 rounded-lg border transition-colors ${!validateInputs() ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${!validateInputs() ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}>5</span>
+                             <span className={`text-sm font-semibold ${!validateInputs() ? 'text-green-800' : 'text-gray-500'}`}>开始分析</span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">
+                            {!validateInputs() ? "条件齐备，点击分析" : "等待配置完成"}
+                          </p>
+                       </div>
+                    </div>
+
+                    {loadMonthsCount > 0 && (
+                      <div className="mt-8">
+                         <button
+                            onClick={() => setShowLoadPreview(!showLoadPreview)}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-4 flex items-center gap-1"
+                            data-testid="sc-load-preview-toggle"
+                          >
+                           {showLoadPreview ? '收起负荷预览' : '查看已导入负荷预览'}
+                           {showLoadPreview ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                         </button>
+                       </div>
+                     )}
+                   </div>
+
+                  {/* Collapsible Load Preview */}
+                   {showLoadPreview && loadMonthsCount > 0 && (
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in slide-in-from-top-4 fade-in duration-300" data-testid="sc-load-preview">
+                       <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                            <FileSpreadsheet className="w-5 h-5 text-gray-500" />
+                            负荷数据预览
+                          </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                          {consumptionFormat === 'by-tou' ? (
+                            <table className="w-full text-sm text-left">
+                              <thead className="bg-gray-50 text-gray-500 font-medium">
+                                <tr>
+                                  <th className="p-3 pl-6">月份</th>
+                                  <th className="p-3 text-right">尖 (kWh)</th>
+                                  <th className="p-3 text-right">峰 (kWh)</th>
+                                  <th className="p-3 text-right">平 (kWh)</th>
+                                  <th className="p-3 text-right">谷 (kWh)</th>
+                                  <th className="p-3 text-right">深 (kWh)</th>
+                                  <th className="p-3 text-right font-bold">总计</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {consumptionByTou.map((row) => {
+                                  const total = row.tip + row.peak + row.flat + row.valley + row.deep;
+                                  return (
+                                    <tr key={row.month} className="hover:bg-blue-50 transition-colors">
+                                      <td className="p-3 pl-6 font-medium">{row.month}月</td>
+                                      <td className="p-3 text-right text-red-600">{row.tip.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-orange-500">{row.peak.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-green-600">{row.flat.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-blue-500">{row.valley.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-indigo-500">{row.deep.toLocaleString()}</td>
+                                      <td className="p-3 text-right font-bold bg-gray-50/50">{total.toLocaleString()}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : consumptionFormat === 'monthly-total' ? (
+                            <table className="w-full text-sm text-left">
+                              <thead className="bg-gray-50 text-gray-500 font-medium">
+                                <tr>
+                                  <th className="p-3 pl-6">月份</th>
+                                  <th className="p-3 text-right font-bold">总电量 (kWh)</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {consumptionMonthlyTotal.map((row) => (
+                                  <tr key={row.month} className="hover:bg-blue-50 transition-colors">
+                                    <td className="p-3 pl-6 font-medium">{row.month}月</td>
+                                    <td className="p-3 text-right font-bold bg-gray-50/50">{row.total.toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : null}
+                      </div>
+                     </div>
+                   )}
+                 </div>
+               ) : (
+                /* Results State */
+                <div className="space-y-6">
                      {warnings.length > 0 && (
                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900">
                         <div className="flex items-start gap-2">
@@ -912,7 +1277,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
                       </div>
 
                       {/* Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
                           <div className="absolute top-0 right-0 p-2 opacity-10"><Activity className="w-16 h-16 text-green-600" /></div>
                          <p className="text-sm text-gray-500 font-medium">自发自用率</p>
@@ -949,7 +1314,7 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
                           <Coins className="w-5 h-5 text-gray-500" />
                           收益测算详情
                        </h3>
-                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div className="p-3 bg-gray-50 rounded-lg">
                              <p className="text-gray-500 mb-1">原始电费 (无光伏)</p>
                              <p className="font-semibold text-gray-900">¥ {results.financial.totals.baselineGridCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
@@ -1011,30 +1376,39 @@ export const SelfConsumption: React.FC<SelfConsumptionProps> = ({
                         </select>
                       </div>
                       <div className="h-[300px] w-full">
-                         <ResponsiveContainer width="100%" height="100%">
-                           <LineChart data={typicalDayData}>
-                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                             <XAxis dataKey="hour" tickFormatter={(val) => `${val}:00`} />
-                             <YAxis label={{ value: 'kW', angle: -90, position: 'insideLeft' }} />
-                             <Tooltip formatter={(val: number) => val.toFixed(1)} labelFormatter={(l) => `${l}:00`} />
-                             <Legend />
-                             <Line type="monotone" dataKey="pvKw" name="光伏出力" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                             <Line type="monotone" dataKey="loadKw" name="用电负荷" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                           </LineChart>
-                         </ResponsiveContainer>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={typicalDayData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="hour" tickFormatter={(v) => `${v}:00`} />
+                            <YAxis label={{ value: 'kW', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip formatter={(val: number) => val.toFixed(2)} labelFormatter={(l) => `${l}:00`} />
+                            <Legend />
+                            <Line type="monotone" dataKey="loadKw" name="负荷曲线" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="pvKw" name="光伏曲线" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
                       </div>
                     </section>
-                 </div>
-               )}
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </main>
 
-      <HolidayManager 
-        isOpen={isHolidayManagerOpen}
-        onClose={() => setIsHolidayManagerOpen(false)}
-      />
+        <HolidayManager
+          isOpen={isHolidayManagerOpen}
+          onClose={() => setIsHolidayManagerOpen(false)}
+        />
+
+        <PersonaManager
+          isOpen={isPersonaManagerOpen}
+          onClose={() => setIsPersonaManagerOpen(false)}
+          personas={personas}
+          loading={personasLoading}
+          selectedPersonaId={selectedPersonaId}
+          onSelectPersonaId={setSelectedPersonaId}
+        />
+      </main>
     </div>
   );
 };

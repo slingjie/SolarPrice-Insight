@@ -7,7 +7,7 @@ import { ResultsManager } from './ResultsManager';
 import { DataImportExport } from './DataImportExport';
 import { BackupRestore } from './BackupRestore';
 import { OperationLog } from './OperationLog';
-import { TariffData, TimeConfig, ComprehensiveResult } from '../../types';
+import { TariffData, TimeConfig, ComprehensiveResult, LoadPersona } from '../../types';
 import { getDatabase } from '../../services/db';
 
 interface AdminModuleProps {
@@ -15,6 +15,8 @@ interface AdminModuleProps {
     timeConfigs: TimeConfig[];
     onUpdateTariffs: (tariffs: TariffData[]) => void;
     onUpdateTimeConfigs: (configs: TimeConfig[]) => void;
+    onMergeTariffs: (tariffs: TariffData[]) => void;
+    onMergeTimeConfigs: (configs: TimeConfig[]) => void;
     onBack: () => void;
 }
 
@@ -23,10 +25,13 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
     timeConfigs,
     onUpdateTariffs,
     onUpdateTimeConfigs,
+    onMergeTariffs,
+    onMergeTimeConfigs,
     onBack
 }) => {
     const [currentView, setCurrentView] = useState<AdminView>('dashboard');
     const [comprehensiveResults, setComprehensiveResults] = useState<ComprehensiveResult[]>([]);
+    const [personas, setPersonas] = useState<LoadPersona[]>([]);
 
     // 加载综合电价结果
     useEffect(() => {
@@ -46,6 +51,31 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
         getDatabase().then(db => {
             subscription = db.comprehensive_results.find().$.subscribe(docs => {
                 setComprehensiveResults(docs.map(d => d.toJSON() as ComprehensiveResult));
+            });
+        });
+
+        return () => {
+            if (subscription) subscription.unsubscribe();
+        };
+    }, []);
+
+    // 加载行业画像
+    useEffect(() => {
+        const loadPersonas = async () => {
+            try {
+                const db = await getDatabase();
+                const docs = await db.personas.find().exec();
+                setPersonas(docs.map(d => d.toJSON() as LoadPersona));
+            } catch (err) {
+                console.error('[Admin] Failed to load personas:', err);
+            }
+        };
+        loadPersonas();
+
+        let subscription: any;
+        getDatabase().then(db => {
+            subscription = db.personas.find().$.subscribe(docs => {
+                setPersonas(docs.map(d => d.toJSON() as LoadPersona));
             });
         });
 
@@ -74,6 +104,32 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
             })));
         } catch (err) {
             console.error('[Admin] Failed to update results:', err);
+            throw err;
+        }
+    };
+
+    const handleUpdatePersonas = async (nextPersonas: LoadPersona[]) => {
+        try {
+            const db = await getDatabase();
+            const existingDocs = await db.personas.find().exec();
+            const existingIds = new Set(existingDocs.map(d => d.id));
+            const newIds = new Set(nextPersonas.map(p => p.id));
+
+            const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
+            if (idsToDelete.length > 0) {
+                await db.personas.bulkRemove(idsToDelete);
+            }
+
+            const now = new Date().toISOString();
+            await db.personas.bulkUpsert(nextPersonas.map(p => ({
+                ...p,
+                updated_at: p.updated_at || now,
+                last_modified: p.last_modified || now,
+                _deleted: p._deleted ?? false,
+            })));
+        } catch (err) {
+            console.error('[Admin] Failed to update personas:', err);
+            throw err;
         }
     };
 
@@ -115,9 +171,11 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
                         tariffs={tariffs}
                         timeConfigs={timeConfigs}
                         comprehensiveResults={comprehensiveResults}
-                        onImportTariffs={onUpdateTariffs}
-                        onImportConfigs={onUpdateTimeConfigs}
+                        personas={personas}
+                        onImportTariffs={onMergeTariffs}
+                        onImportConfigs={onMergeTimeConfigs}
                         onImportResults={handleUpdateResults}
+                        onImportPersonas={handleUpdatePersonas}
                     />
                 );
             case 'backup':
@@ -125,9 +183,11 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
                     <BackupRestore
                         tariffs={tariffs}
                         timeConfigs={timeConfigs}
+                        personas={personas}
                         comprehensiveResults={comprehensiveResults}
                         onRestoreTariffs={onUpdateTariffs}
                         onRestoreConfigs={onUpdateTimeConfigs}
+                        onRestorePersonas={handleUpdatePersonas}
                         onRestoreResults={handleUpdateResults}
                     />
                 );

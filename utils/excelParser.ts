@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { MonthlyConsumption, ExcelParseError } from '../types/analysis';
+import { MonthlyConsumption, MonthlyTotalConsumption, ExcelParseError } from '../types/analysis';
 
 type TOUField = 'tip' | 'peak' | 'flat' | 'valley' | 'deep';
 
@@ -276,5 +276,82 @@ export async function parseConsumptionFile(file: File): Promise<MonthlyConsumpti
     throw new ExcelParseError(
       'Unable to detect file format. Expected either month-row (月份 column with TOU fields) or tou-row (tou column with month columns)'
     );
+  }
+}
+
+export type ParsedSelfConsumptionLoad =
+  | { format: 'by-tou'; monthly: MonthlyConsumption[] }
+  | { format: 'monthly-total'; monthly: MonthlyTotalConsumption[] };
+
+const TOTAL_HEADER_PATTERNS: RegExp[] = [
+  /^总电量$/i,
+  /^总用电量$/i,
+  /^用电量$/i,
+  /^电量$/i,
+  /^total$/i,
+  /^consumption$/i,
+  /^energy$/i,
+  /^kwh$/i,
+  /^月电量$/i,
+];
+
+function matchHeaderToTotal(header: string): boolean {
+  const normalized = normalizeHeader(header);
+  return TOTAL_HEADER_PATTERNS.some((p) => p.test(normalized) || p.test(header.trim()));
+}
+
+async function parseMonthlyTotalFile(file: File): Promise<MonthlyTotalConsumption[]> {
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+  if (workbook.SheetNames.length === 0) {
+    throw new ExcelParseError('Excel file contains no sheets');
+  }
+
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+
+  if (rawData.length === 0) {
+    throw new ExcelParseError('Excel file contains no data rows');
+  }
+
+  const headers = Object.keys(rawData[0]);
+  const monthHeader = headers.find((h) => matchHeaderToField(h) === 'month');
+  const totalHeader = headers.find((h) => matchHeaderToTotal(h));
+
+  if (!monthHeader || !totalHeader) {
+    throw new ExcelParseError('Missing required month/total columns');
+  }
+
+  const results: MonthlyTotalConsumption[] = [];
+  for (const row of rawData) {
+    const monthValue = parseMonthValue(row[monthHeader]);
+    if (!Number.isFinite(monthValue) || monthValue < 1 || monthValue > 12) continue;
+
+    const total = parseNumericValue(row[totalHeader]);
+    results.push({ month: monthValue, total });
+  }
+
+  if (results.length === 0) {
+    throw new ExcelParseError('No valid data rows found');
+  }
+
+  results.sort((a, b) => a.month - b.month);
+  return results;
+}
+
+/**
+ * For SelfConsumption module:
+ * - Prefer monthly-by-TOU import (existing)
+ * - Fallback to simplified monthly-total import (month + total kWh)
+ */
+export async function parseSelfConsumptionLoadFile(file: File): Promise<ParsedSelfConsumptionLoad> {
+  try {
+    const monthly = await parseConsumptionFile(file);
+    return { format: 'by-tou', monthly };
+  } catch (err) {
+    // Fallback to monthly-total format
+    const monthly = await parseMonthlyTotalFile(file);
+    return { format: 'monthly-total', monthly };
   }
 }
