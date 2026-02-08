@@ -1,6 +1,6 @@
 import type { HourlyData, TimeConfig, TimeType } from '../types';
 import type { MonthlyConsumption } from '../types/analysis';
-import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
+import { resolveTimeConfigForMonthAndDayKind } from '../utils/timeConfigResolver';
 import {
   hourKeyToMonthDayHour,
   toChinaHourKeyFromIsoUtc,
@@ -17,6 +17,8 @@ export type LoadLevel = 'A' | 'B' | 'C' | 'D';
 export type WorkPattern = '双休' | '单休' | '无休';
 
 export interface WorkSchedule {
+  /** Default: 'abcd' (legacy). 'persona' uses 24h share curve to distribute monthly total. */
+  loadModel?: 'abcd' | 'persona';
   workStartHour: number;
   workEndHour: number;
   workPattern: WorkPattern;
@@ -24,6 +26,11 @@ export interface WorkSchedule {
   R_C: number;
   R_D?: number;
   holidays?: string[];
+
+  /** Persona curve (24 values), used when loadModel='persona' */
+  weekday_shares?: number[];
+  /** Optional weekend override (24 values); if omitted, weekend uses weekday_shares */
+  weekend_shares?: number[];
 }
 
 export type PVSource =
@@ -194,18 +201,39 @@ function buildTouGridByMonth(params: {
   timeConfigs: TimeConfig[];
   provinceName: string;
   warnings: string[];
-}): Record<number, TimeType[]> {
-  const grids: Record<number, TimeType[]> = {};
+}): Record<number, { weekday: TimeType[]; weekend: TimeType[] }> {
+  const grids: Record<number, { weekday: TimeType[]; weekend: TimeType[] }> = {};
   for (let month = 1; month <= 12; month++) {
-    const resolved = resolveTimeConfigForMonth(params.timeConfigs, params.provinceName, month);
-    if (!resolved) {
+    const weekdayResolved = resolveTimeConfigForMonthAndDayKind(params.timeConfigs, params.provinceName, month, 'weekday');
+    const weekendResolved = resolveTimeConfigForMonthAndDayKind(params.timeConfigs, params.provinceName, month, 'weekend');
+
+    if (!weekdayResolved || !weekendResolved) {
       params.warnings.push(`未找到省份="${params.provinceName}" 的分时规则(TimeConfig)，月份=${month}。将该月全部小时按“平(Flat)”处理。`);
-      grids[month] = new Array(24).fill('flat') as TimeType[];
+      grids[month] = {
+        weekday: new Array(24).fill('flat') as TimeType[],
+        weekend: new Array(24).fill('flat') as TimeType[],
+      };
       continue;
     }
-    grids[month] = resolved.touGrid as TimeType[];
+
+    grids[month] = {
+      weekday: weekdayResolved.touGrid as TimeType[],
+      weekend: weekendResolved.touGrid as TimeType[],
+    };
   }
   return grids;
+}
+
+function normalizeShares24(raw: number[] | undefined): number[] {
+  if (!Array.isArray(raw) || raw.length !== 24) {
+    return new Array(24).fill(1 / 24);
+  }
+  let sum = 0;
+  for (const v of raw) {
+    if (Number.isFinite(v) && v > 0) sum += v;
+  }
+  if (sum <= 0) return new Array(24).fill(1 / 24);
+  return raw.map((v) => (Number.isFinite(v) && v > 0 ? v / sum : 0));
 }
 
 function buildPvgisPvKwhByTimeKey(params: {
@@ -299,6 +327,10 @@ export function calculateAlignedConsumption(input: CalculateAlignedConsumptionIn
   });
   const consumptionByMonth = buildMonthlyConsumptionByMonth(input.monthlyConsumption);
 
+  const loadModel = input.workSchedule.loadModel ?? 'abcd';
+  const personaWeekdayShares = normalizeShares24(input.workSchedule.weekday_shares);
+  const personaWeekendShares = normalizeShares24(input.workSchedule.weekend_shares ?? input.workSchedule.weekday_shares);
+
   const pvByKey =
     input.pvSource.type === 'pvgis'
       ? buildPvgisPvKwhByTimeKey({
@@ -312,16 +344,18 @@ export function calculateAlignedConsumption(input: CalculateAlignedConsumptionIn
 
   for (let month = 1; month <= 12; month++) {
     const daysInMonth = DAYS_IN_MONTH[month - 1];
-    const touGrid = touGridByMonth[month] ?? (new Array(24).fill('flat') as TimeType[]);
+    const touGrid = (touGridByMonth[month]?.weekday ?? (new Array(24).fill('flat') as TimeType[]));
     const monthConsumption = consumptionByMonth.get(month);
 
-    addTouConsistencyWarnings({
-      month,
-      daysInMonth,
-      touGrid,
-      consumption: monthConsumption,
-      warnings,
-    });
+    if (loadModel === 'abcd') {
+      addTouConsistencyWarnings({
+        month,
+        daysInMonth,
+        touGrid,
+        consumption: monthConsumption,
+        warnings,
+      });
+    }
 
     let N_A = 0;
     let N_B = 0;
@@ -386,8 +420,6 @@ export function calculateAlignedConsumption(input: CalculateAlignedConsumptionIn
   let totalGridImport = 0;
 
   for (const h of canonicalHours) {
-    const touGrid = touGridByMonth[h.month] ?? (new Array(24).fill('flat') as TimeType[]);
-    const touType = (touGrid[h.hour] ?? 'flat') as TimeType;
     const dayType = getDayType({
       baseYear: BASE_YEAR,
       month: h.month,
@@ -395,6 +427,11 @@ export function calculateAlignedConsumption(input: CalculateAlignedConsumptionIn
       workPattern: input.workSchedule.workPattern,
       holidays: input.workSchedule.holidays,
     });
+
+    const dayKind = dayType === 'workday' ? 'weekday' : 'weekend';
+    const touGrid = touGridByMonth[h.month]?.[dayKind] ?? (new Array(24).fill('flat') as TimeType[]);
+    const touType = (touGrid[h.hour] ?? 'flat') as TimeType;
+
     const level = getLevel({
       dayType,
       hour: h.hour,
@@ -402,14 +439,24 @@ export function calculateAlignedConsumption(input: CalculateAlignedConsumptionIn
       workEndHour: input.workSchedule.workEndHour,
     });
 
-    const basePower = monthlyBasePower[h.month] ?? { P_work_A: 0, P_work_B: 0, P_work_C: 0, P_work_D: 0 };
-    const loadKwh = level === 'A' 
-      ? basePower.P_work_A 
-      : level === 'B' 
-      ? basePower.P_work_B 
-      : level === 'C' 
-      ? basePower.P_work_C 
-      : (basePower.P_work_D ?? 0);
+    let loadKwh = 0;
+    if (loadModel === 'persona') {
+      const monthConsumption = consumptionByMonth.get(h.month);
+      const totalEnergyKwh = sumMonthlyEnergyKwh(monthConsumption);
+      const daysInMonth = DAYS_IN_MONTH[h.month - 1] ?? 0;
+      const dailyTotalKwh = daysInMonth > 0 ? totalEnergyKwh / daysInMonth : 0;
+      const shares = dayKind === 'weekend' ? personaWeekendShares : personaWeekdayShares;
+      loadKwh = dailyTotalKwh * (shares[h.hour] ?? 0);
+    } else {
+      const basePower = monthlyBasePower[h.month] ?? { P_work_A: 0, P_work_B: 0, P_work_C: 0, P_work_D: 0 };
+      loadKwh = level === 'A'
+        ? basePower.P_work_A
+        : level === 'B'
+          ? basePower.P_work_B
+          : level === 'C'
+            ? basePower.P_work_C
+            : (basePower.P_work_D ?? 0);
+    }
 
     let pvKwh = 0;
     if (input.pvSource.type === 'pvgis') {

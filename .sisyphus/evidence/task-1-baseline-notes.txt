@@ -1,0 +1,21 @@
+Persona creation visibility baseline (Task 1)
+
+1. Persona creation path (components/SelfConsumption/PersonaManager.tsx:81-149):
+   - `createNewPersona` builds a new `LoadPersona`, sets `last_modified`/`updated_at`, and calls `savePersona`, but never mentions `_modified`.
+   - `handleSave` clones the active persona, updates name/shares, refreshes `last_modified`, and also delegates persistence to `savePersona`.
+
+2. Persistence layer (services/personaService.ts:14-20):
+   - `savePersona` `upsert`s into `db.personas` while packing `last_modified` (defaulting to now) and `_deleted`, but there is no field written or mapped to `_modified`.
+
+3. Schema expectations (services/db.ts:118-135):
+   - `persona` schema only declares `last_modified`, `updated_at`, `_deleted`, and required business fields; `_modified` is not part of the schema and is managed by RxDB metadata.
+
+4. Visibility hook (hooks/useDatabase.ts:129-147, verified via AST-grep):
+   - `usePersonas` subscribes to `db.personas.find(...)` with `sort: [{ _modified: 'desc' }]`, so the list refresh order relies on the internal `_modified` timestamp rather than the business `last_modified` payload.
+
+Failure chain summary:
+   PersonaManager → savePersona → RxDB upsert establishes row with only `last_modified`, yet `usePersonas` orders by `_modified`. If `_modified` stays stale (e.g., RxDB metadata not updated because the call reuses the same doc), the new persona may not bubble to the top and can appear missing. The misalignment between business `last_modified` and query `_modified` creates the reported visibility gap.
+
+Verification steps:
+   - `grep "_modified|last_modified|createNewPersona|savePersona|usePersonas"` surfaced the chain in PersonaManager, personaService, hooks/useDatabase, and db schema (output includes the references above).
+   - `ast-grep` confirmed the `usePersonas` implementation (hooks/useDatabase.ts:129-147) still sorts by `_modified`, so the hook is the consumer of the metadata-based timestamp.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getDatabase } from '../services/db';
-import { TariffData, TimeConfig, SavedTimeRange, HolidayDefinition } from '../types';
+import { TariffData, TimeConfig, SavedTimeRange, HolidayDefinition, LoadPersona } from '../types';
 
 /**
  * 监听所有电价数据的 Hook
@@ -121,4 +121,41 @@ export function useHolidays() {
     }, []);
 
     return { holidays, loading };
+}
+
+/**
+ * 监听行业画像库（负荷画像）的 Hook
+ */
+export function usePersonas() {
+    const [personas, setPersonas] = useState<LoadPersona[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let subscription: any;
+
+        const init = async () => {
+            try {
+                const db = await getDatabase();
+                const query = db.personas.find({
+                    selector: {
+                        _deleted: { $ne: true }
+                    },
+                    sort: [{ last_modified: 'desc' }]
+                });
+
+                subscription = query.$.subscribe(docs => {
+                    setPersonas(docs.map(doc => doc.toJSON() as LoadPersona));
+                    setLoading(false);
+                });
+            } catch (err) {
+                console.error('[usePersonas] init failed', err);
+                setLoading(false);
+            }
+        };
+
+        init();
+        return () => subscription?.unsubscribe();
+    }, []);
+
+    return { personas, loading };
 }

@@ -38,6 +38,25 @@ function createAllFlatTimeConfig(options: {
   };
 }
 
+function createAllDayTouTimeConfig(options: {
+  id: string;
+  province: string;
+  monthPattern: string;
+  lastModified: string;
+  weekdayType: TimeType;
+  weekendType?: TimeType;
+}): TimeConfig {
+  return {
+    id: options.id,
+    province: options.province,
+    month_pattern: options.monthPattern,
+    time_rules: [{ start: '00:00', end: '24:00', type: options.weekdayType }],
+    ...(options.weekendType ? { weekend_time_rules: [{ start: '00:00', end: '24:00', type: options.weekendType }] } : {}),
+    updated_at: options.lastModified,
+    last_modified: options.lastModified,
+  };
+}
+
 describe('consumptionAlignedService', () => {
   describe('getDayType with holidays', () => {
     it('returns "holiday" when date is in holiday list', () => {
@@ -215,6 +234,154 @@ describe('consumptionAlignedService', () => {
         expect(h.selfKwh + h.gridExportKwh).toBeCloseTo(h.pvKwh, 10);
         expect(h.selfKwh + h.gridImportKwh).toBeCloseTo(h.loadKwh, 10);
       }
+    });
+
+    it('uses weekend_time_rules touGrid for restday/holiday hours', () => {
+      const timeConfigs = [
+        createAllDayTouTimeConfig({
+          id: 't1',
+          province: '全部',
+          monthPattern: 'All',
+          lastModified: '2024-01-01T00:00:00Z',
+          weekdayType: 'flat',
+          weekendType: 'peak',
+        }),
+      ];
+
+      const consumption: MonthlyConsumption[] = [];
+      for (let m = 1; m <= 12; m++) {
+        consumption.push(createMonthlyConsumption(m, { flat: m === 1 ? 1000 : 0 }));
+      }
+
+      const result = calculateAlignedConsumption({
+        provinceName: '未知',
+        timeConfigs,
+        monthlyConsumption: consumption,
+        pvSource: { type: 'pv-excel', pvWhPerKwpByTimeKey: new Map(), pvCapacityKwp: 10 },
+        workSchedule: {
+          workStartHour: 8,
+          workEndHour: 18,
+          workPattern: '双休',
+          holidays: ['01-04'], // 2021-01-04 is Monday, force holiday -> weekend dayKind
+          R_B: 0.5,
+          R_C: 0.25,
+        },
+      });
+
+      const sat = result.hourly.find((h) => h.timeKey === '01-02 00:00');
+      const monHoliday = result.hourly.find((h) => h.timeKey === '01-04 00:00');
+      const tue = result.hourly.find((h) => h.timeKey === '01-05 00:00');
+
+      expect(sat).toBeTruthy();
+      expect(monHoliday).toBeTruthy();
+      expect(tue).toBeTruthy();
+
+      expect(sat!.dayType).toBe('restday');
+      expect(sat!.touType).toBe('peak');
+
+      expect(monHoliday!.dayType).toBe('holiday');
+      expect(monHoliday!.touType).toBe('peak');
+
+      expect(tue!.dayType).toBe('workday');
+      expect(tue!.touType).toBe('flat');
+    });
+
+    it('falls back to weekday rules when weekend_time_rules not provided', () => {
+      const timeConfigs = [
+        createAllDayTouTimeConfig({
+          id: 't1',
+          province: '全部',
+          monthPattern: 'All',
+          lastModified: '2024-01-01T00:00:00Z',
+          weekdayType: 'valley',
+        }),
+      ];
+
+      const consumption: MonthlyConsumption[] = [];
+      for (let m = 1; m <= 12; m++) {
+        consumption.push(createMonthlyConsumption(m, { flat: m === 1 ? 1000 : 0 }));
+      }
+
+      const result = calculateAlignedConsumption({
+        provinceName: '未知',
+        timeConfigs,
+        monthlyConsumption: consumption,
+        pvSource: { type: 'pv-excel', pvWhPerKwpByTimeKey: new Map(), pvCapacityKwp: 10 },
+        workSchedule: {
+          workStartHour: 8,
+          workEndHour: 18,
+          workPattern: '双休',
+          R_B: 0.5,
+          R_C: 0.25,
+        },
+      });
+
+      const sat = result.hourly.find((h) => h.timeKey === '01-02 00:00');
+      expect(sat).toBeTruthy();
+      expect(sat!.dayType).toBe('restday');
+      expect(sat!.touType).toBe('valley');
+    });
+
+    it('persona load model conserves monthly total energy and respects weekend_shares override', () => {
+      const timeConfigs = [
+        createAllFlatTimeConfig({
+          id: 't1',
+          province: '全部',
+          monthPattern: 'All',
+          lastModified: '2024-01-01T00:00:00Z',
+        }),
+      ];
+
+      const totalJan = 310;
+      const consumption: MonthlyConsumption[] = [];
+      for (let m = 1; m <= 12; m++) {
+        consumption.push(createMonthlyConsumption(m, { flat: m === 1 ? totalJan : 0 }));
+      }
+
+      const weekdayShares = new Array(24).fill(0);
+      weekdayShares[0] = 1;
+      const weekendShares = new Array(24).fill(0);
+      weekendShares[1] = 1;
+
+      const result = calculateAlignedConsumption({
+        provinceName: '未知',
+        timeConfigs,
+        monthlyConsumption: consumption,
+        pvSource: { type: 'pv-excel', pvWhPerKwpByTimeKey: new Map(), pvCapacityKwp: 10 },
+        workSchedule: {
+          loadModel: 'persona',
+          weekday_shares: weekdayShares,
+          weekend_shares: weekendShares,
+          workStartHour: 8,
+          workEndHour: 18,
+          workPattern: '双休',
+          R_B: 0.5,
+          R_C: 0.25,
+        },
+      });
+
+      const janLoad = result.hourly
+        .filter((h) => h.month === 1)
+        .reduce((sum, h) => sum + h.loadKwh, 0);
+      expect(janLoad).toBeCloseTo(totalJan, 9);
+
+      const sat00 = result.hourly.find((h) => h.timeKey === '01-02 00:00');
+      const sat01 = result.hourly.find((h) => h.timeKey === '01-02 01:00');
+      const tue00 = result.hourly.find((h) => h.timeKey === '01-05 00:00');
+      const tue01 = result.hourly.find((h) => h.timeKey === '01-05 01:00');
+
+      expect(sat00).toBeTruthy();
+      expect(sat01).toBeTruthy();
+      expect(tue00).toBeTruthy();
+      expect(tue01).toBeTruthy();
+
+      expect(sat00!.dayType).toBe('restday');
+      expect(sat00!.loadKwh).toBeCloseTo(0, 12);
+      expect(sat01!.loadKwh).toBeGreaterThan(0);
+
+      expect(tue00!.dayType).toBe('workday');
+      expect(tue00!.loadKwh).toBeGreaterThan(0);
+      expect(tue01!.loadKwh).toBeCloseTo(0, 12);
     });
   });
 });

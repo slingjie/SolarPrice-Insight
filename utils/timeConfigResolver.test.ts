@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTimeConfigForMonth } from './timeConfigResolver';
+import { resolveTimeConfigForMonth, resolveTimeConfigForMonthAndDayKind } from './timeConfigResolver';
 import { TimeConfig, TimeType } from '../types';
 
 describe('timeConfigResolver', () => {
@@ -133,5 +133,40 @@ describe('timeConfigResolver', () => {
     const configs = [createConfig('cfg1', '江苏省', 'All', '2024-01-01')];
     const result = resolveTimeConfigForMonth(configs, '江苏', 1);
     expect(result).not.toBeNull();
+  });
+
+  it('should resolve weekday/weekend rules via weekend_time_rules when present', () => {
+    const cfg: TimeConfig = {
+      id: 'cfg1',
+      province: '江苏',
+      month_pattern: 'All',
+      time_rules: [{ start: '00:00', end: '24:00', type: 'flat' as TimeType }],
+      weekend_time_rules: [{ start: '00:00', end: '24:00', type: 'peak' as TimeType }],
+      updated_at: '2024-01-01',
+      last_modified: '2024-01-01',
+    };
+
+    const weekday = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekday');
+    const weekend = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekend');
+    expect(weekday).not.toBeNull();
+    expect(weekend).not.toBeNull();
+    expect(weekday!.touGrid[0]).toBe('flat');
+    expect(weekend!.touGrid[0]).toBe('peak');
+  });
+
+  it('should fallback to weekday rules when weekend_time_rules missing/empty', () => {
+    const cfg: TimeConfig = {
+      id: 'cfg1',
+      province: '江苏',
+      month_pattern: 'All',
+      time_rules: [{ start: '00:00', end: '24:00', type: 'valley' as TimeType }],
+      weekend_time_rules: [],
+      updated_at: '2024-01-01',
+      last_modified: '2024-01-01',
+    };
+
+    const weekend = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekend');
+    expect(weekend).not.toBeNull();
+    expect(weekend!.touGrid[0]).toBe('valley');
   });
 });

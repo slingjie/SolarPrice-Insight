@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx';
-import { parseConsumptionFile } from './excelParser';
+import { parseConsumptionFile, parseSelfConsumptionLoadFile } from './excelParser';
 import { ExcelParseError } from '../types/analysis';
 
 function createExcelFile(data: Record<string, unknown>[]): File {
@@ -425,5 +425,22 @@ describe('parseConsumptionFile', () => {
       expect(result[1].month).toBe(6);
       expect(result[2].month).toBe(12);
     });
+  });
+});
+
+describe('parseSelfConsumptionLoadFile', () => {
+  it('falls back to monthly-total format (月份 + 总电量)', async () => {
+    const data = [
+      { 月份: 1, 总电量: 1000 },
+      { 月份: 2, 总电量: 1100 },
+    ];
+    const file = createExcelFile(data);
+    const result = await parseSelfConsumptionLoadFile(file);
+    expect(result.format).toBe('monthly-total');
+    if (result.format !== 'monthly-total') throw new Error('unexpected format');
+    expect(result.monthly).toEqual([
+      { month: 1, total: 1000 },
+      { month: 2, total: 1100 },
+    ]);
   });
 });

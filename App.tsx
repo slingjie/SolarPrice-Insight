@@ -12,8 +12,8 @@ import { AnalysisView } from './components/Analysis';
 import { PVGISModule } from './components/pvgis/PVGISModule';
 import { AdminModule } from './components/admin/AdminModule';
 import { SettingsView } from './components/Settings';
-import { AppView, HourlyData, PVGISParams, TariffData, TimeConfig } from './types';
-import { DEFAULT_TIME_CONFIGS } from './constants.tsx';
+import { AppView, HourlyData, LoadPersona, PVGISParams, TariffData, TimeConfig } from './types';
+import { DEFAULT_PERSONAS, DEFAULT_TIME_CONFIGS } from './constants.tsx';
 import { getDatabase } from './services/db';
 import { initDefaultHolidays } from './services/holidayService';
 
@@ -36,6 +36,8 @@ const App: React.FC = () => {
     pvParams: PVGISParams;
     hourly: HourlyData[];
   } | null>(null);
+
+  const [personas, setPersonas] = useState<LoadPersona[]>([]);
 
   // 初始化数据库并建立订阅
   useEffect(() => {
@@ -88,6 +90,12 @@ const App: React.FC = () => {
           await initDefaultHolidays();
         }
 
+        const existingPersonaCount = await db.personas.count().exec();
+        if (existingPersonaCount === 0) {
+          console.log('[App] Initializing default load personas');
+          await db.personas.bulkInsert(DEFAULT_PERSONAS);
+        }
+
         // 2. 建立响应式订阅
         const tariffSub = db.tariffs.find().$.subscribe(docs => {
           setTariffs(docs.map(doc => doc.toJSON()));
@@ -97,11 +105,16 @@ const App: React.FC = () => {
           setTimeConfigs(docs.map(doc => doc.toJSON()));
         });
 
+        const personaSub = db.personas.find().$.subscribe(docs => {
+          setPersonas(docs.map(doc => doc.toJSON()));
+        });
+
         setInitialized(true);
 
         return () => {
           tariffSub.unsubscribe();
           configSub.unsubscribe();
+          personaSub.unsubscribe();
         };
       } catch (err) {
         console.error('[App] Database initialization failed:', err);
@@ -116,11 +129,8 @@ const App: React.FC = () => {
   const handleUpdateTariffs = async (newTariffs: TariffData[]) => {
     try {
       const db = await getDatabase();
-      // 简单起见，这里采取全量替换或批量新增逻辑
-      // 在实际复杂场景中，RxDB 建议逐条增量更新
-      // 这里为了兼容现有 handleUpdateTariffs 的语义：
+      // 全量替换：删除不在新列表里的记录，再 upsert 新列表
       const existingIds = new Set(newTariffs.map(t => t.id));
-      // 找出不在新列表里的，删除它们
       const allDocs = await db.tariffs.find().exec();
       const toDelete = allDocs.filter(doc => !existingIds.has(doc.id));
       if (toDelete.length > 0) {
@@ -135,25 +145,41 @@ const App: React.FC = () => {
       console.log('[App] Tariffs upsert success');
     } catch (err) {
       console.error('[App] Tariffs update failed:', err);
-      // 可以在此处显示 Toast 提示
+      throw err;
+    }
+  };
+
+  // 合并导入：只 upsert，不删除现有记录（用于文件导入场景）
+  const handleMergeTariffs = async (importedTariffs: TariffData[]) => {
+    try {
+      const db = await getDatabase();
+      console.log('[App] Merging tariffs (upsert only):', importedTariffs.length, 'items');
+      const docsToUpsert = importedTariffs.map(t => ({
+        ...t,
+        last_modified: t.last_modified || new Date().toISOString()
+      }));
+      await db.tariffs.bulkUpsert(docsToUpsert);
+      console.log('[App] Tariffs merge success');
+    } catch (err) {
+      console.error('[App] Tariffs merge failed:', err);
+      throw err;
     }
   };
 
   const handleUpdateTimeConfigs = async (newConfigs: TimeConfig[]) => {
     try {
       const db = await getDatabase();
+      // 全量替换：删除不在新列表里的记录，再 upsert 新列表
       const existingDocs = await db.time_configs.find().exec();
       const existingIds = new Set(existingDocs.map(d => d.id));
       const newIds = new Set(newConfigs.map(c => c.id));
 
-      // 1. 找出需要删除的 ID
       const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
       if (idsToDelete.length > 0) {
         console.log('[App] Removing time configs:', idsToDelete);
         await db.time_configs.bulkRemove(idsToDelete);
       }
 
-      // 2. 找出需要更新/新增的配置
       const docsToUpsert = newConfigs.map(c => ({
         ...c,
         last_modified: c.last_modified || new Date().toISOString()
@@ -164,6 +190,49 @@ const App: React.FC = () => {
       console.log('[App] Update success');
     } catch (err) {
       console.error('[App] Update failed:', err);
+      throw err;
+    }
+  };
+
+  // 合并导入：只 upsert，不删除现有记录（用于文件导入场景）
+  const handleMergeTimeConfigs = async (importedConfigs: TimeConfig[]) => {
+    try {
+      const db = await getDatabase();
+      console.log('[App] Merging time configs (upsert only):', importedConfigs.length, 'items');
+      const docsToUpsert = importedConfigs.map(c => ({
+        ...c,
+        last_modified: c.last_modified || new Date().toISOString()
+      }));
+      await db.time_configs.bulkUpsert(docsToUpsert);
+      console.log('[App] Time configs merge success');
+    } catch (err) {
+      console.error('[App] Time configs merge failed:', err);
+      throw err;
+    }
+  };
+
+  const handleUpdatePersonas = async (nextPersonas: LoadPersona[]) => {
+    try {
+      const db = await getDatabase();
+      const existingDocs = await db.personas.find().exec();
+      const existingIds = new Set(existingDocs.map(d => d.id));
+      const newIds = new Set(nextPersonas.map(p => p.id));
+
+      const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
+      if (idsToDelete.length > 0) {
+        await db.personas.bulkRemove(idsToDelete);
+      }
+
+      const now = new Date().toISOString();
+      await db.personas.bulkUpsert(nextPersonas.map(p => ({
+        ...p,
+        updated_at: p.updated_at || now,
+        last_modified: p.last_modified || now,
+        _deleted: p._deleted ?? false,
+      })));
+    } catch (err) {
+      console.error('[App] Personas update failed:', err);
+      throw err;
     }
   };
 
@@ -240,6 +309,8 @@ const App: React.FC = () => {
               timeConfigs={timeConfigs}
               onUpdateTariffs={handleUpdateTariffs}
               onUpdateTimeConfigs={handleUpdateTimeConfigs}
+              onMergeTariffs={handleMergeTariffs}
+              onMergeTimeConfigs={handleMergeTimeConfigs}
               onBack={() => {
                 if (window.opener) {
                   window.close();
@@ -285,8 +356,10 @@ const App: React.FC = () => {
             <SettingsView
               tariffs={tariffs}
               timeConfigs={timeConfigs}
+              personas={personas}
               onImportTariffs={handleUpdateTariffs}
               onImportConfigs={handleUpdateTimeConfigs}
+              onImportPersonas={handleUpdatePersonas}
               onNavigate={setView}
             />
           )}

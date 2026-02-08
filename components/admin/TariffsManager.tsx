@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -8,6 +8,7 @@ import {
     flexRender,
     createColumnHelper,
     SortingState,
+    RowSelectionState,
 } from '@tanstack/react-table';
 import { ArrowUpDown, Search, Trash2, Edit2, Save, X, Filter, Plus } from 'lucide-react'; // Added Plus
 import { TariffData } from '../../types';
@@ -27,11 +28,45 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
     const [editForm, setEditForm] = useState<Partial<TariffData>>({});
     const [filterMode, setFilterMode] = useState<'none' | 'exact' | 'price'>('none');
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ ids: string[], message: string } | null>(null);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
     // ... (column definitions unchanged)
     const columnHelper = createColumnHelper<TariffData>();
 
     const columns = useMemo(() => [
+        columnHelper.display({
+            id: 'select',
+            size: 40,
+            header: ({ table }) => {
+                const isAllSelected = table.getIsAllRowsSelected();
+                const isPartiallySelected = table.getIsSomeRowsSelected() && !isAllSelected;
+
+                return (
+                    <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={table.getToggleAllRowsSelectedHandler()}
+                        ref={el => {
+                            if (el) {
+                                el.indeterminate = isPartiallySelected;
+                            }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        aria-label="选择全部"
+                    />
+                );
+            },
+            cell: ({ row }) => (
+                <input
+                    type="checkbox"
+                    checked={row.getIsSelected()}
+                    onChange={row.getToggleSelectedHandler()}
+                    disabled={!row.getCanSelect()}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    aria-label="选择此行"
+                />
+            ),
+        }),
         columnHelper.accessor('province', {
             header: ({ column }) => {
                 return (
@@ -139,20 +174,35 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
         return data;
     }, [tariffs, filterMode]);
 
-    const table = useReactTable({
+    useEffect(() => {
+        setRowSelection({});
+    }, [globalFilter, filterMode]);
+
+    const table = useReactTable<TariffData>({
         data: filteredData,
         columns,
         state: {
             sorting,
             globalFilter,
+            rowSelection,
         },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
+        onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        getRowId: row => row.id,
+        enableRowSelection: true,
     });
+
+    const selectedIds = useMemo(() => {
+        const currentTariffIds = new Set(tariffs.map(t => t.id));
+        return Object.keys(rowSelection).filter(id => Boolean(rowSelection[id]) && currentTariffIds.has(id));
+    }, [rowSelection, tariffs]);
+
+    const selectedCount = selectedIds.length;
 
     const handleDelete = (id: string) => {
         setDeleteConfirmation({
@@ -176,6 +226,7 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
         onUpdateTariffs(newTariffs);
         recordLog('tariffs', count > 1 ? 'bulk_delete' : 'delete', count);
         setDeleteConfirmation(null);
+        setRowSelection({});
     };
 
     const handleEdit = (tariff: TariffData) => {
@@ -302,6 +353,24 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
                 </div>
             </div>
 
+            {selectedCount > 0 && (
+                <div className="sticky top-4 z-20 bg-blue-50 border border-blue-200 rounded-xl shadow-sm px-4 py-3 flex items-center justify-between">
+                    <p className="text-sm font-medium text-blue-700">已选 {selectedCount} 条</p>
+                    <button
+                        onClick={() => {
+                            setDeleteConfirmation({
+                                ids: selectedIds,
+                                message: `确定要删除选中的 ${selectedCount} 条记录吗？此操作无法撤销。`
+                            });
+                        }}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm font-medium"
+                    >
+                        <Trash2 size={16} />
+                        批量删除
+                    </button>
+                </div>
+            )}
+
             {filterMode === 'none' ? (
                 <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                     <div className="overflow-x-auto">
@@ -310,7 +379,10 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
                                 {table.getHeaderGroups().map(headerGroup => (
                                     <tr key={headerGroup.id}>
                                         {headerGroup.headers.map(header => (
-                                            <th key={header.id} className="px-6 py-4 border-b">
+                                            <th
+                                                key={header.id}
+                                                className={header.id === 'select' ? 'px-3 py-4 border-b w-10' : 'px-6 py-4 border-b'}
+                                            >
                                                 {header.isPlaceholder
                                                     ? null
                                                     : flexRender(
@@ -327,7 +399,7 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
                                     table.getRowModel().rows.map(row => (
                                         <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                                             {row.getVisibleCells().map(cell => (
-                                                <td key={cell.id} className="px-6 py-4">
+                                                <td key={cell.id} className={cell.column.id === 'select' ? 'px-3 py-4' : 'px-6 py-4'}>
                                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                 </td>
                                             ))}
@@ -405,6 +477,33 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-slate-500 border-b">
                                         <tr>
+                                            <th className="px-3 py-2 font-medium w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={groupItems.length > 0 && groupItems.every(item => Boolean(rowSelection[item.id]))}
+                                                    onChange={e => {
+                                                        const checked = e.target.checked;
+                                                        setRowSelection(prev => {
+                                                            const next = { ...prev };
+                                                            groupItems.forEach(item => {
+                                                                if (checked) {
+                                                                    next[item.id] = true;
+                                                                } else {
+                                                                    delete next[item.id];
+                                                                }
+                                                            });
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    ref={el => {
+                                                        if (!el) return;
+                                                        const selectedInGroup = groupItems.filter(item => Boolean(rowSelection[item.id])).length;
+                                                        el.indeterminate = selectedInGroup > 0 && selectedInGroup < groupItems.length;
+                                                    }}
+                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    aria-label="选择当前分组全部"
+                                                />
+                                            </th>
                                             <th className="px-6 py-2 font-medium">省份</th>
                                             <th className="px-6 py-2 font-medium">月份</th>
                                             <th className="px-6 py-2 font-medium">用电分类</th>
@@ -420,6 +519,26 @@ export const TariffsManager: React.FC<TariffsManagerProps> = ({ tariffs, onUpdat
                                     <tbody className="divide-y divide-slate-100">
                                         {groupItems.map(item => (
                                             <tr key={item.id} className="hover:bg-slate-50">
+                                                <td className="px-3 py-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(rowSelection[item.id])}
+                                                        onChange={e => {
+                                                            const checked = e.target.checked;
+                                                            setRowSelection(prev => {
+                                                                const next = { ...prev };
+                                                                if (checked) {
+                                                                    next[item.id] = true;
+                                                                } else {
+                                                                    delete next[item.id];
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }}
+                                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                        aria-label="选择此行"
+                                                    />
+                                                </td>
                                                 <td className="px-6 py-3">{item.province}</td>
                                                 <td className="px-6 py-3">{item.month}</td>
                                                 <td className="px-6 py-3">{item.category}</td>

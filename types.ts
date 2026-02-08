@@ -20,6 +20,22 @@ export interface TimeConfig {
   province: string;
   month_pattern: string; // e.g., "1,2,3" or "All"
   time_rules: TimeRule[];
+  /** Optional weekend override; if empty/undefined, weekend uses time_rules */
+  weekend_time_rules?: TimeRule[];
+  updated_at: string;
+  last_modified: string; // ISO string
+  _deleted?: boolean;
+}
+
+export interface LoadPersona {
+  id: string;
+  slug: string;
+  name: string;
+  /** 24 hourly shares, sum to 1 */
+  weekday_shares: number[];
+  /** Optional 24 hourly shares; if omitted, weekend uses weekday_shares */
+  weekend_shares?: number[];
+  isDefault: boolean;
   updated_at: string;
   last_modified: string; // ISO string
   _deleted?: boolean;
@@ -73,7 +89,7 @@ export interface ComprehensiveResult {
 
 // ========== 操作日志相关类型 ==========
 
-export type LogCollection = 'tariffs' | 'time_configs' | 'comprehensive_results';
+export type LogCollection = 'tariffs' | 'time_configs' | 'comprehensive_results' | 'personas';
 export type LogAction = 'create' | 'update' | 'delete' | 'bulk_delete' | 'bulk_import' | 'backup' | 'restore';
 
 export interface OperationLog {
@@ -338,7 +354,7 @@ export interface HolidayDefinition {
 /**
  * 工作日程配置
  */
-export interface WorkSchedule {
+export interface WorkSchedulePreset {
   id: string;
   name: string;
   R_D: number;                    // 节假日负荷比例（默认 0.2）

@@ -357,3 +357,11 @@
 ## 2026-01-03 控制台噪音清理（非功能性）
 - **favicon 404 修复**：新增 `public/favicon.svg` 与 `public/favicon.ico`，并在 `index.html` 明确声明图标，消除 `:4000/favicon.ico 404`。
 - **Chrome DOM 提示修复**：将 Settings 页的 `password` 输入包裹在 `<form>` 中，消除 `[DOM] Password field is not contained in a form` 提示。
+
+## 2026-02-07 侧边栏优化 - 移除光伏消纳分析入口
+- **优化背景**：用户反馈需要简化侧边栏，移除“光伏消纳分析”的直接入口。
+- **涉及组件**：`components/Sidebar.tsx`。
+- **改进点**：
+    - 移除了侧边栏中的`self-consumption`菜单项。
+    - 保留了 `App.tsx` 中的路由定义，确保该功能仍可通过 PVGIS 模块内部流程访问。
+- **验证情况**：侧边栏菜单已更新，功能入口收敛。

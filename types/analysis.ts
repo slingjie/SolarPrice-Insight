@@ -17,6 +17,12 @@ export interface MonthlyConsumption {
   deep: number;
 }
 
+/** Monthly electricity consumption total (kWh), without TOU breakdown. */
+export interface MonthlyTotalConsumption {
+  month: number;
+  total: number;
+}
+
 /**
  * TOU period types matching the existing TimeType in types.ts
  */

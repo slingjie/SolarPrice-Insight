@@ -2,6 +2,8 @@ import { TimeConfig, TimeRule, TimeType } from '../types';
 import { rulesToGrid } from './timeUtils';
 import { provinceMatches } from './provinceNormalize';
 
+export type DayKind = 'weekday' | 'weekend';
+
 /**
  * Parses month_pattern string into a Set of month numbers (1-12)
  * 
@@ -66,6 +68,35 @@ export function resolveTimeConfigForMonth(
   provinceName: string,
   month: number
 ): { timeRules: TimeRule[]; touGrid: TimeType[] } | null {
+  const selected = selectTimeConfigForMonth(timeConfigs, provinceName, month);
+  if (!selected) return null;
+
+  const touGrid = rulesToGrid(selected.time_rules);
+  return { timeRules: selected.time_rules, touGrid };
+}
+
+export function resolveTimeConfigForMonthAndDayKind(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  month: number,
+  dayKind: DayKind
+): { timeRules: TimeRule[]; touGrid: TimeType[] } | null {
+  const selected = selectTimeConfigForMonth(timeConfigs, provinceName, month);
+  if (!selected) return null;
+
+  const weekendRules = selected.weekend_time_rules;
+  const rules =
+    dayKind === 'weekend' && Array.isArray(weekendRules) && weekendRules.length > 0
+      ? weekendRules
+      : selected.time_rules;
+
+  return {
+    timeRules: rules,
+    touGrid: rulesToGrid(rules),
+  };
+}
+
+function selectTimeConfigForMonth(timeConfigs: TimeConfig[], provinceName: string, month: number): TimeConfig | null {
   if (!timeConfigs || timeConfigs.length === 0) {
     return null;
   }
@@ -123,20 +154,7 @@ export function resolveTimeConfigForMonth(
     return null;
   }
 
-  // Resolve conflicts within selected tier
-  const selected = resolveConflict(candidates);
-
-  if (!selected) {
-    return null;
-  }
-
-  // Generate TOU grid from time_rules
-  const touGrid = rulesToGrid(selected.time_rules);
-
-  return {
-    timeRules: selected.time_rules,
-    touGrid
-  };
+  return resolveConflict(candidates);
 }
 
 /**

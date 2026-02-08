@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Archive, RefreshCcw, AlertCircle, Download, Upload } from 'lucide-react';
-import { TariffData, TimeConfig, ComprehensiveResult } from '../../types';
+import { TariffData, TimeConfig, ComprehensiveResult, LoadPersona } from '../../types';
 import { Card } from '../UI';
 import { recordLog } from '../../services/logService';
 import { canUseSaveFilePicker, saveTextFile } from '../../utils/fileDialog';
@@ -8,18 +8,22 @@ import { canUseSaveFilePicker, saveTextFile } from '../../utils/fileDialog';
 interface BackupRestoreProps {
     tariffs: TariffData[];
     timeConfigs: TimeConfig[];
+    personas: LoadPersona[];
     comprehensiveResults: ComprehensiveResult[];
     onRestoreTariffs: (data: TariffData[]) => void;
     onRestoreConfigs: (data: TimeConfig[]) => void;
+    onRestorePersonas: (data: LoadPersona[]) => void;
     onRestoreResults: (data: ComprehensiveResult[]) => void;
 }
 
 export const BackupRestore: React.FC<BackupRestoreProps> = ({
     tariffs,
     timeConfigs,
+    personas,
     comprehensiveResults,
     onRestoreTariffs,
     onRestoreConfigs,
+    onRestorePersonas,
     onRestoreResults
 }) => {
     const restoreInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +55,7 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
             data: {
                 tariffs,
                 timeConfigs,
+                personas,
                 comprehensiveResults
             }
         };
@@ -116,6 +121,10 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
             if (backup.data.timeConfigs) {
                 onRestoreConfigs(backup.data.timeConfigs);
                 totalCount += backup.data.timeConfigs.length;
+            }
+            if (backup.data.personas) {
+                onRestorePersonas(backup.data.personas);
+                totalCount += backup.data.personas.length;
             }
             if (backup.data.comprehensiveResults) {
                 onRestoreResults(backup.data.comprehensiveResults);
@@ -243,25 +252,29 @@ export const BackupRestore: React.FC<BackupRestoreProps> = ({
                     </div>
                     <div className="text-center">
                         <h3 className="text-xl font-bold text-slate-800">全量备份</h3>
-                        <p className="text-slate-500 mt-2 max-w-sm mx-auto">
-                            将所有电价数据、时段配置和计算结果打包为一个 JSON 文件下载。
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 w-full max-w-md my-4">
-                        <div className="bg-white p-3 rounded-lg border text-center">
-                            <div className="text-sm text-slate-500">电价数据</div>
-                            <div className="font-bold text-xl">{tariffs.length}</div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border text-center">
-                            <div className="text-sm text-slate-500">时段配置</div>
-                            <div className="font-bold text-xl">{timeConfigs.length}</div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border text-center">
-                            <div className="text-sm text-slate-500">计算结果</div>
-                            <div className="font-bold text-xl">{comprehensiveResults.length}</div>
-                        </div>
-                    </div>
+                             <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+                             将所有电价数据、时段配置、行业画像与计算结果打包为一个 JSON 文件下载。
+                         </p>
+                     </div>
+ 
+                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-2xl my-4">
+                         <div className="bg-white p-3 rounded-lg border text-center">
+                             <div className="text-sm text-slate-500">电价数据</div>
+                             <div className="font-bold text-xl">{tariffs.length}</div>
+                         </div>
+                         <div className="bg-white p-3 rounded-lg border text-center">
+                             <div className="text-sm text-slate-500">时段配置</div>
+                             <div className="font-bold text-xl">{timeConfigs.length}</div>
+                         </div>
+                         <div className="bg-white p-3 rounded-lg border text-center">
+                             <div className="text-sm text-slate-500">行业画像</div>
+                             <div className="font-bold text-xl">{personas.length}</div>
+                         </div>
+                         <div className="bg-white p-3 rounded-lg border text-center">
+                             <div className="text-sm text-slate-500">计算结果</div>
+                             <div className="font-bold text-xl">{comprehensiveResults.length}</div>
+                         </div>
+                     </div>
 
                     <button
                         onClick={handleBackupAll}

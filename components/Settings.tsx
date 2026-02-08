@@ -1,24 +1,27 @@
 import React, { useState, useRef } from 'react';
 import { Settings, CheckCircle2, ShieldCheck, Key, Database, Download, Upload, AlertCircle, FileJson, Trash2, RefreshCcw } from 'lucide-react';
 import { Card, Toast } from './UI';
-import { TariffData, TimeConfig } from '../types';
+import { TariffData, TimeConfig, LoadPersona } from '../types';
 import { DEFAULT_TIME_CONFIGS } from '../constants.tsx';
 
 interface SettingsViewProps {
   tariffs: TariffData[];
   timeConfigs: TimeConfig[];
+  personas: LoadPersona[];
   onImportTariffs: (tariffs: TariffData[]) => void;
   onImportConfigs: (configs: TimeConfig[]) => void;
+  onImportPersonas: (personas: LoadPersona[]) => void;
   onNavigate: (view: any) => void;
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs, onImportTariffs, onImportConfigs, onNavigate }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs, personas, onImportTariffs, onImportConfigs, onImportPersonas, onNavigate }) => {
   const [apiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
   const [importError, setImportError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importConfirmation, setImportConfirmation] = useState<{
     tariffs: TariffData[];
     timeConfigs: TimeConfig[];
+    personas: LoadPersona[];
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +32,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
       version: "2.0", // 升级到 RxDB 版本标识
       exportDate: new Date().toISOString(),
       tariffs,
-      timeConfigs
+      timeConfigs,
+      personas
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -61,7 +65,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
 
         setImportConfirmation({
           tariffs: json.tariffs,
-          timeConfigs: json.timeConfigs
+          timeConfigs: json.timeConfigs,
+          personas: json.personas || []
         });
       } catch (err: any) {
         setImportError(err.message || "导入失败，请检查文件。");
@@ -77,6 +82,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
 
     onImportTariffs(importConfirmation.tariffs);
     onImportConfigs(importConfirmation.timeConfigs);
+    if (importConfirmation.personas.length > 0) {
+      onImportPersonas(importConfirmation.personas);
+    }
 
     setImportConfirmation(null);
     setToastMessage("数据导入成功！");
@@ -230,7 +238,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
           <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold text-slate-900 mb-2">确认导入备份</h3>
             <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录和 <span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置。
+              即将导入 <span className="text-blue-600 font-bold">{importConfirmation.tariffs.length}</span> 条电价记录、<span className="text-blue-600 font-bold">{importConfirmation.timeConfigs.length}</span> 条配置{importConfirmation.personas.length > 0 && (<>和 <span className="text-blue-600 font-bold">{importConfirmation.personas.length}</span> 个行业画像</>)}。
               <br />
               <span className="text-red-500 font-medium">注意：这将替换您当前的全部数据！</span>
             </p>
