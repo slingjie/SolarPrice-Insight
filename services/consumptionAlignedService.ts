@@ -202,10 +202,30 @@ function buildTouGridByMonth(params: {
   provinceName: string;
   warnings: string[];
 }): Record<number, { weekday: TimeType[]; weekend: TimeType[] }> {
+  const candidateYears = params.timeConfigs
+    .filter((config) => config.config_type === 'monthly' && !config._deleted)
+    .filter((config) => config.province === params.provinceName || config.province === '全部')
+    .map((config) => config.year)
+    .filter((year) => Number.isFinite(year));
+
+  const defaultYear = candidateYears.length > 0 ? Math.max(...candidateYears) : new Date().getFullYear();
+
   const grids: Record<number, { weekday: TimeType[]; weekend: TimeType[] }> = {};
   for (let month = 1; month <= 12; month++) {
-    const weekdayResolved = resolveTimeConfigForMonthAndDayKind(params.timeConfigs, params.provinceName, month, 'weekday');
-    const weekendResolved = resolveTimeConfigForMonthAndDayKind(params.timeConfigs, params.provinceName, month, 'weekend');
+    const weekdayResolved = resolveTimeConfigForMonthAndDayKind(
+      params.timeConfigs,
+      params.provinceName,
+      month,
+      'weekday',
+      defaultYear,
+    );
+    const weekendResolved = resolveTimeConfigForMonthAndDayKind(
+      params.timeConfigs,
+      params.provinceName,
+      month,
+      'weekend',
+      defaultYear,
+    );
 
     if (!weekdayResolved || !weekendResolved) {
       params.warnings.push(`未找到省份="${params.provinceName}" 的分时规则(TimeConfig)，月份=${month}。将该月全部小时按“平(Flat)”处理。`);

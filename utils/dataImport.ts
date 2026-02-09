@@ -31,12 +31,6 @@ const columnsToTimeRules = (row: Record<string, unknown>, prefix = ''): TimeRule
   return rules;
 };
 
-const hasAnyTimeColumn = (row: Record<string, unknown>, prefix = ''): boolean =>
-  Object.keys(COLUMN_TO_TIME_TYPE).some(col => {
-    const v = toStr(row[prefix + col]);
-    return v.length > 0;
-  });
-
 const toNum = (v: unknown): number => {
   if (typeof v === 'number') return v;
   const n = Number(v);
@@ -90,6 +84,14 @@ const tsOrNow = (v: unknown): string => {
   return new Date().toISOString();
 };
 
+const parseSpecialDateRange = (raw: string): { start?: string; end?: string } => {
+  const matches = raw.match(/\d{4}-\d{2}-\d{2}/g) ?? [];
+  if (matches.length === 0) return {};
+  if (matches.length === 1) return { start: matches[0] };
+  const [a, b] = matches;
+  return a <= b ? { start: a, end: b } : { start: b, end: a };
+};
+
 const rowToTariff = (row: Record<string, unknown>): TariffData => ({
   id: idOrNew(row['ID']),
   province: toStr(row['省份']),
@@ -112,15 +114,28 @@ const rowToTariff = (row: Record<string, unknown>): TariffData => ({
   last_modified: tsOrNow(row['最后修改']),
 });
 
-const rowToConfig = (row: Record<string, unknown>): TimeConfig => ({
-  id: idOrNew(row['ID']),
-  province: toStr(row['省份']),
-  month_pattern: toStr(row['月份模式']),
-  time_rules: columnsToTimeRules(row),
-  weekend_time_rules: hasAnyTimeColumn(row, '周末') ? columnsToTimeRules(row, '周末') : undefined,
-  updated_at: tsOrNow(row['更新时间']),
-  last_modified: tsOrNow(row['最后修改']),
-});
+const rowToConfig = (row: Record<string, unknown>): TimeConfig => {
+  const specialRaw = toStr(row['特殊日期']).trim();
+  const specialRange = parseSpecialDateRange(specialRaw);
+  const isSpecial = Boolean(specialRange.start);
+  const parsedYear = Number.parseInt(toStr(row['年份']), 10);
+  const fallbackYear = isSpecial && specialRange.start
+    ? Number.parseInt(specialRange.start.slice(0, 4), 10)
+    : new Date().getFullYear();
+
+  return {
+    id: idOrNew(row['ID']),
+    province: toStr(row['省份']),
+    year: Number.isFinite(parsedYear) ? parsedYear : fallbackYear,
+    config_type: isSpecial ? 'special_date' : 'monthly',
+    month_pattern: isSpecial ? 'Special' : toStr(row['月份模式']),
+    special_date: specialRange.start,
+    special_date_end: specialRange.end,
+    time_rules: columnsToTimeRules(row),
+    updated_at: tsOrNow(row['更新时间']),
+    last_modified: tsOrNow(row['最后修改']),
+  };
+};
 
 const rowToResult = (row: Record<string, unknown>): ComprehensiveResult => ({
   id: idOrNew(row['ID']),
@@ -180,9 +195,10 @@ const parseMatrixConfigs = (wb: XLSX.WorkBook): TimeConfig[] => {
     if (!sheet) continue;
 
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-    const gridsPerMonth = new Map<number, TimeType[]>();
+    const gridsByYear = new Map<number, Map<number, TimeType[]>>();
 
     for (const row of rows) {
+      const year = Number.parseInt(String(row['year'] ?? row['Year'] ?? ''), 10) || new Date().getFullYear();
       const month = Number(row['Month']);
       if (!month || month < 1 || month > 12) continue;
 
@@ -191,35 +207,43 @@ const parseMatrixConfigs = (wb: XLSX.WorkBook): TimeConfig[] => {
         const label = String(row[HOUR_HEADERS[h]] ?? '平').trim();
         grid.push(LABEL_TO_TYPE[label] ?? 'flat');
       }
-      gridsPerMonth.set(month, grid);
-    }
 
-    const gridSignatures = new Map<string, number[]>();
-    for (const [month, grid] of gridsPerMonth) {
-      const sig = grid.join(',');
-      const existing = gridSignatures.get(sig);
-      if (existing) {
-        existing.push(month);
-      } else {
-        gridSignatures.set(sig, [month]);
+      if (!gridsByYear.has(year)) {
+        gridsByYear.set(year, new Map<number, TimeType[]>());
       }
+      gridsByYear.get(year)!.set(month, grid);
     }
 
-    for (const [sig, months] of gridSignatures) {
-      const grid = sig.split(',') as TimeType[];
-      const isAll = months.length === 12;
-      const monthPattern = isAll ? 'All' : months.sort((a, b) => a - b).join(',');
+    for (const [year, gridsPerMonth] of gridsByYear.entries()) {
+      const gridSignatures = new Map<string, number[]>();
+      for (const [month, grid] of gridsPerMonth) {
+        const sig = grid.join(',');
+        const existing = gridSignatures.get(sig);
+        if (existing) {
+          existing.push(month);
+        } else {
+          gridSignatures.set(sig, [month]);
+        }
+      }
 
-      if (!monthPattern) continue;
+      for (const [sig, months] of gridSignatures) {
+        const grid = sig.split(',') as TimeType[];
+        const isAll = months.length === 12;
+        const monthPattern = isAll ? 'All' : months.sort((a, b) => a - b).join(',');
 
-      configs.push({
-        id: crypto.randomUUID(),
-        province: sheetName,
-        month_pattern: monthPattern,
-        time_rules: gridToRules(grid),
-        updated_at: now,
-        last_modified: now,
-      });
+        if (!monthPattern) continue;
+
+        configs.push({
+          id: crypto.randomUUID(),
+          province: sheetName,
+          year,
+          config_type: 'monthly',
+          month_pattern: monthPattern,
+          time_rules: gridToRules(grid),
+          updated_at: now,
+          last_modified: now,
+        });
+      }
     }
   }
 

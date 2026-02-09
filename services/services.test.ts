@@ -48,6 +48,8 @@ describe('configService', () => {
     it('should inject supabase fields on saveTimeConfig', async () => {
         const data = {
             province: '浙江',
+            year: 2026,
+            config_type: 'monthly',
             month_pattern: 'All',
             time_rules: [],
             updated_at: new Date().toISOString()

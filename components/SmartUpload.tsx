@@ -174,6 +174,8 @@ export const SmartUpload: React.FC<SmartUploadProps> = ({ timeConfigs, tariffs, 
       const newConfig: TimeConfig = {
         id: crypto.randomUUID(),
         province: '默认配置',
+        year: new Date().getFullYear(),
+        config_type: 'monthly',
         month_pattern: 'All',
         time_rules: defaultTimeRules,
         updated_at: new Date().toISOString(),

@@ -79,25 +79,18 @@ const tariffSchema = {
 // 定义 TimeConfig Schema
 const timeConfigSchema = {
     title: 'time config schema',
-    version: 2,
+    version: 4,
     primaryKey: 'id',
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
         province: { type: 'string' },
+        year: { type: 'number' },
+        config_type: { type: 'string' },
         month_pattern: { type: 'string' },
+        special_date: { type: 'string', nullable: true },
+        special_date_end: { type: 'string', nullable: true },
         time_rules: {
-            type: 'array',
-            items: {
-                type: 'object',
-                properties: {
-                    start: { type: 'string' },
-                    end: { type: 'string' },
-                    type: { type: 'string' }
-                }
-            }
-        },
-        weekend_time_rules: {
             type: 'array',
             items: {
                 type: 'object',
@@ -113,7 +106,7 @@ const timeConfigSchema = {
         last_modified: { type: 'string', format: 'date-time' },
         _deleted: { type: 'boolean', default: false }
     },
-    required: ['id', 'province', 'month_pattern', 'time_rules', 'updated_at', 'last_modified']
+    required: ['id', 'province', 'year', 'config_type', 'month_pattern', 'time_rules', 'updated_at', 'last_modified']
 };
 
 const personaSchema = {
@@ -286,6 +279,58 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
 
                         if (oldDoc.weekend_time_rules !== undefined && !Array.isArray(oldDoc.weekend_time_rules)) {
                             delete oldDoc.weekend_time_rules;
+                        }
+
+                        return oldDoc;
+                    },
+                    3: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc.updated_at = oldDoc.updated_at || oldDoc.last_modified;
+                        oldDoc._deleted = oldDoc._deleted || false;
+
+                        if (oldDoc.weekend_time_rules !== undefined) {
+                            delete oldDoc.weekend_time_rules;
+                        }
+
+                        const parsedYear = Number.parseInt(String(oldDoc.year ?? ''), 10);
+                        if (!Number.isFinite(parsedYear)) {
+                            const fallback = Number.parseInt(String(oldDoc.updated_at || oldDoc.last_modified).slice(0, 4), 10);
+                            oldDoc.year = Number.isFinite(fallback) ? fallback : new Date().getFullYear();
+                        } else {
+                            oldDoc.year = parsedYear;
+                        }
+
+                        if (oldDoc.config_type !== 'special_date') {
+                            oldDoc.config_type = 'monthly';
+                        }
+
+                        oldDoc.month_pattern = typeof oldDoc.month_pattern === 'string' && oldDoc.month_pattern.trim().length > 0
+                            ? oldDoc.month_pattern
+                            : 'All';
+
+                        if (oldDoc.config_type === 'special_date') {
+                            oldDoc.special_date = typeof oldDoc.special_date === 'string' ? oldDoc.special_date : null;
+                        } else {
+                            oldDoc.special_date = null;
+                        }
+
+                        oldDoc.special_date_end = null;
+
+                        return oldDoc;
+                    },
+                    4: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc.updated_at = oldDoc.updated_at || oldDoc.last_modified;
+                        oldDoc._deleted = oldDoc._deleted || false;
+
+                        if (oldDoc.config_type === 'special_date') {
+                            const start = typeof oldDoc.special_date === 'string' ? oldDoc.special_date : null;
+                            const end = typeof oldDoc.special_date_end === 'string' ? oldDoc.special_date_end : null;
+                            oldDoc.special_date = start;
+                            oldDoc.special_date_end = end;
+                        } else {
+                            oldDoc.special_date = null;
+                            oldDoc.special_date_end = null;
                         }
 
                         return oldDoc;

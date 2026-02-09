@@ -226,6 +226,13 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
         return parsed;
     };
 
+    const parseYearNumber = (monthValue: string): number => {
+        const match = monthValue.trim().match(/^(\d{4})-(\d{1,2})$/);
+        if (!match) return new Date().getFullYear();
+        const parsed = Number.parseInt(match[1], 10);
+        return Number.isFinite(parsed) ? parsed : new Date().getFullYear();
+    };
+
 
     const handleCalculate = () => {
         setCalcMsg(null);
@@ -268,7 +275,12 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                 return tariff;
             }
 
-            const resolved = resolveTimeConfigForMonth(timeConfigs, tariff.province, monthNumber);
+            const resolved = resolveTimeConfigForMonth(
+                timeConfigs,
+                tariff.province,
+                monthNumber,
+                parseYearNumber(tariff.month),
+            );
             if (!resolved || resolved.timeRules.length === 0) {
                 return tariff;
             }

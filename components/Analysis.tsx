@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, TrendingUp, Edit3, Clock } from 'lucide-react';
 import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, ComposedChart, Area } from 'recharts';
 import { TariffData, PriceSchema } from '../types';
@@ -27,6 +27,8 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
   const trendData = useMemo(() => {
     return seriesData.map(t => ({
       month: t.month,
+      year: t.month.match(/^(\d{4})-/)?.[1] || '--',
+      monthOnly: t.month.match(/^\d{4}-(\d{1,2})$/)?.[1] || t.month,
       tip: t.prices.tip,
       peak: t.prices.peak,
       flat: t.prices.flat,
@@ -34,8 +36,31 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
     }));
   }, [seriesData]);
 
+  const availableYears = useMemo(() => {
+    return Array.from(new Set(seriesData.map((item) => item.month.match(/^(\d{4})-/)?.[1] || '').filter(Boolean))).sort();
+  }, [seriesData]);
+
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedYears(availableYears);
+  }, [availableYears]);
+
+  const filteredSeriesData = useMemo(() => {
+    if (selectedYears.length === 0) return seriesData;
+    return seriesData.filter((item) => {
+      const year = item.month.match(/^(\d{4})-/)?.[1] || '';
+      return selectedYears.includes(year);
+    });
+  }, [seriesData, selectedYears]);
+
+  const filteredTrendData = useMemo(() => {
+    if (selectedYears.length === 0) return trendData;
+    return trendData.filter((item) => selectedYears.includes(item.year));
+  }, [trendData, selectedYears]);
+
   const [selectedMonthId, setSelectedMonthId] = useState<string | null>(seriesData[0]?.id || null);
-  const selectedTariff = seriesData.find(t => t.id === selectedMonthId) || seriesData[0];
+  const selectedTariff = filteredSeriesData.find(t => t.id === selectedMonthId) || filteredSeriesData[0];
 
   const handlePriceChange = (id: string, type: keyof PriceSchema, value: string) => {
     const numVal = parseFloat(value);
@@ -71,10 +96,30 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
               <TrendingUp className="text-blue-600" size={18} /> 年度电价走势 (Annual Trends)
             </h3>
             <div className="h-[300px] w-full">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {availableYears.map((year) => {
+                  const enabled = selectedYears.includes(year);
+                  return (
+                    <button
+                      key={year}
+                      onClick={() => {
+                        setSelectedYears((prev) =>
+                          prev.includes(year) ? prev.filter((item) => item !== year) : [...prev, year].sort(),
+                        );
+                      }}
+                      className={`px-2.5 py-1 text-xs rounded-full border ${
+                        enabled ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      {year}年
+                    </button>
+                  );
+                })}
+              </div>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <LineChart data={filteredTrendData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickFormatter={(val) => val.slice(5)} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} />
                   <YAxis stroke="#94a3b8" fontSize={10} domain={['auto', 'auto']} />
                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -105,7 +150,7 @@ export const AnalysisView: React.FC<AnalysisProps> = ({ tariffs, target, onBack,
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {seriesData.map(t => (
+                    {filteredSeriesData.map(t => (
                       <tr
                         key={t.id}
                         onClick={() => setSelectedMonthId(t.id)}

@@ -27,6 +27,8 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
   {
     id: 'tc-js-winter',
     province: '江苏省',
+    year: new Date().getFullYear(),
+    config_type: 'monthly',
     month_pattern: '1,2,12',
     updated_at: new Date().toISOString(),
     last_modified: new Date().toISOString(),
@@ -43,6 +45,8 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
   {
     id: 'tc-zj-gen',
     province: '浙江省',
+    year: new Date().getFullYear(),
+    config_type: 'monthly',
     month_pattern: 'All',
     updated_at: new Date().toISOString(),
     last_modified: new Date().toISOString(),
@@ -57,6 +61,8 @@ export const DEFAULT_TIME_CONFIGS: TimeConfig[] = [
   {
     id: 'tc-national-fallback',
     province: '全部',
+    year: new Date().getFullYear(),
+    config_type: 'monthly',
     month_pattern: 'All',
     updated_at: new Date().toISOString(),
     last_modified: new Date().toISOString(),

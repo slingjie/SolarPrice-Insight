@@ -4,111 +4,108 @@ import { provinceMatches } from './provinceNormalize';
 
 export type DayKind = 'weekday' | 'weekend';
 
-/**
- * Parses month_pattern string into a Set of month numbers (1-12)
- * 
- * Rules:
- * - "All" (case-insensitive: all/ALL/All) -> [1,2,...,12]
- * - Otherwise: comma-separated numbers "1,2,3" -> [1,2,3]
- * - Invalid tokens (NaN, <1, >12) are silently ignored
- * - Whitespace is trimmed from each token
- * 
- * @param pattern - Month pattern string
- * @returns Set of valid month numbers (1-12)
- */
 export function parseMonthPattern(pattern: string): Set<number> {
   if (!pattern || pattern.trim() === '') {
     return new Set();
   }
 
-  // Check for "All" (case-insensitive)
   if (pattern.trim().toLowerCase() === 'all') {
     return new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   }
 
-  // Parse comma-separated numbers
   const months = new Set<number>();
   const tokens = pattern.split(',');
-
   for (const token of tokens) {
     const trimmed = token.trim();
     if (trimmed === '') continue;
-
-    const month = parseInt(trimmed, 10);
-    
-    // Validate: must be a number and in range [1, 12]
-    if (!isNaN(month) && month >= 1 && month <= 12) {
+    const month = Number.parseInt(trimmed, 10);
+    if (Number.isFinite(month) && month >= 1 && month <= 12) {
       months.add(month);
     }
   }
-
   return months;
 }
 
-/**
- * Resolves which TimeConfig applies for a given province and month
- * 
- * Priority tiers (highest to lowest):
- * 1. province === provinceName && month in month_pattern
- * 2. province === provinceName && month_pattern === "All"
- * 3. province === "全部" && month in month_pattern
- * 4. province === "全部" && month_pattern === "All"
- * 
- * Conflict resolution (same tier):
- * - Primary: newest last_modified (Date comparison)
- * - Fallback: smallest id (lexicographic)
- * 
- * @param timeConfigs - Array of TimeConfig objects
- * @param provinceName - Target province name (exact match required)
- * @param month - Target month (1-12)
- * @returns Object with timeRules and touGrid (24-hour grid), or null if no match
- */
-export function resolveTimeConfigForMonth(
-  timeConfigs: TimeConfig[],
-  provinceName: string,
-  month: number
-): { timeRules: TimeRule[]; touGrid: TimeType[] } | null {
-  const selected = selectTimeConfigForMonth(timeConfigs, provinceName, month);
-  if (!selected) return null;
+type ResolvedTimeConfig = { timeRules: TimeRule[]; touGrid: TimeType[] };
 
-  const touGrid = rulesToGrid(selected.time_rules);
-  return { timeRules: selected.time_rules, touGrid };
+const normalizeDate = (value: string): string => value.slice(0, 10);
+
+const isWildcardProvince = (province: string): boolean => province.trim() === '全部';
+
+function getSpecialDateRange(config: TimeConfig): { start: string; end: string } | null {
+  if (typeof config.special_date !== 'string' || config.special_date.trim() === '') {
+    return null;
+  }
+
+  const inlineDates = (config.special_date.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
+  const start = inlineDates[0] ? normalizeDate(inlineDates[0]) : normalizeDate(config.special_date);
+  const endRaw = inlineDates[1]
+    ? normalizeDate(inlineDates[1])
+    : typeof config.special_date_end === 'string' && config.special_date_end.trim() !== ''
+      ? normalizeDate(config.special_date_end)
+      : start;
+
+  return start <= endRaw ? { start, end: endRaw } : { start: endRaw, end: start };
 }
 
-export function resolveTimeConfigForMonthAndDayKind(
+function resolveConflict(candidates: TimeConfig[]): TimeConfig | null {
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  candidates.sort((a, b) => {
+    const dateA = new Date(a.last_modified).getTime();
+    const dateB = new Date(b.last_modified).getTime();
+    if (dateA !== dateB) return dateB - dateA;
+    return b.id.localeCompare(a.id);
+  });
+
+  return candidates[0];
+}
+
+function selectSpecialDateConfig(
   timeConfigs: TimeConfig[],
   provinceName: string,
+  date: string,
+): TimeConfig | null {
+  const targetDate = normalizeDate(date);
+  const active = timeConfigs.filter((config) => {
+    if (config._deleted) return false;
+    if (config.config_type !== 'special_date') return false;
+    const range = getSpecialDateRange(config);
+    if (!range) return false;
+    return range.start <= targetDate && targetDate <= range.end;
+  });
+
+  const tier1: TimeConfig[] = [];
+  const tier2: TimeConfig[] = [];
+
+  for (const config of active) {
+    if (isWildcardProvince(config.province)) {
+      tier2.push(config);
+      continue;
+    }
+    if (provinceMatches(config.province, provinceName)) {
+      tier1.push(config);
+    }
+  }
+
+  if (tier1.length > 0) return resolveConflict(tier1);
+  if (tier2.length > 0) return resolveConflict(tier2);
+  return null;
+}
+
+function selectMonthlyConfig(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  year: number,
   month: number,
-  dayKind: DayKind
-): { timeRules: TimeRule[]; touGrid: TimeType[] } | null {
-  const selected = selectTimeConfigForMonth(timeConfigs, provinceName, month);
-  if (!selected) return null;
+): TimeConfig | null {
+  const activeConfigs = timeConfigs.filter((config) => {
+    if (config._deleted) return false;
+    if (config.config_type !== 'monthly') return false;
+    return config.year === year;
+  });
 
-  const weekendRules = selected.weekend_time_rules;
-  const rules =
-    dayKind === 'weekend' && Array.isArray(weekendRules) && weekendRules.length > 0
-      ? weekendRules
-      : selected.time_rules;
-
-  return {
-    timeRules: rules,
-    touGrid: rulesToGrid(rules),
-  };
-}
-
-function selectTimeConfigForMonth(timeConfigs: TimeConfig[], provinceName: string, month: number): TimeConfig | null {
-  if (!timeConfigs || timeConfigs.length === 0) {
-    return null;
-  }
-
-  // Filter out deleted configs
-  const activeConfigs = timeConfigs.filter(tc => !tc._deleted);
-
-  if (activeConfigs.length === 0) {
-    return null;
-  }
-
-  // Categorize configs into priority tiers
   const tier1: TimeConfig[] = [];
   const tier2: TimeConfig[] = [];
   const tier3: TimeConfig[] = [];
@@ -117,80 +114,75 @@ function selectTimeConfigForMonth(timeConfigs: TimeConfig[], provinceName: strin
   for (const config of activeConfigs) {
     const monthSet = parseMonthPattern(config.month_pattern);
     const isAllPattern = config.month_pattern.trim().toLowerCase() === 'all';
+    const wildcard = isWildcardProvince(config.province);
+    const provinceMatch = !wildcard && provinceMatches(config.province, provinceName);
 
-    const isWildcard = config.province.trim() === '全部';
-    const isProvinceMatch = !isWildcard && provinceMatches(config.province, provinceName);
-
-    if (isProvinceMatch) {
+    if (provinceMatch) {
       if (monthSet.has(month)) {
-        // Tier 1: exact province + month match
         tier1.push(config);
       } else if (isAllPattern) {
-        // Tier 2: exact province + All pattern
         tier2.push(config);
       }
-    } else if (isWildcard) {
+    } else if (wildcard) {
       if (monthSet.has(month)) {
-        // Tier 3: 全部 + month match
         tier3.push(config);
       } else if (isAllPattern) {
-        // Tier 4: 全部 + All pattern
         tier4.push(config);
       }
     }
   }
 
-  // Select from highest priority tier available
-  let candidates: TimeConfig[] = [];
-  if (tier1.length > 0) {
-    candidates = tier1;
-  } else if (tier2.length > 0) {
-    candidates = tier2;
-  } else if (tier3.length > 0) {
-    candidates = tier3;
-  } else if (tier4.length > 0) {
-    candidates = tier4;
-  } else {
-    return null;
-  }
-
-  return resolveConflict(candidates);
+  if (tier1.length > 0) return resolveConflict(tier1);
+  if (tier2.length > 0) return resolveConflict(tier2);
+  if (tier3.length > 0) return resolveConflict(tier3);
+  if (tier4.length > 0) return resolveConflict(tier4);
+  return null;
 }
 
-/**
- * Resolves conflict among multiple candidates at same priority level
- * 
- * Rules:
- * 1. Sort by last_modified descending (newest first)
- * 2. If tied, sort by id ascending (lexicographically smallest first)
- * 3. Return first (highest priority) candidate
- * 
- * @param candidates - Array of TimeConfig candidates at same tier
- * @returns Selected TimeConfig, or null if empty
- */
-function resolveConflict(candidates: TimeConfig[]): TimeConfig | null {
-  if (candidates.length === 0) {
-    return null;
+export function resolveTimeConfigForDate(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  date: string,
+): ResolvedTimeConfig | null {
+  const targetDate = new Date(date);
+  if (Number.isNaN(targetDate.getTime())) return null;
+
+  const year = targetDate.getFullYear();
+  const month = targetDate.getMonth() + 1;
+
+  const special = selectSpecialDateConfig(timeConfigs, provinceName, date);
+  if (special) {
+    return { timeRules: special.time_rules, touGrid: rulesToGrid(special.time_rules) };
   }
 
-  if (candidates.length === 1) {
-    return candidates[0];
+  const monthly = selectMonthlyConfig(timeConfigs, provinceName, year, month);
+  if (!monthly) return null;
+
+  return { timeRules: monthly.time_rules, touGrid: rulesToGrid(monthly.time_rules) };
+}
+
+export function resolveTimeConfigForMonth(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  month: number,
+  year: number = new Date().getFullYear(),
+): ResolvedTimeConfig | null {
+  const selected = selectMonthlyConfig(timeConfigs, provinceName, year, month);
+  if (!selected) return null;
+  return { timeRules: selected.time_rules, touGrid: rulesToGrid(selected.time_rules) };
+}
+
+export function resolveTimeConfigForMonthAndDayKind(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  month: number,
+  _dayKind: DayKind,
+  year: number = new Date().getFullYear(),
+  date?: string,
+): ResolvedTimeConfig | null {
+  if (date) {
+    const dateResolved = resolveTimeConfigForDate(timeConfigs, provinceName, date);
+    if (dateResolved) return dateResolved;
   }
-
-  // Sort by: last_modified DESC (newer first), then id ASC (lexicographically smallest)
-  candidates.sort((a, b) => {
-    // Parse dates for comparison
-    const dateA = new Date(a.last_modified).getTime();
-    const dateB = new Date(b.last_modified).getTime();
-
-    // Primary sort: newest last_modified first (descending)
-    if (dateA !== dateB) {
-      return dateB - dateA;
-    }
-
-    // Fallback sort: lexicographically smallest id first (ascending)
-    return a.id.localeCompare(b.id);
-  });
-
-  return candidates[0];
+  return resolveTimeConfigForMonth(timeConfigs, provinceName, month, year);
 }

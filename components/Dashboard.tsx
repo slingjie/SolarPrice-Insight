@@ -26,6 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVoltages, setSelectedVoltages] = useState<string[]>([]);
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [compResults, setCompResults] = useState<Record<string, ComprehensiveResult>>({});
 
 
@@ -52,19 +53,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const uniqueProvinces = useMemo(() => Array.from(new Set(tariffs.map(t => t.province))).sort(), [tariffs]);
   const uniqueCategories = useMemo(() => Array.from(new Set(tariffs.map(t => t.category))).filter(Boolean).sort(), [tariffs]);
   const uniqueVoltages = useMemo(() => Array.from(new Set(tariffs.map(t => t.voltage_level))).filter(Boolean).sort(), [tariffs]);
+  const uniqueYears = useMemo(() => {
+    return Array.from(
+      new Set(
+        tariffs
+          .map((tariff) => {
+            const match = tariff.month.match(/^(\d{4})-/);
+            return match ? match[1] : '';
+          })
+          .filter(Boolean),
+      ),
+    ).sort();
+  }, [tariffs]);
 
   const filteredTariffs = useMemo(() => {
     return tariffs.filter(t => {
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(t.province);
       const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(t.category);
       const matchVoltage = selectedVoltages.length === 0 || selectedVoltages.includes(t.voltage_level);
-      return matchProvince && matchCategory && matchVoltage;
+      const year = t.month.match(/^(\d{4})-/)?.[1] || '';
+      const matchYear = selectedYears.length === 0 || selectedYears.includes(year);
+      return matchProvince && matchCategory && matchVoltage && matchYear;
     }).sort((a, b) => a.month.localeCompare(b.month));
-  }, [tariffs, selectedProvinces, selectedCategories, selectedVoltages]);
+  }, [tariffs, selectedProvinces, selectedCategories, selectedVoltages, selectedYears]);
 
   const chartData = useMemo(() => {
     return filteredTariffs.map(t => ({
       ...t,
+      year: t.month.match(/^(\d{4})-/)?.[1] || '--',
+      monthOnly: t.month.match(/^\d{4}-(\d{1,2})$/)?.[1] || t.month,
+      axisLabel: t.month,
       prices: {
         ...t.prices,
         tip: t.prices.tip || null,
@@ -87,6 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const resetFilters = () => {
     setSelectedCategories([]);
     setSelectedVoltages([]);
+    setSelectedYears([]);
   };
 
   const handleProvinceSelect = (province: string) => {
@@ -234,6 +253,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex flex-wrap gap-x-8 gap-y-4">
                 {renderFilterGroup("用电分类", uniqueCategories, selectedCategories, setSelectedCategories)}
                 {renderFilterGroup("电压等级", uniqueVoltages, selectedVoltages, setSelectedVoltages)}
+                {renderFilterGroup("年份", uniqueYears, selectedYears, setSelectedYears)}
               </div>
 
               <div className="flex justify-end border-t pt-4">
@@ -249,7 +269,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                    <XAxis dataKey="axisLabel" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -274,6 +294,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <tr>
                       <th className="px-4 py-3 font-medium">省份</th>
                       <th className="px-4 py-3 font-medium">月份</th>
+                      <th className="px-4 py-3 font-medium">年份</th>
                       <th className="px-4 py-3 font-medium">用电分类</th>
                       <th className="px-4 py-3 font-medium">电压等级</th>
                       <th className="px-4 py-3 font-medium text-red-600">尖峰电价</th>
@@ -289,6 +310,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-4 py-3 font-medium text-slate-900">{t.province}</td>
                         <td className="px-4 py-3 text-slate-500 font-mono">{t.month}</td>
+                        <td className="px-4 py-3 text-slate-500 font-mono">{t.month.match(/^(\d{4})-/)?.[1] || '--'}</td>
                         <td className="px-4 py-3">{t.category}</td>
                         <td className="px-4 py-3">{t.voltage_level}</td>
                         <td className="px-4 py-3 font-mono text-xs">{t.prices.tip?.toFixed(3) ?? '-'}</td>
@@ -308,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     ))}
                     {filteredTariffs.length === 0 && (
                       <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
                           暂无数据，请调整筛选条件
                         </td>
                       </tr>

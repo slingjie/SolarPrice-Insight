@@ -54,21 +54,12 @@ const MOCK_PVCALC_RESPONSE = {
     }
 };
 
-const MOCK_SERIESCALC_RESPONSE = {
+const MOCK_MONTHLY_MR_RESPONSE = {
     outputs: {
-        tmy_hourly: [
-            { "time(UTC)": "20200101:1000", P: 500, "G(i)": 600 },
-            { "time(UTC)": "20200101:1100", P: 800, "G(i)": 900 },
-        ]
-    }
-};
-
-const MOCK_TMY_NO_P_RESPONSE = {
-    outputs: {
-        tmy_hourly: [
-            { "time(UTC)": "20200101:1000", "G(h)": 200, "Gb(n)": 100, "Gd(h)": 100 },
-            { "time(UTC)": "20200101:1100", "G(h)": 300, "Gb(n)": 200, "Gd(h)": 100 },
-        ]
+        monthly: Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            'H(h)_m': 100 + i * 5
+        }))
     }
 };
 
@@ -81,6 +72,15 @@ const MOCK_SERIESCALC_HOURLY_RESPONSE = {
     }
 };
 
+const MOCK_SERIESCALC_MISSING_POWER_RESPONSE = {
+    outputs: {
+        hourly: [
+            { time: '20200101:0030', P: null, 'G(i)': null },
+            { time: '20200101:0130', P: 1500, 'G(i)': 400 },
+        ]
+    }
+};
+
 describe('pvgisService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -88,24 +88,23 @@ describe('pvgisService', () => {
         global.fetch = vi.fn();
     });
 
-    it('should fetch data from API on cache miss and save to db', async () => {
+    it('fetches summary and hourly data then caches it when cache misses', async () => {
         // Setup cache miss
         mockFindOneExec.mockResolvedValueOnce(null);
 
         // Setup successful fetch responses
-        (global.fetch as any)
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => MOCK_PVCALC_RESPONSE // PVcalc
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ outputs: { monthly: [] } }) // MRcalc
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => MOCK_SERIESCALC_RESPONSE // tmy
-            });
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('PVcalc')) {
+                return { ok: true, json: async () => MOCK_PVCALC_RESPONSE };
+            }
+            if (url.includes('MRcalc')) {
+                return { ok: true, json: async () => MOCK_MONTHLY_MR_RESPONSE };
+            }
+            if (url.includes('seriescalc')) {
+                return { ok: true, json: async () => MOCK_SERIESCALC_HOURLY_RESPONSE };
+            }
+            return { ok: false, statusText: 'unhandled url' };
+        });
 
         const result = await pvgisService.getPVData(MOCK_PARAMS);
 
@@ -116,37 +115,36 @@ describe('pvgisService', () => {
         expect(result.summary.pr).toBeCloseTo(0.8);
         expect(result.summary.optimalSlope).toBe(30);
         expect(result.hourly).toHaveLength(2);
-        expect(result.hourly[0].pvPower).toBe(500);
+        expect(result.hourly[0].pvPower).toBe(1000);
+        expect(result.hourly[1].pvPower).toBe(2000);
 
         // Verify DB Cache Upsert
         expect(mockUpsert).toHaveBeenCalledTimes(1);
+        expect((global.fetch as any).mock.calls.some(([url]: [string]) => url.includes('/seriescalc'))).toBe(true);
     });
 
-    it('should fallback to seriescalc when tmy_hourly has no P field', async () => {
+    it('handles seriescalc data with missing power values gracefully', async () => {
         mockFindOneExec.mockResolvedValueOnce(null);
 
-        (global.fetch as any)
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => MOCK_PVCALC_RESPONSE // PVcalc
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ outputs: { monthly: [] } }) // MRcalc
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => MOCK_TMY_NO_P_RESPONSE // tmy without P
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => MOCK_SERIESCALC_HOURLY_RESPONSE // seriescalc hourly
-            });
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('PVcalc')) {
+                return { ok: true, json: async () => MOCK_PVCALC_RESPONSE };
+            }
+            if (url.includes('MRcalc')) {
+                return { ok: true, json: async () => MOCK_MONTHLY_MR_RESPONSE };
+            }
+            if (url.includes('seriescalc')) {
+                return { ok: true, json: async () => MOCK_SERIESCALC_MISSING_POWER_RESPONSE };
+            }
+            return { ok: false, statusText: 'unhandled url' };
+        });
 
         const result = await pvgisService.getPVData(MOCK_PARAMS);
         expect(result.hourly).toHaveLength(2);
-        expect(result.hourly[0].pvPower).toBe(1000);
-        expect(result.hourly[1].pvPower).toBe(2000);
+        expect(result.hourly[0].pvPower).toBe(0);
+        expect(result.hourly[0].poaIrradiance).toBe(0);
+        expect(result.hourly[1].pvPower).toBe(1500);
+        expect(result.hourly[1].poaIrradiance).toBe(400);
 
         expect(mockUpsert).toHaveBeenCalledTimes(1);
     });
@@ -155,42 +153,47 @@ describe('pvgisService', () => {
         const MANUAL_PARAMS = { ...MOCK_PARAMS, angle: 15 };
         mockFindOneExec.mockResolvedValueOnce(null);
 
-        (global.fetch as any).mockImplementation(async (url: string) => {
-            if (url.includes('optimalinclination=1') && url.includes('aspect=')) {
-                // This is the separate optimal slope fetch (contains both optimalinclination=1 and aspect, and logic implies it's the specific call)
-                // Actually Main PVcalc in auto mode also has optimalinclination=1. 
-                // But MANUAL mode Main PVcalc has `angle=15`.
-                // The separate call has `optimalinclination=1`.
-                return {
-                    ok: true,
-                    json: async () => ({
-                        inputs: { mounting_system: { fixed: { slope: { value: 30 } } } }
-                    })
-                };
-            }
-            if (url.includes('PVcalc') && url.includes('angle=15')) {
-                // Main PVcalc call
-                return {
-                    ok: true,
-                    json: async () => ({
-                        ...MOCK_PVCALC_RESPONSE,
-                        inputs: { mounting_system: { fixed: { slope: { value: 15 } } } }
-                    })
-                };
+        const fetchMock = vi.fn(async (url: string) => {
+            if (url.includes('/PVcalc')) {
+                const parsed = new URL(url, 'http://localhost');
+                const angle = parsed.searchParams.get('angle');
+                const optimalInclination = parsed.searchParams.get('optimalinclination');
+                if (angle === '15') {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            ...MOCK_PVCALC_RESPONSE,
+                            inputs: { mounting_system: { fixed: { slope: { value: 15 } } } }
+                        })
+                    };
+                }
+                if (optimalInclination === '1' && !angle) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            inputs: { mounting_system: { fixed: { slope: { value: 30 } } } }
+                        })
+                    };
+                }
             }
             if (url.includes('MRcalc')) {
-                return { ok: true, json: async () => ({ outputs: { monthly: [] } }) };
+                return { ok: true, json: async () => MOCK_MONTHLY_MR_RESPONSE };
             }
-            if (url.includes('/tmy?')) {
-                return { ok: true, json: async () => MOCK_SERIESCALC_RESPONSE };
+            if (url.includes('seriescalc')) {
+                return { ok: true, json: async () => MOCK_SERIESCALC_HOURLY_RESPONSE };
             }
             return { ok: false, statusText: 'Unknown URL' };
         });
+        (global.fetch as any) = fetchMock;
 
         const result = await pvgisService.getPVData(MANUAL_PARAMS);
 
         expect(result.summary.optimalSlope).toBe(30); // Should be 30, not 15
         expect(result.summary.annualEnergy).toBe(1200); // From main call
+        const pvcalcCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('/PVcalc'));
+        expect(pvcalcCalls).toHaveLength(2);
+        expect(pvcalcCalls.some(([url]: [string]) => url.includes('angle=15'))).toBe(true);
+        expect(pvcalcCalls.some(([url]: [string]) => url.includes('optimalinclination=1'))).toBe(true);
     });
 
     it('should return cached data on cache hit', async () => {
@@ -220,12 +223,15 @@ describe('pvgisService', () => {
                 return { ok: false, statusText: 'Internal Server Error' };
             }
             if (url.includes('MRcalc')) {
-                return { ok: true, json: async () => ({ outputs: { monthly: [] } }) };
+                return { ok: true, json: async () => MOCK_MONTHLY_MR_RESPONSE };
+            }
+            if (url.includes('seriescalc')) {
+                return { ok: true, json: async () => MOCK_SERIESCALC_HOURLY_RESPONSE };
             }
             return { ok: false };
         });
 
         await expect(pvgisService.getPVData(MOCK_PARAMS))
-            .rejects.toThrow('PVGIS API Error');
+            .rejects.toThrow(/PVGIS (Series )?API Error/);
     });
 });

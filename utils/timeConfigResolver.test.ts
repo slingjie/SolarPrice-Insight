@@ -1,172 +1,209 @@
-import { describe, it, expect } from 'vitest';
-import { resolveTimeConfigForMonth, resolveTimeConfigForMonthAndDayKind } from './timeConfigResolver';
+import { describe, expect, it } from 'vitest';
+import {
+  resolveTimeConfigForDate,
+  resolveTimeConfigForMonth,
+  resolveTimeConfigForMonthAndDayKind,
+} from './timeConfigResolver';
 import { TimeConfig, TimeType } from '../types';
 
+const createMonthlyConfig = (params: {
+  id: string;
+  province: string;
+  year: number;
+  monthPattern: string;
+  type: TimeType;
+  lastModified: string;
+}): TimeConfig => ({
+  id: params.id,
+  province: params.province,
+  year: params.year,
+  config_type: 'monthly',
+  month_pattern: params.monthPattern,
+  time_rules: [{ start: '00:00', end: '24:00', type: params.type }],
+  updated_at: params.lastModified,
+  last_modified: params.lastModified,
+});
+
+const createSpecialDateConfig = (params: {
+  id: string;
+  province: string;
+  date: string;
+  endDate?: string;
+  type: TimeType;
+  lastModified: string;
+}): TimeConfig => ({
+  id: params.id,
+  province: params.province,
+  year: Number.parseInt(params.date.slice(0, 4), 10),
+  config_type: 'special_date',
+  month_pattern: 'Special',
+  special_date: params.date,
+  special_date_end: params.endDate,
+  time_rules: [{ start: '00:00', end: '24:00', type: params.type }],
+  updated_at: params.lastModified,
+  last_modified: params.lastModified,
+});
+
 describe('timeConfigResolver', () => {
-  const createConfig = (id: string, province: string, monthPattern: string, lastModified: string): TimeConfig => ({
-    id,
-    province,
-    month_pattern: monthPattern,
-    time_rules: [
-      { start: '08:00', end: '12:00', type: 'peak' as TimeType },
-      { start: '12:00', end: '20:00', type: 'flat' as TimeType },
-      { start: '20:00', end: '24:00', type: 'valley' as TimeType },
-      { start: '00:00', end: '08:00', type: 'valley' as TimeType },
-    ],
-    updated_at: lastModified,
-    last_modified: lastModified,
-  });
-
-  it('should parse month_pattern "All" (case-insensitive)', () => {
+  it('resolves month config by exact year first', () => {
     const configs = [
-      createConfig('cfg1', '江苏', 'All', '2024-01-01'),
-      createConfig('cfg2', '浙江', 'all', '2024-01-01'),
-      createConfig('cfg3', '广东', 'ALL', '2024-01-01'),
+      createMonthlyConfig({
+        id: 'cfg-2025',
+        province: '江苏省',
+        year: 2025,
+        monthPattern: 'All',
+        type: 'flat',
+        lastModified: '2025-01-01T00:00:00Z',
+      }),
+      createMonthlyConfig({
+        id: 'cfg-2026',
+        province: '江苏省',
+        year: 2026,
+        monthPattern: 'All',
+        type: 'peak',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
     ];
 
-    expect(resolveTimeConfigForMonth(configs, '江苏', 6)).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '浙江', 12)).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '广东', 1)).not.toBeNull();
+    const y2025 = resolveTimeConfigForMonth(configs, '江苏', 1, 2025);
+    const y2026 = resolveTimeConfigForMonth(configs, '江苏', 1, 2026);
+
+    expect(y2025?.touGrid[0]).toBe('flat');
+    expect(y2026?.touGrid[0]).toBe('peak');
   });
 
-  it('should parse comma-separated month_pattern', () => {
-    const configs = [createConfig('cfg1', '江苏', '6,7,8', '2024-01-01')];
-
-    expect(resolveTimeConfigForMonth(configs, '江苏', 7)).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '江苏', 8)).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '江苏', 1)).toBeNull(); // not in pattern
-  });
-
-  it('should ignore invalid tokens in month_pattern', () => {
-    const configs = [createConfig('cfg1', '江苏', '6,invalid,7,99,-1', '2024-01-01')];
-
-    const result = resolveTimeConfigForMonth(configs, '江苏', 6);
-    expect(result).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '江苏', 7)).not.toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '江苏', 99)).toBeNull();
-  });
-
-  it('should prioritize province exact + month match', () => {
+  it('falls back to wildcard province when exact province is missing', () => {
     const configs = [
-      createConfig('fallback', '全部', 'All', '2024-01-01'),
-      createConfig('exact', '江苏', '6,7,8', '2024-01-01'),
+      createMonthlyConfig({
+        id: 'global-2026',
+        province: '全部',
+        year: 2026,
+        monthPattern: 'All',
+        type: 'valley',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
     ];
 
-    const result = resolveTimeConfigForMonth(configs, '江苏', 7);
-    expect(result).not.toBeNull();
-    expect(result!.timeRules).toEqual(configs[1].time_rules);
+    const resolved = resolveTimeConfigForMonth(configs, '未知省份', 6, 2026);
+    expect(resolved?.touGrid[3]).toBe('valley');
   });
 
-  it('should fallback to province exact + All', () => {
+  it('uses special-date rule before monthly rule on same day', () => {
     const configs = [
-      createConfig('fallback', '全部', 'All', '2024-01-01'),
-      createConfig('provinceAll', '江苏', 'All', '2024-01-01'),
-      createConfig('provinceSpecific', '江苏', '6,7,8', '2024-01-01'),
+      createMonthlyConfig({
+        id: 'month-2026-2',
+        province: '江苏省',
+        year: 2026,
+        monthPattern: '2',
+        type: 'flat',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
+      createSpecialDateConfig({
+        id: 'special-2026-02-10',
+        province: '江苏省',
+        date: '2026-02-10',
+        type: 'tip',
+        lastModified: '2026-02-01T00:00:00Z',
+      }),
     ];
 
-    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
-    expect(result).not.toBeNull();
-    expect(result!.timeRules).toEqual(configs[1].time_rules); // provinceAll, not fallback
+    const resolved = resolveTimeConfigForDate(configs, '江苏', '2026-02-10');
+    expect(resolved?.touGrid[0]).toBe('tip');
   });
 
-  it('should fallback to "全部" + month', () => {
+  it('falls back to monthly rule when special-date rule is absent', () => {
     const configs = [
-      createConfig('globalAll', '全部', 'All', '2024-01-01'),
-      createConfig('globalSummer', '全部', '6,7,8', '2024-01-01'),
+      createMonthlyConfig({
+        id: 'month-2026-2',
+        province: '江苏省',
+        year: 2026,
+        monthPattern: '2',
+        type: 'peak',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
     ];
 
-    const result = resolveTimeConfigForMonth(configs, '未知省份', 7);
-    expect(result).not.toBeNull();
-    expect(result!.timeRules).toEqual(configs[1].time_rules);
+    const resolved = resolveTimeConfigForDate(configs, '江苏', '2026-02-11');
+    expect(resolved?.touGrid[0]).toBe('peak');
   });
 
-  it('should fallback to "全部" + All (lowest priority)', () => {
-    const configs = [createConfig('globalAll', '全部', 'All', '2024-01-01')];
-
-    const result = resolveTimeConfigForMonth(configs, '未知省份', 1);
-    expect(result).not.toBeNull();
-    expect(result!.timeRules).toEqual(configs[0].time_rules);
-  });
-
-  it('should resolve conflict by last_modified (newest wins)', () => {
+  it('matches special-date range for any date within the interval', () => {
     const configs = [
-      createConfig('old', '江苏', 'All', '2024-01-01'),
-      createConfig('new', '江苏', 'All', '2024-12-31'),
-      createConfig('mid', '江苏', 'All', '2024-06-01'),
+      createMonthlyConfig({
+        id: 'month-2026-2',
+        province: '江苏省',
+        year: 2026,
+        monthPattern: '2',
+        type: 'flat',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
+      createSpecialDateConfig({
+        id: 'special-range-1',
+        province: '江苏省',
+        date: '2026-02-10',
+        endDate: '2026-02-15',
+        type: 'deep',
+        lastModified: '2026-02-01T00:00:00Z',
+      }),
     ];
 
-    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
-    expect(result!.timeRules).toEqual(configs[1].time_rules); // newest
+    const inRange = resolveTimeConfigForDate(configs, '江苏', '2026-02-12');
+    const outRange = resolveTimeConfigForDate(configs, '江苏', '2026-02-16');
+
+    expect(inRange?.touGrid[0]).toBe('deep');
+    expect(outRange?.touGrid[0]).toBe('flat');
   });
 
-  it('should resolve conflict by id (lexicographic smallest) if last_modified same', () => {
+  it('supports reversed special-date range ordering', () => {
     const configs = [
-      createConfig('cfg3', '江苏', 'All', '2024-01-01'),
-      createConfig('cfg1', '江苏', 'All', '2024-01-01'),
-      createConfig('cfg2', '江苏', 'All', '2024-01-01'),
+      createSpecialDateConfig({
+        id: 'special-range-reversed',
+        province: '江苏省',
+        date: '2026-02-20',
+        endDate: '2026-02-10',
+        type: 'tip',
+        lastModified: '2026-02-01T00:00:00Z',
+      }),
     ];
 
-    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
-    expect(result!.timeRules).toEqual(configs[1].time_rules); // cfg1 (smallest id)
+    const resolved = resolveTimeConfigForDate(configs, '江苏', '2026-02-12');
+    expect(resolved?.touGrid[0]).toBe('tip');
   });
 
-  it('should return null if no match found', () => {
-    const configs = [createConfig('cfg1', '江苏', '6,7,8', '2024-01-01')];
+  it('supports inline special_date range string without special_date_end', () => {
+    const configs = [
+      {
+        id: 'special-inline',
+        province: '江苏省',
+        year: 2026,
+        config_type: 'special_date' as const,
+        month_pattern: 'Special',
+        special_date: '2026-03-01~2026-03-03',
+        time_rules: [{ start: '00:00', end: '24:00', type: 'valley' as TimeType }],
+        updated_at: '2026-02-01T00:00:00Z',
+        last_modified: '2026-02-01T00:00:00Z',
+      },
+    ];
 
-    expect(resolveTimeConfigForMonth(configs, '浙江', 1)).toBeNull();
-    expect(resolveTimeConfigForMonth(configs, '江苏', 1)).toBeNull();
+    const resolved = resolveTimeConfigForDate(configs, '江苏', '2026-03-02');
+    expect(resolved?.touGrid[0]).toBe('valley');
   });
 
-  it('should generate touGrid from time_rules via rulesToGrid', () => {
-    const configs = [createConfig('cfg1', '江苏', 'All', '2024-01-01')];
+  it('keeps compatibility for day-kind API and ignores weekday/weekend split', () => {
+    const configs = [
+      createMonthlyConfig({
+        id: 'month-2026-1',
+        province: '江苏省',
+        year: 2026,
+        monthPattern: '1',
+        type: 'deep',
+        lastModified: '2026-01-01T00:00:00Z',
+      }),
+    ];
 
-    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
-    expect(result).not.toBeNull();
-    expect(result!.touGrid).toHaveLength(24);
-    expect(result!.touGrid[8]).toBe('peak'); // 08:00-12:00
-    expect(result!.touGrid[12]).toBe('flat'); // 12:00-20:00
-    expect(result!.touGrid[20]).toBe('valley'); // 20:00-24:00
-    expect(result!.touGrid[0]).toBe('valley'); // 00:00-08:00
-  });
-
-  it('should match province names after normalization', () => {
-    const configs = [createConfig('cfg1', '江苏省', 'All', '2024-01-01')];
-    const result = resolveTimeConfigForMonth(configs, '江苏', 1);
-    expect(result).not.toBeNull();
-  });
-
-  it('should resolve weekday/weekend rules via weekend_time_rules when present', () => {
-    const cfg: TimeConfig = {
-      id: 'cfg1',
-      province: '江苏',
-      month_pattern: 'All',
-      time_rules: [{ start: '00:00', end: '24:00', type: 'flat' as TimeType }],
-      weekend_time_rules: [{ start: '00:00', end: '24:00', type: 'peak' as TimeType }],
-      updated_at: '2024-01-01',
-      last_modified: '2024-01-01',
-    };
-
-    const weekday = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekday');
-    const weekend = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekend');
-    expect(weekday).not.toBeNull();
-    expect(weekend).not.toBeNull();
-    expect(weekday!.touGrid[0]).toBe('flat');
-    expect(weekend!.touGrid[0]).toBe('peak');
-  });
-
-  it('should fallback to weekday rules when weekend_time_rules missing/empty', () => {
-    const cfg: TimeConfig = {
-      id: 'cfg1',
-      province: '江苏',
-      month_pattern: 'All',
-      time_rules: [{ start: '00:00', end: '24:00', type: 'valley' as TimeType }],
-      weekend_time_rules: [],
-      updated_at: '2024-01-01',
-      last_modified: '2024-01-01',
-    };
-
-    const weekend = resolveTimeConfigForMonthAndDayKind([cfg], '江苏', 1, 'weekend');
-    expect(weekend).not.toBeNull();
-    expect(weekend!.touGrid[0]).toBe('valley');
+    const weekday = resolveTimeConfigForMonthAndDayKind(configs, '江苏', 1, 'weekday', 2026);
+    const weekend = resolveTimeConfigForMonthAndDayKind(configs, '江苏', 1, 'weekend', 2026);
+    expect(weekday?.touGrid[0]).toBe('deep');
+    expect(weekend?.touGrid[0]).toBe('deep');
   });
 });

@@ -5,7 +5,6 @@ import {
   getWeekdayUtc,
   getLevel,
   solveMonthlyBasePower,
-  type WorkPattern,
 } from './consumptionAlignedService';
 import type { TimeConfig, TimeType } from '../types';
 import type { MonthlyConsumption } from '../types/analysis';
@@ -27,10 +26,13 @@ function createAllFlatTimeConfig(options: {
   province: string;
   monthPattern: string;
   lastModified: string;
+  year?: number;
 }): TimeConfig {
   return {
     id: options.id,
     province: options.province,
+    year: options.year ?? 2026,
+    config_type: 'monthly',
     month_pattern: options.monthPattern,
     time_rules: [{ start: '00:00', end: '24:00', type: 'flat' as TimeType }],
     updated_at: options.lastModified,
@@ -44,14 +46,15 @@ function createAllDayTouTimeConfig(options: {
   monthPattern: string;
   lastModified: string;
   weekdayType: TimeType;
-  weekendType?: TimeType;
+  year?: number;
 }): TimeConfig {
   return {
     id: options.id,
     province: options.province,
+    year: options.year ?? 2026,
+    config_type: 'monthly',
     month_pattern: options.monthPattern,
     time_rules: [{ start: '00:00', end: '24:00', type: options.weekdayType }],
-    ...(options.weekendType ? { weekend_time_rules: [{ start: '00:00', end: '24:00', type: options.weekendType }] } : {}),
     updated_at: options.lastModified,
     last_modified: options.lastModified,
   };
@@ -236,7 +239,7 @@ describe('consumptionAlignedService', () => {
       }
     });
 
-    it('uses weekend_time_rules touGrid for restday/holiday hours', () => {
+    it('uses monthly touGrid for restday/holiday hours', () => {
       const timeConfigs = [
         createAllDayTouTimeConfig({
           id: 't1',
@@ -244,7 +247,6 @@ describe('consumptionAlignedService', () => {
           monthPattern: 'All',
           lastModified: '2024-01-01T00:00:00Z',
           weekdayType: 'flat',
-          weekendType: 'peak',
         }),
       ];
 
@@ -277,10 +279,10 @@ describe('consumptionAlignedService', () => {
       expect(tue).toBeTruthy();
 
       expect(sat!.dayType).toBe('restday');
-      expect(sat!.touType).toBe('peak');
+      expect(sat!.touType).toBe('flat');
 
       expect(monHoliday!.dayType).toBe('holiday');
-      expect(monHoliday!.touType).toBe('peak');
+      expect(monHoliday!.touType).toBe('flat');
 
       expect(tue!.dayType).toBe('workday');
       expect(tue!.touType).toBe('flat');
