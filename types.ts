@@ -18,10 +18,12 @@ export interface TimeRule {
 export interface TimeConfig {
   id: string;
   province: string;
+  year: number;
+  config_type: 'monthly' | 'special_date';
   month_pattern: string; // e.g., "1,2,3" or "All"
+  special_date?: string; // YYYY-MM-DD, required when config_type='special_date'
+  special_date_end?: string; // YYYY-MM-DD, optional range end for config_type='special_date'
   time_rules: TimeRule[];
-  /** Optional weekend override; if empty/undefined, weekend uses time_rules */
-  weekend_time_rules?: TimeRule[];
   updated_at: string;
   last_modified: string; // ISO string
   _deleted?: boolean;

@@ -11,6 +11,8 @@ function createTimeConfig(timeRules: { start: string; end: string; type: TimeTyp
   return {
     id: 'test-config',
     province: 'test',
+    year: 2026,
+    config_type: 'monthly',
     month_pattern: 'All',
     time_rules: timeRules,
     updated_at: new Date().toISOString(),

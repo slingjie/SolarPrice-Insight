@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { OCRResultItem } from "../types";
+import { getApiKey } from "./apiKeyService";
 
 export interface ImageSource {
   base64: string;
@@ -8,7 +9,11 @@ export interface ImageSource {
 }
 
 export const recognizeTariffImages = async (images: ImageSource[]): Promise<OCRResultItem[]> => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("请先在「系统设置」中配置 Gemini API Key");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `你是一个专业的电力账单分析助手。请从这些电价表图片（可能是一张或多张连续的页面）中提取价格矩阵。
   提取内容必须包含：用电分类（category，如：大工业、一般工商业）、电压等级（voltage，如：1-10kV、35kV）、以及分时电价（prices，包含tip、peak、flat、valley、deep）。

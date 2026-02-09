@@ -19,6 +19,36 @@ import { initDefaultHolidays } from './services/holidayService';
 
 import { LandingPage } from './components/LandingPage';
 
+const normalizeTimeConfigForYearModel = (config: Partial<TimeConfig>, fallbackYear: number): TimeConfig => {
+  const yearCandidate = Number.parseInt(String(config.year ?? ''), 10);
+  const year = Number.isFinite(yearCandidate) ? yearCandidate : fallbackYear;
+  const configType = config.config_type === 'special_date' ? 'special_date' : 'monthly';
+
+  return {
+    id: config.id || crypto.randomUUID(),
+    province: config.province || '全部',
+    year,
+    config_type: configType,
+    month_pattern: typeof config.month_pattern === 'string' && config.month_pattern.trim().length > 0
+      ? config.month_pattern
+      : 'All',
+    special_date: configType === 'special_date' && typeof config.special_date === 'string' ? config.special_date : undefined,
+    special_date_end:
+      configType === 'special_date' && typeof config.special_date_end === 'string'
+        ? config.special_date_end
+        : undefined,
+    time_rules: Array.isArray(config.time_rules) ? config.time_rules : [],
+    updated_at: config.updated_at || new Date().toISOString(),
+    last_modified: config.last_modified || new Date().toISOString(),
+    _deleted: config._deleted ?? false,
+  };
+};
+
+const migrateLegacyTimeConfigs = (configs: Partial<TimeConfig>[]): TimeConfig[] => {
+  const nowYear = new Date().getFullYear();
+  return configs.map((cfg) => normalizeTimeConfigForYearModel(cfg, nowYear));
+};
+
 const App: React.FC = () => {
   // Check URL parameters for initial view
   const searchParams = new URLSearchParams(window.location.search);
@@ -72,14 +102,14 @@ const App: React.FC = () => {
           }
 
           if (parsed && parsed.length > 0) {
-            const docsToInsert = parsed.map(c => ({
+            const docsToInsert = migrateLegacyTimeConfigs(parsed).map(c => ({
               ...c,
-              last_modified: c.last_modified || new Date().toISOString()
+              last_modified: c.last_modified || new Date().toISOString(),
             }));
             await db.time_configs.bulkInsert(docsToInsert);
           } else {
             // 如果存储中没有数据或解析为空，加载默认配置
-            await db.time_configs.bulkInsert(DEFAULT_TIME_CONFIGS);
+            await db.time_configs.bulkInsert(migrateLegacyTimeConfigs(DEFAULT_TIME_CONFIGS));
           }
         }
 

@@ -67,9 +67,17 @@ const tariffToRow = (t: TariffData) => ({
 const configToRow = (c: TimeConfig) => ({
   ID: c.id,
   省份: c.province,
+  年份: c.year,
+  配置类型: c.config_type,
+  特殊日期: (function () {
+    const inlineDates = (c.special_date?.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
+    const start = inlineDates[0] || c.special_date || '';
+    const end = inlineDates[1] || c.special_date_end || start;
+    if (!start) return '';
+    return start === end ? start : `${start} ~ ${end}`;
+  })(),
   月份模式: c.month_pattern,
   ...timeRulesToColumns(c.time_rules),
-  ...timeRulesToColumns(c.weekend_time_rules ?? [], '周末'),
   更新时间: c.updated_at,
   最后修改: c.last_modified,
 });
@@ -103,27 +111,32 @@ const personaToRow = (p: LoadPersona) => ({
  * 单元格值为单字标签（尖/峰/平/谷/深）。
  */
 const buildConfigMatrixWorkbook = (configs: TimeConfig[]): XLSX.WorkBook => {
-  const provinces = [...new Set(configs.filter(c => !c._deleted).map(c => c.province))];
+  const activeConfigs = configs.filter((config) => !config._deleted && config.config_type === 'monthly');
+  const provinces = [...new Set(activeConfigs.map((config) => config.province))];
+  const years = [...new Set(activeConfigs.map((config) => config.year))].sort((a, b) => a - b);
   const wb = XLSX.utils.book_new();
 
   for (const province of provinces) {
-    const rows: Record<string, string | number>[] = [];
-    for (let month = 1; month <= 12; month++) {
-      const resolved = resolveTimeConfigForMonth(configs, province, month);
-      const row: Record<string, string | number> = { year: new Date().getFullYear(), Month: month };
-      for (let h = 0; h < 24; h++) {
-        const type = resolved?.touGrid[h] ?? 'flat';
-        row[HOUR_HEADERS[h]] = TYPE_TO_LABEL[type] ?? '平';
+    for (const year of years) {
+      const rows: Record<string, string | number>[] = [];
+      for (let month = 1; month <= 12; month++) {
+        const resolved = resolveTimeConfigForMonth(activeConfigs, province, month, year);
+        const row: Record<string, string | number> = { year, Month: month };
+        for (let h = 0; h < 24; h++) {
+          const type = resolved?.touGrid[h] ?? 'flat';
+          row[HOUR_HEADERS[h]] = TYPE_TO_LABEL[type] ?? '平';
+        }
+        rows.push(row);
       }
-      rows.push(row);
-    }
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [
-      { wch: 6 }, { wch: 6 },
-      ...HOUR_HEADERS.map(() => ({ wch: 4 })),
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, province);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 6 }, { wch: 6 },
+        ...HOUR_HEADERS.map(() => ({ wch: 4 })),
+      ];
+      const sheetName = `${province}-${year}`.slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
   }
 
   if (wb.SheetNames.length === 0) {
