@@ -94,24 +94,17 @@ function selectSpecialDateConfig(
   return null;
 }
 
-function selectMonthlyConfig(
-  timeConfigs: TimeConfig[],
+function matchConfigsByTier(
+  configs: TimeConfig[],
   provinceName: string,
-  year: number,
   month: number,
 ): TimeConfig | null {
-  const activeConfigs = timeConfigs.filter((config) => {
-    if (config._deleted) return false;
-    if (config.config_type !== 'monthly') return false;
-    return config.year === year;
-  });
-
   const tier1: TimeConfig[] = [];
   const tier2: TimeConfig[] = [];
   const tier3: TimeConfig[] = [];
   const tier4: TimeConfig[] = [];
 
-  for (const config of activeConfigs) {
+  for (const config of configs) {
     const monthSet = parseMonthPattern(config.month_pattern);
     const isAllPattern = config.month_pattern.trim().toLowerCase() === 'all';
     const wildcard = isWildcardProvince(config.province);
@@ -136,6 +129,35 @@ function selectMonthlyConfig(
   if (tier2.length > 0) return resolveConflict(tier2);
   if (tier3.length > 0) return resolveConflict(tier3);
   if (tier4.length > 0) return resolveConflict(tier4);
+  return null;
+}
+
+function selectMonthlyConfig(
+  timeConfigs: TimeConfig[],
+  provinceName: string,
+  year: number,
+  month: number,
+): TimeConfig | null {
+  const allMonthly = timeConfigs.filter(
+    (c) => !c._deleted && c.config_type === 'monthly',
+  );
+
+  // 1. 精确匹配年份
+  const exactYear = allMonthly.filter((c) => c.year === year);
+  const exactResult = matchConfigsByTier(exactYear, provinceName, month);
+  if (exactResult) return exactResult;
+
+  // 2. 回退到最近的年份
+  const availableYears = Array.from(new Set(allMonthly.map((c) => c.year)));
+  availableYears.sort((a, b) => Math.abs(a - year) - Math.abs(b - year));
+
+  for (const fallbackYear of availableYears) {
+    if (fallbackYear === year) continue;
+    const fallback = allMonthly.filter((c) => c.year === fallbackYear);
+    const result = matchConfigsByTier(fallback, provinceName, month);
+    if (result) return result;
+  }
+
   return null;
 }
 

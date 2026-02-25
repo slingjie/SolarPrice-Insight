@@ -35,7 +35,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // 定义 Tariff Schema
 const tariffSchema = {
     title: 'tariff schema',
-    version: 1, // 升级版本
+    version: 3, // 升级版本
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -53,7 +53,10 @@ const tariffSchema = {
                 peak: { type: 'number' },
                 flat: { type: 'number' },
                 valley: { type: 'number' },
-                deep: { type: 'number' }
+                deep: { type: 'number' },
+                energy_usage: { type: 'number' },
+                purchase_agent: { type: 'number' },
+                transmission_distribution: { type: 'number' }
             }
         },
         time_rules: {
@@ -261,6 +264,18 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
                     1: (oldDoc: any) => {
                         oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
                         oldDoc._deleted = oldDoc._deleted || false;
+                        return oldDoc;
+                    },
+                    2: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+                        oldDoc.prices = oldDoc.prices || {};
+                        return oldDoc;
+                    },
+                    3: (oldDoc: any) => {
+                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
+                        oldDoc._deleted = oldDoc._deleted || false;
+                        oldDoc.prices = oldDoc.prices || {};
                         return oldDoc;
                     }
                 }

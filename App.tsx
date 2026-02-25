@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { TimeConfigView } from './components/TimeConfig';
@@ -12,10 +12,18 @@ import { AnalysisView } from './components/Analysis';
 import { PVGISModule } from './components/pvgis/PVGISModule';
 import { AdminModule } from './components/admin/AdminModule';
 import { SettingsView } from './components/Settings';
-import { AppView, HourlyData, LoadPersona, PVGISParams, TariffData, TimeConfig } from './types';
+import { AppEntryMode, AppView, ComprehensiveResult, HourlyData, LoadPersona, PVGISParams, TariffData, TimeConfig } from './types';
 import { DEFAULT_PERSONAS, DEFAULT_TIME_CONFIGS } from './constants.tsx';
 import { getDatabase } from './services/db';
 import { initDefaultHolidays } from './services/holidayService';
+import { calculateAveragePrice } from './services/priceCalculator';
+import { buildEntryUrl, resolveRuntimeEntryMode, setStoredEntryPreference } from './utils/entryMode';
+import {
+  buildComprehensivePriceMap,
+  pickLatestComprehensiveResultsByProvince,
+  resolveEffectiveTimeRules,
+} from './utils/pwaTariffResolver';
+import { PriceInsightPwaShell } from './components/pwa/PriceInsightPwaShell';
 
 import { LandingPage } from './components/LandingPage';
 
@@ -50,11 +58,11 @@ const migrateLegacyTimeConfigs = (configs: Partial<TimeConfig>[]): TimeConfig[] 
 };
 
 const App: React.FC = () => {
-  // Check URL parameters for initial view
-  const searchParams = new URLSearchParams(window.location.search);
-  const initialView = searchParams.get('view') === 'admin' ? 'admin' : 'home';
-
-  const [view, setView] = useState<AppView>(initialView as AppView);
+  const [entryMode, setEntryMode] = useState<AppEntryMode>(() => resolveRuntimeEntryMode());
+  const [view, setView] = useState<AppView>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('view') === 'admin' ? 'admin' : 'home';
+  });
   const [tariffs, setTariffs] = useState<TariffData[]>([]);
   const [timeConfigs, setTimeConfigs] = useState<TimeConfig[]>(DEFAULT_TIME_CONFIGS);
   const [analysisTarget, setAnalysisTarget] = useState<{ province: string, category: string, voltage: string } | null>(null);
@@ -68,6 +76,43 @@ const App: React.FC = () => {
   } | null>(null);
 
   const [personas, setPersonas] = useState<LoadPersona[]>([]);
+  const [comprehensiveResults, setComprehensiveResults] = useState<ComprehensiveResult[]>([]);
+
+  useEffect(() => {
+    const syncEntryMode = () => setEntryMode(resolveRuntimeEntryMode());
+    window.addEventListener('popstate', syncEntryMode);
+    return () => {
+      window.removeEventListener('popstate', syncEntryMode);
+    };
+  }, []);
+
+  const latestComprehensiveResultsByProvince = useMemo(
+    () => pickLatestComprehensiveResultsByProvince(comprehensiveResults),
+    [comprehensiveResults],
+  );
+
+  const comprehensivePriceMap = useMemo(
+    () =>
+      buildComprehensivePriceMap({
+        tariffs,
+        timeConfigs,
+        resultsByProvince: latestComprehensiveResultsByProvince,
+      }),
+    [tariffs, timeConfigs, latestComprehensiveResultsByProvince],
+  );
+
+  // 单条 tariff 综合电价计算（供 Dashboard 调用）
+  const calcCompPrice = useMemo(() => {
+    return (t: TariffData, startTime: string, endTime: string): number | null => {
+      try {
+        const { rules } = resolveEffectiveTimeRules(t, timeConfigs);
+        if (rules.length === 0) return null;
+        const normalized = { ...t, time_rules: rules };
+        const results = calculateAveragePrice([normalized], [t.month], startTime, endTime);
+        return results.length > 0 ? results[0].avgPrice : null;
+      } catch { return null; }
+    };
+  }, [timeConfigs]);
 
   // 初始化数据库并建立订阅
   useEffect(() => {
@@ -139,12 +184,17 @@ const App: React.FC = () => {
           setPersonas(docs.map(doc => doc.toJSON()));
         });
 
+        const comprehensiveResultsSub = db.comprehensive_results.find().$.subscribe(docs => {
+          setComprehensiveResults(docs.map(doc => doc.toJSON() as ComprehensiveResult));
+        });
+
         setInitialized(true);
 
         return () => {
           tariffSub.unsubscribe();
           configSub.unsubscribe();
           personaSub.unsubscribe();
+          comprehensiveResultsSub.unsubscribe();
         };
       } catch (err) {
         console.error('[App] Database initialization failed:', err);
@@ -281,11 +331,35 @@ const App: React.FC = () => {
     setView('dashboard');
   };
 
+  const applyEntryMode = (mode: AppEntryMode) => {
+    setStoredEntryPreference(mode);
+    const nextHref = buildEntryUrl(window.location.href, mode);
+    const nextUrl = new URL(nextHref);
+    window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+    setEntryMode(mode);
+  };
+
+  const handleExitToWeb = () => {
+    applyEntryMode('web');
+    setView('home');
+  };
+
   if (!initialized) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-slate-400 animate-pulse font-medium">初始化数据库中...</div>
       </div>
+    );
+  }
+
+  if (entryMode === 'pwa') {
+    return (
+      <PriceInsightPwaShell
+        tariffs={tariffs}
+        timeConfigs={timeConfigs}
+        comprehensivePriceMap={comprehensivePriceMap}
+        onExitToWeb={handleExitToWeb}
+      />
     );
   }
 
@@ -303,6 +377,7 @@ const App: React.FC = () => {
         {view === 'dashboard' && (
             <Dashboard
               tariffs={tariffs}
+              calcCompPrice={calcCompPrice}
               onOpenAnalysis={openAnalysis}
               onNavigate={setView}
               viewMode={dashboardViewMode}
@@ -314,7 +389,7 @@ const App: React.FC = () => {
           {view === 'config' && (
             <TimeConfigView
               configs={timeConfigs}
-              onSave={handleUpdateTimeConfigs}
+              readOnly
             />
           )}
           {view === 'upload' && (

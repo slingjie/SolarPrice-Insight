@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 interface DashboardProps {
   tariffs: TariffData[];
+  calcCompPrice: (t: TariffData, startTime: string, endTime: string) => number | null;
   onOpenAnalysis: (tariff: TariffData) => void;
   onNavigate: (view: any) => void;
   viewMode: 'map' | 'list';
@@ -22,7 +23,8 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({
   tariffs, onOpenAnalysis, onNavigate,
   viewMode, onViewModeChange,
-  selectedProvinces, onSelectedProvincesChange
+  selectedProvinces, onSelectedProvincesChange,
+  calcCompPrice
 }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVoltages, setSelectedVoltages] = useState<string[]>([]);
@@ -49,6 +51,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     fetchCompResults();
   }, [viewMode]);
 
+  // 利用 Dashboard 自身的 compResults + App 传入的 calcCompPrice 计算综合电价
+  const comprehensivePriceMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    for (const t of tariffs) {
+      const saved = compResults[t.province];
+      if (!saved?.start_time || !saved?.end_time) {
+        map[t.id] = null;
+        continue;
+      }
+      map[t.id] = calcCompPrice(t, saved.start_time, saved.end_time);
+    }
+    return map;
+  }, [tariffs, compResults, calcCompPrice]);
 
   const uniqueProvinces = useMemo(() => Array.from(new Set(tariffs.map(t => t.province))).sort(), [tariffs]);
   const uniqueCategories = useMemo(() => Array.from(new Set(tariffs.map(t => t.category))).filter(Boolean).sort(), [tariffs]);
@@ -83,6 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       year: t.month.match(/^(\d{4})-/)?.[1] || '--',
       monthOnly: t.month.match(/^\d{4}-(\d{1,2})$/)?.[1] || t.month,
       axisLabel: t.month,
+      comprehensivePrice: comprehensivePriceMap[t.id] ?? null,
       prices: {
         ...t.prices,
         tip: t.prices.tip || null,
@@ -92,7 +108,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         deep: t.prices.deep || null,
       }
     }));
-  }, [filteredTariffs]);
+  }, [filteredTariffs, comprehensivePriceMap]);
 
   const provinceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -281,6 +297,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <Line type="monotone" dataKey="prices.flat" name="平段电价" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                     <Line type="monotone" dataKey="prices.valley" name="低谷电价" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                     <Line type="monotone" dataKey="prices.deep" name="深谷电价" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="comprehensivePrice" name="综合电价" stroke="#d97706" strokeWidth={2.5} strokeDasharray="6 3" dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -297,6 +314,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <th className="px-4 py-3 font-medium">年份</th>
                       <th className="px-4 py-3 font-medium">用电分类</th>
                       <th className="px-4 py-3 font-medium">电压等级</th>
+                      <th className="px-4 py-3 font-medium text-amber-600">综合电价</th>
                       <th className="px-4 py-3 font-medium text-red-600">尖峰电价</th>
                       <th className="px-4 py-3 font-medium text-orange-600">高峰电价</th>
                       <th className="px-4 py-3 font-medium text-green-600">平段电价</th>
@@ -313,6 +331,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <td className="px-4 py-3 text-slate-500 font-mono">{t.month.match(/^(\d{4})-/)?.[1] || '--'}</td>
                         <td className="px-4 py-3">{t.category}</td>
                         <td className="px-4 py-3">{t.voltage_level}</td>
+                        <td className="px-4 py-3 font-mono text-xs font-bold text-amber-600">{comprehensivePriceMap[t.id]?.toFixed(3) ?? '-'}</td>
                         <td className="px-4 py-3 font-mono text-xs">{t.prices.tip?.toFixed(3) ?? '-'}</td>
                         <td className="px-4 py-3 font-mono text-xs">{t.prices.peak?.toFixed(3) ?? '-'}</td>
                         <td className="px-4 py-3 font-mono text-xs">{t.prices.flat?.toFixed(3) ?? '-'}</td>
@@ -330,7 +349,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     ))}
                     {filteredTariffs.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={12} className="px-4 py-8 text-center text-slate-400">
                           暂无数据，请调整筛选条件
                         </td>
                       </tr>
