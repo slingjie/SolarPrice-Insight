@@ -7,6 +7,9 @@ export interface PriceSchema {
   flat: number;
   valley: number;
   deep?: number;
+  energy_usage?: number;
+  purchase_agent?: number;
+  transmission_distribution?: number;
 }
 
 export interface TimeRule {
@@ -104,6 +107,8 @@ export interface OperationLog {
 }
 
 export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis' | 'self-consumption';
+export type AppEntryMode = 'web' | 'pwa';
+export type PwaView = 'overview' | 'detail';
 
 export interface PVGISParams {
   lat: number;
