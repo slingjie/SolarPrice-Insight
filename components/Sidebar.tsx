@@ -10,7 +10,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   const items = [
     { id: 'dashboard', label: '数据概览', icon: LayoutDashboard },
-    { id: 'config', label: '时段配置库', icon: Library },
+    { id: 'config', label: '分时规则查看', icon: Library },
     { id: 'upload', label: '智能录入', icon: Zap },
     { id: 'calculator', label: '综合电价', icon: Calculator },
     { id: 'settings', label: '系统设置', icon: Settings },
