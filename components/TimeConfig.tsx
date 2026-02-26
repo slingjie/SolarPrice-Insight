@@ -9,7 +9,8 @@ import { rulesToGrid, gridToRules } from '../utils/timeUtils';
 
 interface TimeConfigProps {
   configs: TimeConfig[];
-  onSave: (configs: TimeConfig[]) => void;
+  onSave?: (configs: TimeConfig[]) => void;
+  readOnly?: boolean;
 }
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -95,7 +96,7 @@ export const MiniGrid: React.FC<{ grid: TimeType[] | null }> = ({ grid }) => {
   );
 };
 
-export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) => {
+export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, readOnly = false }) => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmProvince, setDeleteConfirmProvince] = useState<string | null>(null);
@@ -250,7 +251,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
       special_date: undefined,
     }));
 
-    onSave([...keepConfigs, ...normalized]);
+    onSave?.([...keepConfigs, ...normalized]);
   };
 
   const clearProvinceConfig = () => {
@@ -259,7 +260,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
     const updatedList = configs.filter((config) => config.province !== deleteConfirmProvince);
     const wasSelected = selectedProvince === deleteConfirmProvince;
 
-    onSave(updatedList);
+    onSave?.(updatedList);
     setDeleteConfirmProvince(null);
 
     if (wasSelected) {
@@ -410,7 +411,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
       last_modified: now,
     };
 
-    onSave([...keep, next]);
+    onSave?.([...keep, next]);
     setSpecialEditor(null);
     setSpecialStartDateInput('');
     setSpecialEndDateInput('');
@@ -420,7 +421,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
   };
 
   const deleteSpecialConfig = (id: string) => {
-    onSave(configs.filter((config) => config.id !== id));
+    onSave?.(configs.filter((config) => config.id !== id));
   };
 
   const updateSpecialCell = (hour: number) => {
@@ -469,7 +470,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
               />
             </div>
             <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-              输入不存在的省份名称后，列表底部会出现“新增&quot;省份名&quot;”按钮。
+              {readOnly ? '选择省份查看分时规则' : '输入不存在的省份名称后，列表底部会出现"新增\u0022省份名\u0022"按钮。'}
             </p>
           </div>
 
@@ -498,6 +499,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                   {hasConfig && (
                     <div className="pr-3 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                      {!readOnly && (
                       <button
                         onClick={(event) => {
                           event.stopPropagation();
@@ -522,13 +524,14 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         </svg>
                       </button>
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {searchTerm &&
+            {!readOnly && searchTerm &&
               trimmedSearchTerm &&
               !filteredProvinces.includes(searchTerm) &&
               !provinceStatus[trimmedSearchTerm] &&
@@ -550,8 +553,8 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
           {!selectedProvince ? (
             <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-slate-400">
               <Library size={64} className="mb-4 opacity-10" />
-              <p className="text-lg">请在左侧选择省份进行配置</p>
-              <p className="text-sm mt-2 opacity-60">支持按月份展示多年份规则和特殊日期覆盖</p>
+              <p className="text-lg">{readOnly ? '请在左侧选择省份查看分时规则' : '请在左侧选择省份进行配置'}</p>
+              <p className="text-sm mt-2 opacity-60">{readOnly ? '支持按月份展示多年份规则和特殊日期' : '支持按月份展示多年份规则和特殊日期覆盖'}</p>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
@@ -575,6 +578,8 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                         {year}年
                       </button>
                     ))}
+                    {!readOnly && (
+                    <>
                     <input
                       type="number"
                       min={2000}
@@ -587,14 +592,18 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                     <button onClick={handleAddYear} className="text-xs px-2.5 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
                       <Plus size={12} className="inline-block mr-1" />新增
                     </button>
+                    </>
+                    )}
                   </div>
                 </div>
+                {!readOnly && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
                   <span>当前编辑年份：</span>
                   <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200">
                     {selectedEditYear} 年
                   </span>
                 </div>
+                )}
               </Card>
 
               {/* Month collapse toggle */}
@@ -641,9 +650,10 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                       {displayYears.map((year) => {
                         const grid = getMonthlyGrid(group.months[0], year);
                         return (
-                          <div key={`group-${group.months[0]}-${year}`} className="grid grid-cols-[72px,1fr,66px] gap-3 items-center">
+                          <div key={`group-${group.months[0]}-${year}`} className={`grid ${readOnly ? 'grid-cols-[72px,1fr]' : 'grid-cols-[72px,1fr,66px]'} gap-3 items-center`}>
                             <span className="text-xs font-medium text-slate-500">{year}年</span>
                             <MiniGrid grid={grid} />
+                            {!readOnly && (
                             <button
                               onClick={() => handleEditMonth(group.months[0], year)}
                               className={`text-xs px-2 py-1 rounded border ${
@@ -654,6 +664,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                             >
                               编辑
                             </button>
+                            )}
                           </div>
                         );
                       })}
@@ -672,9 +683,10 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                     {displayYears.map((year) => {
                       const grid = getMonthlyGrid(month, year);
                       return (
-                        <div key={`${month}-${year}`} className="grid grid-cols-[72px,1fr,66px] gap-3 items-center">
+                        <div key={`${month}-${year}`} className={`grid ${readOnly ? 'grid-cols-[72px,1fr]' : 'grid-cols-[72px,1fr,66px]'} gap-3 items-center`}>
                           <span className="text-xs font-medium text-slate-500">{year}年</span>
                           <MiniGrid grid={grid} />
+                          {!readOnly && (
                           <button
                             onClick={() => handleEditMonth(month, year)}
                             className={`text-xs px-2 py-1 rounded border ${
@@ -685,6 +697,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                           >
                             编辑
                           </button>
+                          )}
                         </div>
                       );
                     })}
@@ -696,6 +709,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
               <Card className="p-4 border border-slate-200">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-slate-700">特殊日期区间总览</h3>
+                  {!readOnly && (
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     <input
                       type="date"
@@ -716,24 +730,27 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                       新增特殊日期区间
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   {specialConfigs.length === 0 && <p className="text-xs text-slate-400">暂无特殊日期区间规则</p>}
                   {specialConfigs.map((config) => (
-                    <div key={config.id} className="grid grid-cols-[130px,1fr,120px] gap-3 items-center p-2 rounded border border-slate-100">
+                    <div key={config.id} className={`grid ${readOnly ? 'grid-cols-[130px,1fr]' : 'grid-cols-[130px,1fr,120px]'} gap-3 items-center p-2 rounded border border-slate-100`}>
                       <div className="text-xs text-slate-600 font-medium">{formatDateRange(config.special_date, config.special_date_end)}</div>
                       <MiniGrid grid={rulesToGrid(config.time_rules)} />
+                      {!readOnly && (
                       <div className="flex items-center gap-2 justify-end">
                         <button onClick={() => openSpecialEditor(config)} className="text-xs text-blue-600 hover:text-blue-700">编辑</button>
                         <button onClick={() => deleteSpecialConfig(config.id)} className="text-xs text-red-500 hover:text-red-600">删除</button>
                       </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </Card>
 
-              {specialEditor && (
+              {!readOnly && specialEditor && (
                 <Card className="p-4 border border-blue-200">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-slate-700">编辑特殊日期区间：{formatDateRange(specialEditor.startDate, specialEditor.endDate)}</h3>
@@ -800,6 +817,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                 </Card>
               )}
 
+              {!readOnly && (
               <div ref={matrixContainerRef}>
                 <TimeConfigMatrix
                   configs={configs}
@@ -809,10 +827,12 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
                   onSave={handleMatrixSave}
                 />
               </div>
+              )}
             </div>
           )}
         </div>
 
+        {!readOnly && (
         <ConfirmModal
           isOpen={deleteConfirmProvince !== null}
           title="确认清空"
@@ -822,6 +842,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave }) =
           confirmText="清空"
           danger
         />
+        )}
       </div>
 
       {showToast && <Toast message={toastMessage.current} onClose={() => setShowToast(false)} />}
