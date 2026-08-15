@@ -29,6 +29,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVoltages, setSelectedVoltages] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [compResults, setCompResults] = useState<Record<string, ComprehensiveResult>>({});
 
 
@@ -68,6 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const uniqueProvinces = useMemo(() => Array.from(new Set(tariffs.map(t => t.province))).sort(), [tariffs]);
   const uniqueCategories = useMemo(() => Array.from(new Set(tariffs.map(t => t.category))).filter(Boolean).sort(), [tariffs]);
   const uniqueVoltages = useMemo(() => Array.from(new Set(tariffs.map(t => t.voltage_level))).filter(Boolean).sort(), [tariffs]);
+  const uniqueMonths = useMemo(() => Array.from(new Set(tariffs.map(t => t.month))).filter(Boolean).sort().reverse(), [tariffs]);
   const uniqueYears = useMemo(() => {
     return Array.from(
       new Set(
@@ -88,9 +90,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const matchVoltage = selectedVoltages.length === 0 || selectedVoltages.includes(t.voltage_level);
       const year = t.month.match(/^(\d{4})-/)?.[1] || '';
       const matchYear = selectedYears.length === 0 || selectedYears.includes(year);
-      return matchProvince && matchCategory && matchVoltage && matchYear;
-    }).sort((a, b) => a.month.localeCompare(b.month));
-  }, [tariffs, selectedProvinces, selectedCategories, selectedVoltages, selectedYears]);
+      const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(t.month);
+      return matchProvince && matchCategory && matchVoltage && matchYear && matchMonth;
+    }).sort((a, b) => b.month.localeCompare(a.month) || a.province.localeCompare(b.province));
+  }, [tariffs, selectedProvinces, selectedCategories, selectedVoltages, selectedYears, selectedMonths]);
 
   const chartData = useMemo(() => {
     return filteredTariffs.map(t => ({
@@ -119,9 +122,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [tariffs]);
 
   const resetFilters = () => {
+    onSelectedProvincesChange([]);
     setSelectedCategories([]);
     setSelectedVoltages([]);
     setSelectedYears([]);
+    setSelectedMonths([]);
   };
 
   const handleProvinceSelect = (province: string) => {
@@ -142,35 +147,64 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const renderFilterGroup = (title: string, items: string[], current: string[], setFunc: (vals: string[]) => void) => (
-    <div className="flex flex-col gap-2">
-      <label className="text-xs font-bold text-slate-500">{title}</label>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setFunc([])}
-          className={`px-3 py-1 text-xs rounded-full border transition-all ${current.length === 0
-            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-        >
-          全部
-        </button>
-        {items.map(item => {
-          const isSelected = current.includes(item);
-          return (
+  const renderFilterGroup = (
+    title: string,
+    items: string[],
+    current: string[],
+    setFunc: (vals: string[]) => void,
+  ) => {
+    const isAll = current.length === 0;
+    return (
+      <div className="flex flex-col gap-2 min-w-[180px] flex-1">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <span>{title}</span>
+            {current.length > 0 && (
+              <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                已选 {current.length}
+              </span>
+            )}
+          </label>
+          <div className="flex items-center gap-2">
             <button
-              key={item}
-              onClick={() => toggleSelection(item, current, setFunc)}
-              className={`px-3 py-1 text-xs rounded-full border transition-all ${isSelected
-                ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+              onClick={() => setFunc([])}
+              className={`text-[11px] transition-colors ${
+                isAll ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
-              {item}
+              全部
             </button>
-          );
-        })}
+            {items.length > 0 && current.length > 0 && (
+              <button
+                onClick={() => setFunc([])}
+                className="text-[11px] text-slate-400 hover:text-red-500 transition-colors"
+              >
+                清空
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-0.5">
+          {items.map(item => {
+            const isSelected = current.includes(item);
+            return (
+              <button
+                key={item}
+                onClick={() => toggleSelection(item, current, setFunc)}
+                className={`px-2.5 py-1 text-xs rounded-lg border transition-all select-none ${
+                  isSelected
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-medium'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -265,17 +299,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         ) : (
           <>
-            <Card className="p-6 flex flex-col gap-6 bg-white/80 backdrop-blur sticky top-0 z-10 shadow-sm border-b border-white">
-              <div className="flex flex-wrap gap-x-8 gap-y-4">
-                {renderFilterGroup("用电分类", uniqueCategories, selectedCategories, setSelectedCategories)}
-                {renderFilterGroup("电压等级", uniqueVoltages, selectedVoltages, setSelectedVoltages)}
-                {renderFilterGroup("年份", uniqueYears, selectedYears, setSelectedYears)}
+            <Card className="p-6 flex flex-col gap-5 bg-white shadow-sm border border-slate-100 sticky top-0 z-10 backdrop-blur-md">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Filter size={18} className="text-blue-600" />
+                  <h3 className="font-bold text-slate-800 text-sm">多维交叉筛选器（支持多选）</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">
+                    共匹配到 <span className="font-bold text-blue-600">{filteredTariffs.length}</span> 条记录
+                  </span>
+                  <button
+                    onClick={resetFilters}
+                    className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 hover:text-red-600 flex items-center gap-1.5 text-xs transition-colors"
+                  >
+                    <RotateCcw size={14} /> 重置所有筛选
+                  </button>
+                </div>
               </div>
 
-              <div className="flex justify-end border-t pt-4">
-                <button onClick={resetFilters} className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-500 hover:text-red-500 flex items-center gap-2 text-sm transition-colors mb-0.5">
-                  <RotateCcw size={16} /> 重置筛选
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+                {renderFilterGroup("省份地区", uniqueProvinces, selectedProvinces, onSelectedProvincesChange)}
+                {renderFilterGroup("用电分类", uniqueCategories, selectedCategories, setSelectedCategories)}
+                {renderFilterGroup("电压等级", uniqueVoltages, selectedVoltages, setSelectedVoltages)}
+                {renderFilterGroup("执行月份", uniqueMonths, selectedMonths, setSelectedMonths)}
+                {renderFilterGroup("执行年份", uniqueYears, selectedYears, setSelectedYears)}
               </div>
             </Card>
 
