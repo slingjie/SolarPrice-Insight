@@ -3408,6 +3408,543 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "_deleted": false
   },
   {
+    "id": "ah-2026-07-dy-lt1k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.0822,
+      "flat": 0.6738,
+      "valley": 0.3744,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.1814,
+      "government_funds": 0.02887
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "peak"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dy-1_10k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.0453,
+      "flat": 0.6538,
+      "valley": 0.3667,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.1614,
+      "government_funds": 0.02887
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "peak"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dy-35k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 1.0084,
+      "flat": 0.6338,
+      "valley": 0.3591,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.1414,
+      "government_funds": 0.02887
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "peak"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dl-1_10k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.1754,
+      "peak": 1.011,
+      "flat": 0.6352,
+      "valley": 0.3596,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.1428,
+      "government_funds": 0.02887,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dl-35k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.1194,
+      "peak": 0.9644,
+      "flat": 0.6099,
+      "valley": 0.35,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.1175,
+      "government_funds": 0.02887,
+      "demand_charge": 45.6,
+      "capacity_charge": 28.5
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dl-110k",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.0639,
+      "peak": 0.9181,
+      "flat": 0.5848,
+      "valley": 0.3404,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.0924,
+      "government_funds": 0.02887,
+      "demand_charge": 44.0,
+      "capacity_charge": 27.5
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "ah-2026-07-dl-220up",
+    "province": "安徽",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.0084,
+      "peak": 0.8719,
+      "flat": 0.5597,
+      "valley": 0.3308,
+      "purchase_agent": 0.30306,
+      "line_loss": 0.0126,
+      "system_cost": 0.1478,
+      "transmission_distribution": 0.0673,
+      "government_funds": 0.02887,
+      "demand_charge": 40.8,
+      "capacity_charge": 25.5
+    },
+    "time_rules": [
+      {
+        "start": "00:00",
+        "end": "02:00",
+        "type": "flat"
+      },
+      {
+        "start": "02:00",
+        "end": "09:00",
+        "type": "valley"
+      },
+      {
+        "start": "09:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "20:00",
+        "type": "peak"
+      },
+      {
+        "start": "20:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "24:00",
+        "type": "peak"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网安徽95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "皖发改价格〔2025〕302号",
+    "float_rules": {
+      "tip": 2.2116,
+      "peak": 1.843,
+      "flat": 1.0,
+      "valley": 0.382,
+      "base_type": "agency_trans",
+      "formula_note": "尖峰=(代购+输配)×1.843×1.2+线损+系统费+基金; 低谷=(代购+输配)×(1-61.8%)+...",
+      "special_period_note": "尖峰时段仅在 7/15-8/31 20:00-22:00 及 12/15-1/31 19:00-21:00 执行（7月上旬无尖峰）"
+    },
+    "_deleted": false
+  },
+  {
     "id": "ah-2026-08-dy-lt1k",
     "province": "安徽",
     "city": null,
@@ -5525,6 +6062,8750 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "_deleted": false
   },
   {
+    "id": "zj-2025-08-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.239,
+      "peak": 1.0325,
+      "flat": 0.6257,
+      "valley": 0.2378,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.1786,
+      "peak": 0.9821,
+      "flat": 0.5952,
+      "valley": 0.2262,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.1461,
+      "peak": 0.9551,
+      "flat": 0.5788,
+      "valley": 0.22,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.1257,
+      "peak": 0.9381,
+      "flat": 0.5685,
+      "valley": 0.216,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.0325,
+      "peak": 0.9386,
+      "flat": 0.6257,
+      "valley": 0.2378,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 0.9821,
+      "peak": 0.8929,
+      "flat": 0.5952,
+      "valley": 0.2262,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 0.9551,
+      "peak": 0.8683,
+      "flat": 0.5788,
+      "valley": 0.22,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 0.9381,
+      "peak": 0.8528,
+      "flat": 0.5685,
+      "valley": 0.216,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "tip": 1.2146,
+      "peak": 1.1042,
+      "flat": 0.7361,
+      "valley": 0.2797,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0371,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.1783,
+      "peak": 1.0712,
+      "flat": 0.7141,
+      "valley": 0.2714,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-08-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-08",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "tip": 1.1166,
+      "peak": 1.0151,
+      "flat": 0.6767,
+      "valley": 0.2572,
+      "purchase_agent": 0.4108,
+      "line_loss": 0.0138,
+      "system_cost": 0.0459,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.0318,
+      "flat": 0.6253,
+      "valley": 0.2814,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.9815,
+      "flat": 0.5948,
+      "valley": 0.2677,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.9544,
+      "flat": 0.5784,
+      "valley": 0.2603,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.9374,
+      "flat": 0.5681,
+      "valley": 0.2557,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.938,
+      "flat": 0.6253,
+      "valley": 0.2814,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.8923,
+      "flat": 0.5948,
+      "valley": 0.2677,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.8677,
+      "flat": 0.5784,
+      "valley": 0.2603,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.8522,
+      "flat": 0.5681,
+      "valley": 0.2557,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.0975,
+      "flat": 0.7316,
+      "valley": 0.3292,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0133,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.0706,
+      "flat": 0.7137,
+      "valley": 0.3212,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-09-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-09",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 1.0145,
+      "flat": 0.6763,
+      "valley": 0.3044,
+      "purchase_agent": 0.4309,
+      "line_loss": 0.013,
+      "system_cost": 0.0262,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.0417,
+      "flat": 0.6313,
+      "valley": 0.2841,
+      "deep": 0.1263,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.9914,
+      "flat": 0.6008,
+      "valley": 0.2704,
+      "deep": 0.1202,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.9643,
+      "flat": 0.5844,
+      "valley": 0.263,
+      "deep": 0.1169,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.9473,
+      "flat": 0.5741,
+      "valley": 0.2584,
+      "deep": 0.1148,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.947,
+      "flat": 0.6313,
+      "valley": 0.2841,
+      "deep": 0.1263,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.0292,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.9013,
+      "flat": 0.6008,
+      "valley": 0.2704,
+      "deep": 0.1202,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.0292,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.8767,
+      "flat": 0.5844,
+      "valley": 0.263,
+      "deep": 0.1169,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.0292,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.8612,
+      "flat": 0.5741,
+      "valley": 0.2584,
+      "deep": 0.1148,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.0292,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.1102,
+      "flat": 0.7401,
+      "valley": 0.3331,
+      "deep": 0.148,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0109,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.0796,
+      "flat": 0.7197,
+      "valley": 0.3239,
+      "deep": 0.1439,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-10-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-10",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 1.0235,
+      "flat": 0.6823,
+      "valley": 0.3071,
+      "deep": 0.1365,
+      "purchase_agent": 0.4421,
+      "line_loss": 0.0127,
+      "system_cost": 0.0213,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.0292
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.122556,
+      "flat": 0.680337,
+      "valley": 0.306152,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029239,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 1.072231,
+      "flat": 0.649837,
+      "valley": 0.292427,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029239,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 1.045171,
+      "flat": 0.633437,
+      "valley": 0.285047,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029239,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 1.028176,
+      "flat": 0.623137,
+      "valley": 0.280412,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029239,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.020505,
+      "flat": 0.680337,
+      "valley": 0.306152,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029239,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.974755,
+      "flat": 0.649837,
+      "valley": 0.292427,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029239,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.950155,
+      "flat": 0.633437,
+      "valley": 0.285047,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029239,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.934705,
+      "flat": 0.623137,
+      "valley": 0.280412,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029239,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.187659,
+      "flat": 0.791773,
+      "valley": 0.356298,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.086091,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029239
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.153105,
+      "flat": 0.768737,
+      "valley": 0.345932,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029239
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-11-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-11",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 1.097005,
+      "flat": 0.731337,
+      "valley": 0.329102,
+      "purchase_agent": 0.418324,
+      "line_loss": 0.012919,
+      "system_cost": 0.093855,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029239
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.316222,
+      "peak": 1.096852,
+      "flat": 0.664759,
+      "valley": 0.252608,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.255832,
+      "peak": 1.046527,
+      "flat": 0.634259,
+      "valley": 0.241018,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.22336,
+      "peak": 1.019467,
+      "flat": 0.617859,
+      "valley": 0.234786,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.202966,
+      "peak": 1.002472,
+      "flat": 0.607559,
+      "valley": 0.230872,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.096852,
+      "peak": 0.997138,
+      "flat": 0.664759,
+      "valley": 0.252608,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.046527,
+      "peak": 0.951388,
+      "flat": 0.634259,
+      "valley": 0.241018,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.019467,
+      "peak": 0.926788,
+      "flat": 0.617859,
+      "valley": 0.234786,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.002472,
+      "peak": 0.911338,
+      "flat": 0.607559,
+      "valley": 0.230872,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "tip": 1.279396,
+      "peak": 1.163088,
+      "flat": 0.775392,
+      "valley": 0.294649,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.043794,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.242712,
+      "peak": 1.129738,
+      "flat": 0.753159,
+      "valley": 0.2862,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2025-12-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2025-12",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "tip": 1.181002,
+      "peak": 1.073638,
+      "flat": 0.715759,
+      "valley": 0.271988,
+      "purchase_agent": 0.442766,
+      "line_loss": 0.014393,
+      "system_cost": 0.052361,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.225037,
+      "peak": 1.020864,
+      "flat": 0.618706,
+      "valley": 0.235108,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.164647,
+      "peak": 0.970539,
+      "flat": 0.588206,
+      "valley": 0.223518,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.132175,
+      "peak": 0.943479,
+      "flat": 0.571806,
+      "valley": 0.217286,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.111781,
+      "peak": 0.926484,
+      "flat": 0.561506,
+      "valley": 0.213372,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.020864,
+      "peak": 0.928059,
+      "flat": 0.618706,
+      "valley": 0.235108,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 0.970539,
+      "peak": 0.882309,
+      "flat": 0.588206,
+      "valley": 0.223518,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 0.943479,
+      "peak": 0.857709,
+      "flat": 0.571806,
+      "valley": 0.217286,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 0.926484,
+      "peak": 0.842259,
+      "flat": 0.561506,
+      "valley": 0.213372,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "tip": 1.202261,
+      "peak": 1.092964,
+      "flat": 0.728643,
+      "valley": 0.276884,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.031747,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.166724,
+      "peak": 1.060659,
+      "flat": 0.707106,
+      "valley": 0.2687,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-01-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-01",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "tip": 1.105014,
+      "peak": 1.004559,
+      "flat": 0.669706,
+      "valley": 0.254488,
+      "purchase_agent": 0.408586,
+      "line_loss": 0.013871,
+      "system_cost": 0.04101,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "9:00",
+        "type": "peak"
+      },
+      {
+        "start": "9:00",
+        "end": "11:00",
+        "type": "tip"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "15:00",
+        "type": "flat"
+      },
+      {
+        "start": "15:00",
+        "end": "17:00",
+        "type": "tip"
+      },
+      {
+        "start": "17:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.00164,
+      "flat": 0.607055,
+      "valley": 0.273175,
+      "deep": 0.121411,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.951315,
+      "flat": 0.576555,
+      "valley": 0.25945,
+      "deep": 0.115311,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.924255,
+      "flat": 0.560155,
+      "valley": 0.25207,
+      "deep": 0.112031,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.90726,
+      "flat": 0.549855,
+      "valley": 0.247435,
+      "deep": 0.109971,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.910582,
+      "flat": 0.607055,
+      "valley": 0.273175,
+      "deep": 0.121411,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.864832,
+      "flat": 0.576555,
+      "valley": 0.25945,
+      "deep": 0.115311,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.840232,
+      "flat": 0.560155,
+      "valley": 0.25207,
+      "deep": 0.112031,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.824782,
+      "flat": 0.549855,
+      "valley": 0.247435,
+      "deep": 0.109971,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.059984,
+      "flat": 0.706656,
+      "valley": 0.317995,
+      "deep": 0.141331,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.037971,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.043182,
+      "flat": 0.695455,
+      "valley": 0.312955,
+      "deep": 0.139091,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-02-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-02",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 0.987082,
+      "flat": 0.658055,
+      "valley": 0.296125,
+      "deep": 0.131611,
+      "purchase_agent": 0.386655,
+      "line_loss": 0.007591,
+      "system_cost": 0.05757,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.97904,
+      "flat": 0.593358,
+      "valley": 0.267011,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.928715,
+      "flat": 0.562858,
+      "valley": 0.253286,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.901655,
+      "flat": 0.546458,
+      "valley": 0.245906,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.88466,
+      "flat": 0.536158,
+      "valley": 0.241271,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.890037,
+      "flat": 0.593358,
+      "valley": 0.267011,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.844287,
+      "flat": 0.562858,
+      "valley": 0.253286,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.819687,
+      "flat": 0.546458,
+      "valley": 0.245906,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.804237,
+      "flat": 0.536158,
+      "valley": 0.241271,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.054884,
+      "flat": 0.703256,
+      "valley": 0.316465,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.045351,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.022637,
+      "flat": 0.681758,
+      "valley": 0.306791,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-03-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-03",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 0.966537,
+      "flat": 0.644358,
+      "valley": 0.289961,
+      "purchase_agent": 0.371954,
+      "line_loss": 0.011512,
+      "system_cost": 0.054653,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.011327,
+      "flat": 0.612926,
+      "valley": 0.275817,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.961002,
+      "flat": 0.582426,
+      "valley": 0.262092,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.933942,
+      "flat": 0.566026,
+      "valley": 0.254712,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.916947,
+      "flat": 0.555726,
+      "valley": 0.250077,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.919389,
+      "flat": 0.612926,
+      "valley": 0.275817,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.873639,
+      "flat": 0.582426,
+      "valley": 0.262092,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.849039,
+      "flat": 0.566026,
+      "valley": 0.254712,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.833589,
+      "flat": 0.555726,
+      "valley": 0.250077,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.082608,
+      "flat": 0.721739,
+      "valley": 0.324782,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.080594,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.051989,
+      "flat": 0.701326,
+      "valley": 0.315597,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-04-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-04",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 0.995889,
+      "flat": 0.663926,
+      "valley": 0.298767,
+      "purchase_agent": 0.352658,
+      "line_loss": 0.014048,
+      "system_cost": 0.090981,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.995846,
+      "flat": 0.603543,
+      "valley": 0.271594,
+      "deep": 0.120709,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.945521,
+      "flat": 0.573043,
+      "valley": 0.257869,
+      "deep": 0.114609,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.918461,
+      "flat": 0.556643,
+      "valley": 0.250489,
+      "deep": 0.111329,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.901466,
+      "flat": 0.546343,
+      "valley": 0.245854,
+      "deep": 0.109269,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.905314,
+      "flat": 0.603543,
+      "valley": 0.271594,
+      "deep": 0.120709,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.859564,
+      "flat": 0.573043,
+      "valley": 0.257869,
+      "deep": 0.114609,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.834964,
+      "flat": 0.556643,
+      "valley": 0.250489,
+      "deep": 0.111329,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.819514,
+      "flat": 0.546343,
+      "valley": 0.245854,
+      "deep": 0.109269,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.070037,
+      "flat": 0.713358,
+      "valley": 0.321011,
+      "deep": 0.142672,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.055878,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.037914,
+      "flat": 0.691943,
+      "valley": 0.311374,
+      "deep": 0.138389,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-05-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-05",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 0.981814,
+      "flat": 0.654543,
+      "valley": 0.294544,
+      "deep": 0.130909,
+      "purchase_agent": 0.371867,
+      "line_loss": 0.011174,
+      "system_cost": 0.065263,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.988147,
+      "flat": 0.598877,
+      "valley": 0.269495,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.937822,
+      "flat": 0.568377,
+      "valley": 0.25577,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.910762,
+      "flat": 0.551977,
+      "valley": 0.24839,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.893767,
+      "flat": 0.541677,
+      "valley": 0.243755,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-gs-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 0.898315,
+      "flat": 0.598877,
+      "valley": 0.269495,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-gs-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-工商业",
+    "voltage_level": "35kV",
+    "prices": {
+      "peak": 0.852565,
+      "flat": 0.568377,
+      "valley": 0.25577,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-gs-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-工商业",
+    "voltage_level": "110kV",
+    "prices": {
+      "peak": 0.827965,
+      "flat": 0.551977,
+      "valley": 0.24839,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-gs-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "两部制-工商业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "peak": 0.812515,
+      "flat": 0.541677,
+      "valley": 0.243755,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "peak": 1.062388,
+      "flat": 0.708259,
+      "valley": 0.318716,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.031614,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "peak": 1.030915,
+      "flat": 0.687277,
+      "valley": 0.309275,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-06-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-06",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "peak": 0.974815,
+      "flat": 0.649877,
+      "valley": 0.292445,
+      "purchase_agent": 0.391006,
+      "line_loss": 0.0112,
+      "system_cost": 0.041432,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "8:00",
+        "type": "valley"
+      },
+      {
+        "start": "8:00",
+        "end": "11:00",
+        "type": "peak"
+      },
+      {
+        "start": "11:00",
+        "end": "13:00",
+        "type": "valley"
+      },
+      {
+        "start": "13:00",
+        "end": "17:00",
+        "type": "peak"
+      },
+      {
+        "start": "17:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dl-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "tip": 1.112728,
+      "peak": 1.019315,
+      "flat": 0.622307,
+      "valley": 0.342066,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.03343,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dl-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.132687,
+      "peak": 1.037326,
+      "flat": 0.632043,
+      "valley": 0.34596,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.126,
+      "government_funds": 0.029238,
+      "demand_charge": 48.0,
+      "capacity_charge": 30.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dl-35k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "35kV",
+    "prices": {
+      "tip": 1.102187,
+      "peak": 1.006826,
+      "flat": 0.601543,
+      "valley": 0.31546,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.0955,
+      "government_funds": 0.029238,
+      "demand_charge": 44.8,
+      "capacity_charge": 28.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dl-110k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "110kV",
+    "prices": {
+      "tip": 1.085787,
+      "peak": 0.990426,
+      "flat": 0.585143,
+      "valley": 0.29906,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.0791,
+      "government_funds": 0.029238,
+      "demand_charge": 41.6,
+      "capacity_charge": 26.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dl-220up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "两部制-大工业",
+    "voltage_level": "220kV及以上",
+    "prices": {
+      "tip": 1.075487,
+      "peak": 0.980126,
+      "flat": 0.574843,
+      "valley": 0.28876,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.0688,
+      "government_funds": 0.029238,
+      "demand_charge": 38.3,
+      "capacity_charge": 24.0
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dy-lt1k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "不满1kV",
+    "prices": {
+      "tip": 1.231928,
+      "peak": 1.138515,
+      "flat": 0.741507,
+      "valley": 0.461266,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.03343,
+      "transmission_distribution": 0.2452,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dy-1_10k",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "1-10kV",
+    "prices": {
+      "tip": 1.221087,
+      "peak": 1.125726,
+      "flat": 0.720443,
+      "valley": 0.43436,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.2144,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
+    "id": "zj-2026-07-dy-35up",
+    "province": "浙江",
+    "city": null,
+    "month": "2026-07",
+    "category": "单一制-工商业",
+    "voltage_level": "35kV及以上",
+    "prices": {
+      "tip": 1.183687,
+      "peak": 1.088326,
+      "flat": 0.683043,
+      "valley": 0.39696,
+      "purchase_agent": 0.421346,
+      "line_loss": 0.012292,
+      "system_cost": 0.043166,
+      "transmission_distribution": 0.177,
+      "government_funds": 0.029238
+    },
+    "time_rules": [
+      {
+        "start": "0:00",
+        "end": "7:00",
+        "type": "valley"
+      },
+      {
+        "start": "7:00",
+        "end": "11:00",
+        "type": "flat"
+      },
+      {
+        "start": "11:00",
+        "end": "14:00",
+        "type": "valley"
+      },
+      {
+        "start": "14:00",
+        "end": "16:00",
+        "type": "flat"
+      },
+      {
+        "start": "16:00",
+        "end": "18:00",
+        "type": "peak"
+      },
+      {
+        "start": "18:00",
+        "end": "22:00",
+        "type": "tip"
+      },
+      {
+        "start": "22:00",
+        "end": "23:00",
+        "type": "peak"
+      },
+      {
+        "start": "23:00",
+        "end": "24:00",
+        "type": "flat"
+      }
+    ],
+    "currency_unit": "元/kWh",
+    "source": "国网浙江95598公告",
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "last_modified": "2026-08-01T00:00:00.000Z",
+    "policy_code": "浙发改价格〔2026〕112号",
+    "float_rules": {
+      "tip": 2.05,
+      "peak": 1.85,
+      "flat": 1.0,
+      "valley": 0.4,
+      "deep": 0.2,
+      "base_type": "agency_loss_system",
+      "formula_note": "分时电价=(代购电价+线损+系统费)×浮动比例+输配+基金",
+      "special_period_note": "夏冬季(1/7/8/12月)执行尖峰18:00-22:00；重大节假日执行深谷"
+    },
+    "_deleted": false
+  },
+  {
     "id": "zj-2026-08-dl-1_10k",
     "province": "浙江",
     "city": null,
@@ -7085,13 +16366,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7149,13 +16432,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7213,13 +16498,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7277,13 +16564,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7341,13 +16630,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7407,13 +16698,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7473,13 +16766,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7539,13 +16834,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -7605,13 +16902,15 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网重庆95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "渝发改价格〔2023〕",
+    "policy_code": "渝发改价格〔2023〕1420号",
     "float_rules": {
       "tip": 1.92,
       "peak": 1.6,
+      "flat": 1.0,
       "valley": 0.38,
       "base_type": "agency_only",
-      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，尖峰在高峰基础上上浮20%"
+      "formula_note": "工业分时高峰上浮60%，低谷下浮62%，大工业夏季尖峰在高峰基础上上浮20%",
+      "special_period_note": "夏季7、8月大工业执行尖峰 11:00-12:00、17:00-18:00（单一制一般工商业不执行尖峰）"
     },
     "_deleted": false
   },
@@ -8351,13 +17650,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8414,13 +17714,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8477,13 +17778,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8540,13 +17842,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8603,13 +17906,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8668,13 +17972,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8733,13 +18038,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8798,13 +18104,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
@@ -8863,13 +18170,14 @@ export const DEFAULT_TARIFFS: TariffData[] = [
     "source": "国网青海95598公告",
     "created_at": "2026-08-01T00:00:00.000Z",
     "last_modified": "2026-08-01T00:00:00.000Z",
-    "policy_code": "青发改价格〔2023〕",
+    "policy_code": "青发改价格〔2023〕891号",
     "float_rules": {
       "peak": 1.63,
       "flat": 1.0,
       "valley": 0.35,
       "base_type": "agency_only",
-      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%"
+      "formula_note": "在代理购电价格基础上，高峰上浮63%，低谷下浮65%",
+      "special_period_note": "青海光伏大省午间大发，09:00-17:00 全年执行低谷电价；全年无尖峰时段"
     },
     "_deleted": false
   },
