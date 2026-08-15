@@ -124,9 +124,9 @@ const App: React.FC = () => {
     [tariffs, timeConfigs, latestComprehensiveResultsByProvince],
   );
 
-  // 单条 tariff 综合电价计算（供 Dashboard 调用）
+  // 单条 tariff 综合电价计算（供 Dashboard / PWA 调用，默认 08:00 - 16:00 光伏日间发电窗口）
   const calcCompPrice = useMemo(() => {
-    return (t: TariffData, startTime: string, endTime: string): number | null => {
+    return (t: TariffData, startTime: string = '08:00', endTime: string = '16:00'): number | null => {
       try {
         const { rules } = resolveEffectiveTimeRules(t, timeConfigs);
         if (rules.length === 0) return null;

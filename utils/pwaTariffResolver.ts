@@ -125,22 +125,22 @@ export const pickLatestComprehensiveResultsByProvince = (
 export const buildComprehensivePriceMap = (params: {
   tariffs: TariffData[];
   timeConfigs: TimeConfig[];
-  resultsByProvince: Record<string, ComprehensiveResult>;
+  resultsByProvince?: Record<string, ComprehensiveResult>;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
 }): Record<string, number | null> => {
-  const { tariffs, timeConfigs, resultsByProvince } = params;
+  const { tariffs, timeConfigs, resultsByProvince = {}, defaultStartTime = '08:00', defaultEndTime = '16:00' } = params;
   const map: Record<string, number | null> = {};
 
   for (const tariff of tariffs) {
     const saved = resultsByProvince[tariff.province];
-    if (!saved?.start_time || !saved?.end_time) {
+    if (saved && !isMonthIncludedInSavedResult(tariff.month, saved.months || [])) {
       map[tariff.id] = null;
       continue;
     }
 
-    if (!isMonthIncludedInSavedResult(tariff.month, saved.months || [])) {
-      map[tariff.id] = null;
-      continue;
-    }
+    const startTime = saved?.start_time || defaultStartTime;
+    const endTime = saved?.end_time || defaultEndTime;
 
     const { rules } = resolveEffectiveTimeRules(tariff, timeConfigs);
     if (rules.length === 0) {
@@ -153,7 +153,7 @@ export const buildComprehensivePriceMap = (params: {
       time_rules: rules,
     };
 
-    const results = calculateAveragePrice([normalized], [tariff.month], saved.start_time, saved.end_time);
+    const results = calculateAveragePrice([normalized], [tariff.month], startTime, endTime);
     map[tariff.id] = results.length > 0 ? results[0].avgPrice : null;
   }
 
