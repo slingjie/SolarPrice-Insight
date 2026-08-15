@@ -13,7 +13,10 @@ import {
   Sliders,
   DollarSign,
   FileText,
-  Layers
+  Layers,
+  BatteryCharging,
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { TariffData, ComprehensiveResult, TimeRule, TimeType } from '../types';
 import { getTypeColor, getTypeLabel } from '../constants';
@@ -222,6 +225,103 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
   }, [focusedTariff, focusedHourlyData]);
 
+  // 储能充放电策略与套利计算
+  const storageStrategy = useMemo(() => {
+    if (!focusedTariff || focusedHourlyData.length === 0) return null;
+
+    const valleyBlocks: { start: number; end: number; type: TimeType; price: number }[] = [];
+    const peakBlocks: { start: number; end: number; type: TimeType; price: number }[] = [];
+
+    let cur: { start: number; end: number; kind: 'valley' | 'peak' | 'other'; type: TimeType; price: number } | null = null;
+
+    for (let h = 0; h < 24; h++) {
+      const item = focusedHourlyData[h];
+      const isValley = item.type === 'valley' || item.type === 'deep';
+      const isPeak = item.type === 'tip' || item.type === 'peak';
+      const kind = isValley ? 'valley' : isPeak ? 'peak' : 'other';
+
+      if (!cur || cur.kind !== kind || cur.type !== item.type) {
+        if (cur) {
+          if (cur.kind === 'valley') valleyBlocks.push({ start: cur.start, end: cur.end, type: cur.type, price: cur.price });
+          else if (cur.kind === 'peak') peakBlocks.push({ start: cur.start, end: cur.end, type: cur.type, price: cur.price });
+        }
+        cur = { start: h, end: h + 1, kind, type: item.type, price: item.value };
+      } else {
+        cur.end = h + 1;
+      }
+    }
+    if (cur) {
+      if (cur.kind === 'valley') valleyBlocks.push({ start: cur.start, end: cur.end, type: cur.type, price: cur.price });
+      else if (cur.kind === 'peak') peakBlocks.push({ start: cur.start, end: cur.end, type: cur.type, price: cur.price });
+    }
+
+    const hasMiddayValley = valleyBlocks.some((b) => b.start >= 10 && b.end <= 16);
+    const mode = (valleyBlocks.length >= 2 && peakBlocks.length >= 2) || hasMiddayValley ? '两充两放' : '一充一放';
+
+    let cycle1Spread = 0;
+    let cycle2Spread = 0;
+    let totalSpread = 0;
+
+    if (valleyBlocks.length > 0 && peakBlocks.length > 0) {
+      const minV = Math.min(...valleyBlocks.map((b) => b.price));
+      const maxP = Math.max(...peakBlocks.map((b) => b.price));
+      if (mode === '两充两放' && valleyBlocks.length >= 2 && peakBlocks.length >= 2) {
+        cycle1Spread = Math.max(0, peakBlocks[0].price - valleyBlocks[0].price);
+        cycle2Spread = Math.max(0, peakBlocks[peakBlocks.length - 1].price - valleyBlocks[1].price);
+        totalSpread = cycle1Spread + cycle2Spread;
+      } else {
+        cycle1Spread = maxP - minV;
+        totalSpread = maxP - minV;
+      }
+    }
+
+    return {
+      mode,
+      valleyBlocks,
+      peakBlocks,
+      cycle1Spread,
+      cycle2Spread,
+      totalSpread,
+    };
+  }, [focusedTariff, focusedHourlyData]);
+
+  // 跨省多选分时横向对比谱带数据 (当 selectedProvinces.length > 1 时触发)
+  const multiProvinceRibbons = useMemo(() => {
+    if (selectedProvinces.length <= 1) return [];
+    return selectedProvinces.map((prov) => {
+      const provTariff = filteredTariffs.find((t) => t.province === prov) || tariffs.find((t) => t.province === prov);
+      if (!provTariff) return { province: prov, category: '', month: '', hourly: [], maxSpread: null, hasTip: false };
+
+      const { rules } = resolveEffectiveTimeRules(provTariff, []);
+      const hourlyTypes = buildHourlyTypes(rules);
+      const hourly = hourlyTypes.map((type, hour) => {
+        let eff = type;
+        if (eff === 'tip' && (provTariff.prices.tip === undefined || provTariff.prices.tip === null)) eff = 'peak';
+        if (eff === 'deep' && (provTariff.prices.deep === undefined || provTariff.prices.deep === null)) eff = 'valley';
+        return {
+          hour,
+          type: eff,
+          color: getTypeColor(eff),
+          price: provTariff.prices[eff] ?? 0,
+        };
+      });
+
+      const valid = [provTariff.prices.tip, provTariff.prices.peak, provTariff.prices.flat, provTariff.prices.valley, provTariff.prices.deep]
+        .filter((v): v is number => typeof v === 'number' && v > 0);
+      const maxSpread = valid.length >= 2 ? Math.max(...valid) - Math.min(...valid) : null;
+      const hasTip = hourly.some((h) => h.type === 'tip');
+
+      return {
+        province: prov,
+        category: provTariff.category,
+        month: provTariff.month,
+        hourly,
+        maxSpread,
+        hasTip,
+      };
+    });
+  }, [selectedProvinces, filteredTariffs, tariffs]);
+
   // 聚焦 Tariff 的综合电价计算（默认 08:00 - 16:00）
   const focusedCompPrice = useMemo(() => {
     if (!focusedTariff) return null;
@@ -410,7 +510,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            24小时分时结构穿透 · 6+2电价成本拆解 · 08:00-16:00光伏日间综合电价自动测算
+            24小时分时结构穿透 · 储能充放双轨策略 · 08:00-16:00光伏日间综合电价自动测算
           </p>
         </div>
 
@@ -439,7 +539,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 border border-transparent transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 border border-transparent transition-all"
           >
             <RotateCcw size={14} />
             <span>重置</span>
@@ -501,7 +601,59 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </Card>
 
-      {/* 核心双栏看板（左：24h 日分时洞察；右：综合电价 + 6+2 成本拆解 + 储能套利 + 12个月走势） */}
+      {/* 跨省时段横向对比谱带 (多选省份时自动激活) */}
+      {multiProvinceRibbons.length > 1 && (
+        <Card className="p-5 bg-white border border-slate-200/80 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+              <h3 className="font-bold text-slate-900 text-sm">跨省 24h 分时时段横向对比谱带</h3>
+              <span className="text-[11px] text-slate-400">（已勾选 {multiProvinceRibbons.length} 个省份）</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-600 inline-block"/>尖峰</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-500 inline-block"/>高峰</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-500 inline-block"/>平段</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-600 inline-block"/>低谷</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-600 inline-block"/>深谷</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            {multiProvinceRibbons.map((item) => (
+              <div key={item.province} className="flex items-center gap-3 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+                <div className="w-24 shrink-0">
+                  <div className="font-bold text-slate-800 text-xs">{item.province}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{item.category || item.month}</div>
+                </div>
+
+                <div className="flex-1 grid grid-cols-24 gap-px bg-slate-200 rounded overflow-hidden h-6 shadow-inner">
+                  {item.hourly.map((h) => (
+                    <div
+                      key={h.hour}
+                      className="h-full relative group transition-opacity hover:opacity-90 cursor-pointer"
+                      style={{ backgroundColor: h.color }}
+                      title={`${h.hour}:00 ｜ ${getTypeLabel(h.type)} ｜ ${h.price.toFixed(4)}元`}
+                    />
+                  ))}
+                </div>
+
+                <div className="w-28 shrink-0 text-right">
+                  {item.maxSpread !== null ? (
+                    <span className="text-[11px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      价差 {item.maxSpread.toFixed(4)}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400">-</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* 核心双栏看板（左：24h 日分时洞察 + 储能充放双轨；右：综合电价 + 6+2 成本拆解 + 12个月走势） */}
       {focusedTariff ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* 左栏：24小时分时结构看板 (占 7 栏) */}
@@ -526,7 +678,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* 24 小时彩色柱状图 */}
-              <div className="h-60 w-full pt-2">
+              <div className="h-60 w-full pt-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={focusedHourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -547,6 +699,83 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
+              {/* ⭐ 方式一：24h 彩带时间轴 + 储能充放电双轨指示卡片 */}
+              {storageStrategy && (
+                <div className="rounded-xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-blue-50/20 to-slate-50 p-3.5 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <BatteryCharging size={16} className="text-blue-600" />
+                      24h 分时彩带 ＆ 储能充放电策略对齐轨
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                      {storageStrategy.mode}模式 · 理论日套利 {storageStrategy.totalSpread.toFixed(4)} 元/kWh
+                    </span>
+                  </div>
+
+                  {/* 24h 彩色连续时间轴 */}
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-24 gap-px bg-slate-200 rounded-md overflow-hidden h-4 shadow-sm">
+                      {focusedHourlyData.map((h, idx) => (
+                        <div
+                          key={idx}
+                          className="h-full relative group cursor-pointer"
+                          style={{ backgroundColor: h.fill }}
+                          title={`${h.hour} ｜ ${getTypeLabel(h.type)} ｜ ${h.value.toFixed(4)}元`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-400 font-mono px-0.5">
+                      <span>00:00</span>
+                      <span>04:00</span>
+                      <span>08:00</span>
+                      <span>12:00</span>
+                      <span>16:00</span>
+                      <span>20:00</span>
+                      <span>24:00</span>
+                    </div>
+                  </div>
+
+                  {/* 充放电双轨指示 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {/* 充电轨道 */}
+                    <div className="bg-emerald-50/80 border border-emerald-200 rounded-lg p-2 flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                        <Zap size={12} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-emerald-900 text-[11px]">⚡ 推荐充电窗口</div>
+                        <div className="mt-0.5 text-[11px] text-emerald-700 space-y-0.5">
+                          {storageStrategy.valleyBlocks.map((b, idx) => (
+                            <div key={idx} className="flex justify-between font-mono">
+                              <span>第{idx + 1}充: {b.start.toString().padStart(2, '0')}:00-{b.end.toString().padStart(2, '0')}:00</span>
+                              <span className="font-bold">{b.price.toFixed(4)}元</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 放电轨道 */}
+                    <div className="bg-red-50/80 border border-red-200 rounded-lg p-2 flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-md bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                        <BatteryCharging size={12} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-red-900 text-[11px]">🔋 推荐放电窗口</div>
+                        <div className="mt-0.5 text-[11px] text-red-700 space-y-0.5">
+                          {storageStrategy.peakBlocks.map((b, idx) => (
+                            <div key={idx} className="flex justify-between font-mono">
+                              <span>第{idx + 1}放: {b.start.toString().padStart(2, '0')}:00-{b.end.toString().padStart(2, '0')}:00</span>
+                              <span className="font-bold">{b.price.toFixed(4)}元</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 四大时段电价速查卡片 (大字号 4 位小数) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
