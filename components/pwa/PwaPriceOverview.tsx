@@ -89,6 +89,58 @@ export const PwaPriceOverview: React.FC<PwaPriceOverviewProps> = ({
     });
   }, [tariff, effectiveRules]);
 
+  const touSummary = useMemo(() => {
+    if (!tariff || chartData.length === 0) return [];
+
+    const typeMap: Record<string, { type: TimeType; hours: number[]; count: number; price: number | null }> = {};
+
+    for (let h = 0; h < chartData.length; h++) {
+      const item = chartData[h];
+      const t = item.type as TimeType;
+      if (!typeMap[t]) {
+        typeMap[t] = {
+          type: t,
+          hours: [],
+          count: 0,
+          price: tariff.prices[t] ?? null,
+        };
+      }
+      typeMap[t].hours.push(h);
+      typeMap[t].count += 1;
+    }
+
+    const order: TimeType[] = ['tip', 'peak', 'flat', 'valley', 'deep'];
+
+    return order
+      .filter((t) => typeMap[t] && typeMap[t].count > 0 && typeMap[t].price !== null)
+      .map((t) => {
+        const info = typeMap[t];
+        const ranges: string[] = [];
+        let start = info.hours[0];
+        let prev = info.hours[0];
+        for (let i = 1; i < info.hours.length; i++) {
+          const curr = info.hours[i];
+          if (curr === prev + 1) {
+            prev = curr;
+          } else {
+            ranges.push(`${start.toString().padStart(2, '0')}:00-${(prev + 1).toString().padStart(2, '0')}:00`);
+            start = curr;
+            prev = curr;
+          }
+        }
+        ranges.push(`${start.toString().padStart(2, '0')}:00-${(prev + 1).toString().padStart(2, '0')}:00`);
+
+        return {
+          type: t,
+          label: getTypeLabel(t),
+          color: getTypeColor(t),
+          price: info.price,
+          count: info.count,
+          rangesText: ranges.join('、'),
+        };
+      });
+  }, [tariff, chartData]);
+
   if (!tariff) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
@@ -145,6 +197,34 @@ export const PwaPriceOverview: React.FC<PwaPriceOverviewProps> = ({
         )}
         {ruleSource === 'none' && (
           <p className="mt-2 text-xs text-slate-500">该记录未配置时段规则，图表按空态展示。</p>
+        )}
+
+        {touSummary.length > 0 && (
+          <div className="mt-3.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {touSummary.map((item) => (
+              <div
+                key={item.type}
+                className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: item.color }}>
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.label}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    {item.count}小时
+                  </span>
+                </div>
+                <div className="mt-1 font-mono text-base font-bold text-slate-900">
+                  {item.price !== null ? item.price.toFixed(4) : '--'}
+                  <span className="ml-0.5 text-[10px] font-normal text-slate-500 font-sans">元</span>
+                </div>
+                <div className="mt-0.5 text-[10px] text-slate-500 truncate" title={item.rangesText}>
+                  {item.rangesText}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {(tariff.float_rules?.special_period_note || tariff.float_rules?.formula_note || tariff.policy_code || tariff.is_market_based || tariff.market_notes) && (
