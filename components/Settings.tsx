@@ -1,9 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Settings, CheckCircle2, ShieldCheck, Key, Database, Download, Upload, AlertCircle, FileJson, Trash2, RefreshCcw, Eye, EyeOff, Save } from 'lucide-react';
+import { Settings, CheckCircle2, ShieldCheck, Database, Download, Upload, AlertCircle, FileJson, Trash2, RefreshCcw } from 'lucide-react';
 import { Card, Toast } from './UI';
 import { TariffData, TimeConfig, LoadPersona } from '../types';
 import { DEFAULT_TIME_CONFIGS } from '../constants.tsx';
-import { getApiKey, setApiKey, clearApiKey } from '../services/apiKeyService';
 
 interface SettingsViewProps {
   tariffs: TariffData[];
@@ -16,8 +15,6 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs, personas, onImportTariffs, onImportConfigs, onImportPersonas, onNavigate }) => {
-  const [apiKey, setApiKeyState] = useState(getApiKey());
-  const [showKey, setShowKey] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importConfirmation, setImportConfirmation] = useState<{
@@ -102,70 +99,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ tariffs, timeConfigs
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
       <h2 className="text-2xl font-bold text-slate-900">系统设置 (Settings)</h2>
-
-      {/* Privacy Card */}
-      <Card className="p-6">
-        <div className="flex items-start gap-4 mb-6">
-          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
-            <ShieldCheck size={24} />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">隐私与策略</h3>
-            <p className="text-slate-500 text-sm mt-1">
-              我们遵循 "BYOK" (Bring Your Own Key) 模式。您的数据安全地存储在浏览器本地数据库（RxDB/IndexedDB）中。
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-              <Key size={14} className="text-blue-500" /> Google Gemini API Key
-            </label>
-            <form onSubmit={(e) => e.preventDefault()}>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={(e) => setApiKeyState(e.target.value)}
-                    placeholder="输入你的 Gemini API Key（以 AIza 开头）"
-                    className="w-full border border-slate-200 bg-white rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiKey(apiKey);
-                    setToastMessage(apiKey.trim() ? "API Key 已保存到本地" : "API Key 已清除");
-                  }}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1.5 text-sm font-medium shadow-sm"
-                >
-                  <Save size={14} /> 保存
-                </button>
-              </div>
-            </form>
-            <p className="text-[10px] text-slate-400 mt-2">
-              API Key 仅保存在浏览器本地，不会上传到任何服务器。您可以在 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google AI Studio</a> 免费获取。
-            </p>
-            {apiKey && (
-              <button
-                onClick={() => { clearApiKey(); setApiKeyState(''); setToastMessage("API Key 已清除"); }}
-                className="mt-2 text-[10px] text-red-400 hover:text-red-600 underline decoration-dotted"
-              >
-                清除已保存的 Key
-              </button>
-            )}
-          </div>
-        </div>
-      </Card>
 
       {/* Data Management Card */}
       <Card className="p-6">
