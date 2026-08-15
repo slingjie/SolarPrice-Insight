@@ -186,6 +186,10 @@
 8. 集成测试：离线期间多次改动，恢复网络后自动同步。
 9. 权限测试：无 Access 身份访问 `/api/sync/*` 返回 401。
 10. 回归测试：现有 `vitest` 通过，`pvgis_cache/operation_logs` 不参与同步。
+11. PWA 验收：`/manifest.webmanifest`、`/sw.js`、`/workbox-*.js`、PWA 图标可直访（返回 200，内容类型正确）。
+12. PWA 验收：浏览器可触发“安装应用”（Manifest 检查通过，图标与 `display=standalone` 生效）。
+13. PWA 验收：离线模式下可打开首页与已缓存静态资源；恢复网络后功能恢复。
+14. PWA 验收：发布新版本后，Service Worker 可更新并接管新资源（不出现长期旧包驻留）。
 
 ---
 
@@ -197,7 +201,13 @@
 - 策略=邮箱白名单允许
 - 保护整站路径 `/*`
 4. 部署 Pages + Functions。
-5. 首次灰度：白名单先放 2-3 人，验证多端同步后扩白名单。
+5. 确认静态资源规则不破坏 PWA：
+- 不将 `/sw.js`、`/manifest.webmanifest`、`/workbox-*.js`、`/pwa-*.png` 重写到 `/index.html`。
+- SPA 回退规则仅用于应用路由，不覆盖上述 PWA 静态文件。
+6. 配置缓存策略（建议）：
+- `sw.js`、`manifest.webmanifest` 使用 `Cache-Control: no-cache, must-revalidate`。
+- 指纹化静态资源（`assets/*`）可长缓存；HTML 保持可重验证。
+7. 首次灰度：白名单先放 2-3 人，验证多端同步与 PWA 安装/离线能力后扩白名单。
 
 ---
 

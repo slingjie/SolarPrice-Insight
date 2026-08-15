@@ -72,12 +72,21 @@ export const PwaPriceOverview: React.FC<PwaPriceOverviewProps> = ({
     }
 
     const hourlyTypes = buildHourlyTypes(effectiveRules);
-    return hourlyTypes.map((type, hour) => ({
-      hour: `${hour.toString().padStart(2, '0')}:00`,
-      value: tariff.prices[type] ?? 0,
-      type,
-      fill: getTypeColor(type),
-    }));
+    return hourlyTypes.map((type, hour) => {
+      let effectiveType = type;
+      if (effectiveType === 'tip' && (tariff.prices.tip === undefined || tariff.prices.tip === null)) {
+        effectiveType = 'peak';
+      }
+      if (effectiveType === 'deep' && (tariff.prices.deep === undefined || tariff.prices.deep === null)) {
+        effectiveType = 'valley';
+      }
+      return {
+        hour: `${hour.toString().padStart(2, '0')}:00`,
+        value: tariff.prices[effectiveType] ?? 0,
+        type: effectiveType,
+        fill: getTypeColor(effectiveType),
+      };
+    });
   }, [tariff, effectiveRules]);
 
   if (!tariff) {
@@ -136,6 +145,42 @@ export const PwaPriceOverview: React.FC<PwaPriceOverviewProps> = ({
         )}
         {ruleSource === 'none' && (
           <p className="mt-2 text-xs text-slate-500">该记录未配置时段规则，图表按空态展示。</p>
+        )}
+
+        {(tariff.float_rules?.special_period_note || tariff.float_rules?.formula_note || tariff.policy_code || tariff.is_market_based || tariff.market_notes) && (
+          <div className="mt-3.5 rounded-xl border border-blue-100 bg-blue-50/40 p-3 text-xs text-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-blue-900 flex items-center gap-1">
+                <span>📋</span> 政策依据与特殊时段说明
+              </span>
+              {tariff.policy_code && (
+                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-800">
+                  {tariff.policy_code}
+                </span>
+              )}
+            </div>
+
+            {tariff.float_rules?.special_period_note && (
+              <div className="mt-2 flex items-start gap-1 rounded bg-amber-50 border border-amber-200/60 p-2 text-amber-900">
+                <span className="shrink-0 font-bold text-amber-700">⏱️ 特殊时段:</span>
+                <span>{tariff.float_rules.special_period_note}</span>
+              </div>
+            )}
+
+            {tariff.is_market_based && (
+              <div className="mt-2 flex items-start gap-1 rounded bg-yellow-50 border border-yellow-200/60 p-2 text-yellow-900">
+                <span className="shrink-0 font-bold text-yellow-800">⚡ 市场化省份:</span>
+                <span>{tariff.market_notes || '该省已进入电力现货市场，分时电价随现货出清动态波动。'}</span>
+              </div>
+            )}
+
+            {tariff.float_rules?.formula_note && (
+              <div className="mt-2 text-[11px] text-slate-600 leading-relaxed">
+                <span className="font-semibold text-slate-700">📐 计算公式：</span>
+                {tariff.float_rules.formula_note}
+              </div>
+            )}
+          </div>
         )}
       </section>
 

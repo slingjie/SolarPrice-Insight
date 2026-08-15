@@ -23,6 +23,7 @@ import {
     HolidayDefinition,
     LoadPersona,
 } from '../types';
+import { SyncOutboxItem } from './sync/types';
 
 // 加入开发模式插件（调试用）
 if (import.meta.env.DEV) {
@@ -35,12 +36,12 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // 定义 Tariff Schema
 const tariffSchema = {
     title: 'tariff schema',
-    version: 3, // 升级版本
+    version: 4, // 升级版本
     primaryKey: 'id',
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
-        created_at: { type: 'string', format: 'date-time' },
+        created_at: { type: 'string' },
         province: { type: 'string' },
         city: { type: 'string', nullable: true },
         month: { type: 'string' },
@@ -49,14 +50,19 @@ const tariffSchema = {
         prices: {
             type: 'object',
             properties: {
-                tip: { type: 'number' },
-                peak: { type: 'number' },
-                flat: { type: 'number' },
-                valley: { type: 'number' },
-                deep: { type: 'number' },
-                energy_usage: { type: 'number' },
-                purchase_agent: { type: 'number' },
-                transmission_distribution: { type: 'number' }
+                tip: { type: 'number', nullable: true },
+                peak: { type: 'number', nullable: true },
+                flat: { type: 'number', nullable: true },
+                valley: { type: 'number', nullable: true },
+                deep: { type: 'number', nullable: true },
+                energy_usage: { type: 'number', nullable: true },
+                purchase_agent: { type: 'number', nullable: true },
+                line_loss: { type: 'number', nullable: true },
+                system_cost: { type: 'number', nullable: true },
+                transmission_distribution: { type: 'number', nullable: true },
+                government_funds: { type: 'number', nullable: true },
+                demand_charge: { type: 'number', nullable: true },
+                capacity_charge: { type: 'number', nullable: true }
             }
         },
         time_rules: {
@@ -67,13 +73,32 @@ const tariffSchema = {
                     start: { type: 'string' },
                     end: { type: 'string' },
                     type: { type: 'string' }
-                }
+                },
+                required: ['start', 'end', 'type']
             }
         },
-        currency_unit: { type: 'string' },
+        source: { type: 'string', nullable: true },
+        currency_unit: { type: 'string', nullable: true },
+        policy_code: { type: 'string', nullable: true },
+        is_market_based: { type: 'boolean', default: false },
+        market_notes: { type: 'string', nullable: true },
+        float_rules: {
+            type: 'object',
+            nullable: true,
+            properties: {
+                tip: { type: 'number', nullable: true },
+                peak: { type: 'number', nullable: true },
+                flat: { type: 'number', nullable: true },
+                valley: { type: 'number', nullable: true },
+                deep: { type: 'number', nullable: true },
+                base_type: { type: 'string', nullable: true },
+                formula_note: { type: 'string', nullable: true },
+                special_period_note: { type: 'string', nullable: true }
+            }
+        },
         source_config_id: { type: 'string', nullable: true },
         // Supabase 兼容性字段 (RxDB 不允许以 _ 开头的字段名)
-        last_modified: { type: 'string', format: 'date-time' },
+        last_modified: { type: 'string' },
         _deleted: { type: 'boolean', default: false }
     },
     required: ['id', 'province', 'month', 'category', 'voltage_level', 'prices', 'time_rules', 'last_modified']
@@ -87,10 +112,11 @@ const timeConfigSchema = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
+        created_at: { type: 'string', nullable: true },
         province: { type: 'string' },
         year: { type: 'number' },
         config_type: { type: 'string' },
-        month_pattern: { type: 'string' },
+        month_pattern: { type: 'string', nullable: true },
         special_date: { type: 'string', nullable: true },
         special_date_end: { type: 'string', nullable: true },
         time_rules: {
@@ -101,15 +127,19 @@ const timeConfigSchema = {
                     start: { type: 'string' },
                     end: { type: 'string' },
                     type: { type: 'string' }
-                }
+                },
+                required: ['start', 'end', 'type']
             }
         },
-        updated_at: { type: 'string', format: 'date-time' },
+        is_market_based: { type: 'boolean', default: false },
+        market_notes: { type: 'string', nullable: true },
+        policy_code: { type: 'string', nullable: true },
+        updated_at: { type: 'string' },
         // Supabase 兼容性字段
-        last_modified: { type: 'string', format: 'date-time' },
+        last_modified: { type: 'string' },
         _deleted: { type: 'boolean', default: false }
     },
-    required: ['id', 'province', 'year', 'config_type', 'month_pattern', 'time_rules', 'updated_at', 'last_modified']
+    required: ['id', 'province', 'year', 'config_type', 'time_rules', 'updated_at', 'last_modified']
 };
 
 const personaSchema = {
@@ -222,6 +252,24 @@ const holidaysSchema = {
     required: ['id', 'name', 'startDate', 'endDate', 'isDefault', 'updated_at']
 };
 
+const syncOutboxSchema = {
+    title: 'sync outbox schema',
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 200 },
+        collection: { type: 'string' },
+        doc_id: { type: 'string' },
+        op: { type: 'string' },
+        modified_at: { type: 'string', format: 'date-time' },
+        doc_json: { type: 'string', nullable: true },
+        updated_at: { type: 'string', format: 'date-time' },
+        retry_count: { type: 'number', minimum: 0, maximum: 100000, default: 0 }
+    },
+    required: ['id', 'collection', 'doc_id', 'op', 'modified_at', 'updated_at', 'retry_count']
+};
+
 
 type TariffCollection = RxCollection<TariffData>;
 type TimeConfigCollection = RxCollection<TimeConfig>;
@@ -231,6 +279,7 @@ type PVGISCacheCollection = RxCollection<PVGISCacheData>;
 type OperationLogCollection = RxCollection<OperationLog>;
 type HolidaysCollection = RxCollection<HolidayDefinition>;
 type PersonaCollection = RxCollection<LoadPersona>;
+type SyncOutboxCollection = RxCollection<SyncOutboxItem>;
 
 export type SolarDatabaseCollections = {
     tariffs: TariffCollection;
@@ -241,6 +290,7 @@ export type SolarDatabaseCollections = {
     pvgis_cache: PVGISCacheCollection;
     operation_logs: OperationLogCollection;
     holidays: HolidaysCollection;
+    sync_outbox: SyncOutboxCollection;
 };
 
 export type SolarDatabase = RxDatabase<SolarDatabaseCollections>;
@@ -262,21 +312,31 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
                 schema: tariffSchema,
                 migrationStrategies: {
                     1: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
-                        return oldDoc;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        return doc;
                     },
                     2: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
-                        oldDoc.prices = oldDoc.prices || {};
-                        return oldDoc;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        doc.prices = doc.prices || {};
+                        return doc;
                     },
                     3: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
-                        oldDoc.prices = oldDoc.prices || {};
-                        return oldDoc;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        doc.prices = doc.prices || {};
+                        return doc;
+                    },
+                    4: (oldDoc: any) => {
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        doc.prices = doc.prices || {};
+                        return doc;
                     }
                 }
             },
@@ -284,71 +344,75 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
                 schema: timeConfigSchema,
                 migrationStrategies: {
                     1: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
-                        return oldDoc;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        return doc;
                     },
                     2: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
 
-                        if (oldDoc.weekend_time_rules !== undefined && !Array.isArray(oldDoc.weekend_time_rules)) {
-                            delete oldDoc.weekend_time_rules;
+                        if (doc.weekend_time_rules !== undefined && !Array.isArray(doc.weekend_time_rules)) {
+                            delete doc.weekend_time_rules;
                         }
 
-                        return oldDoc;
+                        return doc;
                     },
                     3: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc.updated_at = oldDoc.updated_at || oldDoc.last_modified;
-                        oldDoc._deleted = oldDoc._deleted || false;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc.updated_at = doc.updated_at || doc.last_modified;
+                        doc._deleted = doc._deleted || false;
 
-                        if (oldDoc.weekend_time_rules !== undefined) {
-                            delete oldDoc.weekend_time_rules;
+                        if (doc.weekend_time_rules !== undefined) {
+                            delete doc.weekend_time_rules;
                         }
 
-                        const parsedYear = Number.parseInt(String(oldDoc.year ?? ''), 10);
+                        const parsedYear = Number.parseInt(String(doc.year ?? ''), 10);
                         if (!Number.isFinite(parsedYear)) {
-                            const fallback = Number.parseInt(String(oldDoc.updated_at || oldDoc.last_modified).slice(0, 4), 10);
-                            oldDoc.year = Number.isFinite(fallback) ? fallback : new Date().getFullYear();
+                            const fallback = Number.parseInt(String(doc.updated_at || doc.last_modified).slice(0, 4), 10);
+                            doc.year = Number.isFinite(fallback) ? fallback : new Date().getFullYear();
                         } else {
-                            oldDoc.year = parsedYear;
+                            doc.year = parsedYear;
                         }
 
-                        if (oldDoc.config_type !== 'special_date') {
-                            oldDoc.config_type = 'monthly';
+                        if (doc.config_type !== 'special_date') {
+                            doc.config_type = 'monthly';
                         }
 
-                        oldDoc.month_pattern = typeof oldDoc.month_pattern === 'string' && oldDoc.month_pattern.trim().length > 0
-                            ? oldDoc.month_pattern
+                        doc.month_pattern = typeof doc.month_pattern === 'string' && doc.month_pattern.trim().length > 0
+                            ? doc.month_pattern
                             : 'All';
 
-                        if (oldDoc.config_type === 'special_date') {
-                            oldDoc.special_date = typeof oldDoc.special_date === 'string' ? oldDoc.special_date : null;
+                        if (doc.config_type === 'special_date') {
+                            doc.special_date = typeof doc.special_date === 'string' ? doc.special_date : null;
                         } else {
-                            oldDoc.special_date = null;
+                            doc.special_date = null;
                         }
 
-                        oldDoc.special_date_end = null;
+                        doc.special_date_end = null;
 
-                        return oldDoc;
+                        return doc;
                     },
                     4: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc.updated_at = oldDoc.updated_at || oldDoc.last_modified;
-                        oldDoc._deleted = oldDoc._deleted || false;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc.updated_at = doc.updated_at || doc.last_modified;
+                        doc._deleted = doc._deleted || false;
 
-                        if (oldDoc.config_type === 'special_date') {
-                            const start = typeof oldDoc.special_date === 'string' ? oldDoc.special_date : null;
-                            const end = typeof oldDoc.special_date_end === 'string' ? oldDoc.special_date_end : null;
-                            oldDoc.special_date = start;
-                            oldDoc.special_date_end = end;
+                        if (doc.config_type === 'special_date') {
+                            const start = typeof doc.special_date === 'string' ? doc.special_date : null;
+                            const end = typeof doc.special_date_end === 'string' ? doc.special_date_end : null;
+                            doc.special_date = start;
+                            doc.special_date_end = end;
                         } else {
-                            oldDoc.special_date = null;
-                            oldDoc.special_date_end = null;
+                            doc.special_date = null;
+                            doc.special_date_end = null;
                         }
 
-                        return oldDoc;
+                        return doc;
                     }
                 }
             },
@@ -359,9 +423,10 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
                 schema: savedTimeRangeSchema,
                 migrationStrategies: {
                     1: (oldDoc: any) => {
-                        oldDoc.last_modified = oldDoc.last_modified || new Date().toISOString();
-                        oldDoc._deleted = oldDoc._deleted || false;
-                        return oldDoc;
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc._deleted = doc._deleted || false;
+                        return doc;
                     }
                 }
             },
@@ -376,6 +441,9 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
             },
             holidays: {
                 schema: holidaysSchema
+            },
+            sync_outbox: {
+                schema: syncOutboxSchema
             }
         });
 

@@ -1,6 +1,9 @@
 import { getDatabase } from './db';
 import { TariffData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { syncOutboxService } from './sync/syncOutboxService';
+import { getSyncManager } from './sync/syncManager';
+import { getDocModifiedAt } from './sync/syncAdapters';
 
 export const priceService = {
     /**
@@ -28,6 +31,13 @@ export const priceService = {
         } as TariffData;
 
         await db.tariffs.upsert(tariffData);
+        await syncOutboxService.enqueueUpsert({
+            collection: 'tariffs',
+            docId: tariffData.id,
+            modifiedAt: getDocModifiedAt('tariffs', tariffData as unknown as Record<string, unknown>),
+            doc: tariffData as unknown as Record<string, unknown>,
+        });
+        getSyncManager().requestSyncSoon();
         return tariffData;
     },
 
@@ -46,6 +56,15 @@ export const priceService = {
         })) as TariffData[];
 
         await db.tariffs.bulkUpsert(preparedItems);
+        await Promise.all(preparedItems.map(async (item) => {
+            await syncOutboxService.enqueueUpsert({
+                collection: 'tariffs',
+                docId: item.id,
+                modifiedAt: getDocModifiedAt('tariffs', item as unknown as Record<string, unknown>),
+                doc: item as unknown as Record<string, unknown>,
+            });
+        }));
+        getSyncManager().requestSyncSoon();
         return preparedItems;
     },
 
@@ -60,6 +79,14 @@ export const priceService = {
                 _deleted: true,
                 last_modified: new Date().toISOString()
             });
+            const patched = doc.toJSON() as TariffData;
+            await syncOutboxService.enqueueUpsert({
+                collection: 'tariffs',
+                docId: patched.id,
+                modifiedAt: getDocModifiedAt('tariffs', patched as unknown as Record<string, unknown>),
+                doc: patched as unknown as Record<string, unknown>,
+            });
+            getSyncManager().requestSyncSoon();
             // 在本地可以选择真正删除，或者保留软删除
             // 为了完全契合方案中的“本地持久化”以及后续同步，这里采用软删除标记
             // 如果希望本地 UI 不显示，则查询时需过滤 _deleted: false
@@ -74,6 +101,12 @@ export const priceService = {
         const doc = await db.tariffs.findOne(id).exec();
         if (doc) {
             await doc.remove();
+            await syncOutboxService.enqueueDelete({
+                collection: 'tariffs',
+                docId: id,
+                modifiedAt: new Date().toISOString(),
+            });
+            getSyncManager().requestSyncSoon();
         }
     },
 

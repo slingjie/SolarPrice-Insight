@@ -7,6 +7,9 @@ import { getDatabase } from '../services/db';
 import { calculateAveragePrice, CalculationResult } from '../services/priceCalculator';
 import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
+import { syncOutboxService } from '../services/sync/syncOutboxService';
+import { getSyncManager } from '../services/sync/syncManager';
+import { getDocModifiedAt } from '../services/sync/syncAdapters';
 
 interface ComprehensivePriceCalculatorProps {
     tariffs: TariffData[];
@@ -107,6 +110,13 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
                 last_modified: new Date().toISOString()
             };
             await db.saved_time_ranges.insert(newRange);
+            await syncOutboxService.enqueueUpsert({
+                collection: 'saved_time_ranges',
+                docId: newRange.id,
+                modifiedAt: getDocModifiedAt('saved_time_ranges', newRange as unknown as Record<string, unknown>),
+                doc: newRange as unknown as Record<string, unknown>,
+            });
+            getSyncManager().requestSyncSoon();
             setSavedRanges(prev => [...prev, newRange]);
             setNewRangeName('');
             setActionStatus({ type: 'success', msg: '保存成功' });
@@ -133,6 +143,12 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
             const doc = await db.saved_time_ranges.findOne(id).exec();
             if (doc) {
                 await doc.remove();
+                await syncOutboxService.enqueueDelete({
+                    collection: 'saved_time_ranges',
+                    docId: id,
+                    modifiedAt: new Date().toISOString(),
+                });
+                getSyncManager().requestSyncSoon();
                 setSavedRanges(prev => prev.filter(r => r.id !== id));
             }
             setDeleteConfirmId(null);
@@ -177,6 +193,13 @@ export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculator
             };
 
             await db.comprehensive_results.upsert(newResult);
+            await syncOutboxService.enqueueUpsert({
+                collection: 'comprehensive_results',
+                docId: newResult.id,
+                modifiedAt: getDocModifiedAt('comprehensive_results', newResult as unknown as Record<string, unknown>),
+                doc: newResult as unknown as Record<string, unknown>,
+            });
+            getSyncManager().requestSyncSoon();
 
             setActionStatus({ type: 'success', msg: '电价结果已保存到数据中心' });
             setTimeout(() => setActionStatus(null), 3000);

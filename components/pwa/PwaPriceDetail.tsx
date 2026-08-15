@@ -306,6 +306,65 @@ export const PwaPriceDetail: React.FC<PwaPriceDetailProps> = ({
             </table>
           </div>
         )}
+
+        {/* 政策依据与分时计价公式卡片 */}
+        {(() => {
+          const latestItem = [...history].sort((a, b) => compareMonthAsc(b.month, a.month))[0];
+          if (!latestItem) return null;
+          const { policy_code, float_rules, is_market_based, market_notes, prices } = latestItem;
+          const hasFloatRules = Boolean(float_rules && (float_rules.formula_note || float_rules.peak || float_rules.special_period_note));
+          const hasGranularPrices = Boolean(prices.purchase_agent || prices.transmission_distribution || prices.line_loss || prices.system_cost);
+
+          if (!policy_code && !hasFloatRules && !is_market_based && !market_notes && !hasGranularPrices) {
+            return null;
+          }
+
+          return (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-700">
+              <div className="flex items-center justify-between font-semibold text-slate-800">
+                <span className="flex items-center gap-1.5">
+                  <span>📜 计价规则与政策依据</span>
+                  {is_market_based && (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                      现货市场化
+                    </span>
+                  )}
+                </span>
+                {policy_code && <span className="text-[11px] font-normal text-slate-500">{policy_code}</span>}
+              </div>
+
+              {market_notes && (
+                <p className="mt-1.5 text-amber-700 font-medium">
+                  ⚠️ {market_notes}
+                </p>
+              )}
+
+              {float_rules?.formula_note && (
+                <div className="mt-2 rounded bg-white p-2 border border-slate-200 font-mono text-[11px] text-slate-600 leading-relaxed">
+                  <span className="font-bold text-slate-700">公式：</span>
+                  {float_rules.formula_note}
+                </div>
+              )}
+
+              {float_rules?.special_period_note && (
+                <p className="mt-1.5 text-blue-600 text-[11px]">
+                  ⏱️ {float_rules.special_period_note}
+                </p>
+              )}
+
+              {hasGranularPrices && (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] text-slate-600 bg-white/80 p-2 rounded border border-slate-100">
+                  {prices.purchase_agent !== undefined && <div>代购电价: <span className="font-mono font-medium text-slate-800">{prices.purchase_agent.toFixed(4)}</span></div>}
+                  {prices.line_loss !== undefined && <div>线损折价: <span className="font-mono font-medium text-slate-800">{prices.line_loss.toFixed(4)}</span></div>}
+                  {prices.system_cost !== undefined && <div>系统运行费: <span className="font-mono font-medium text-slate-800">{prices.system_cost.toFixed(4)}</span></div>}
+                  {prices.transmission_distribution !== undefined && <div>输配电价: <span className="font-mono font-medium text-slate-800">{prices.transmission_distribution.toFixed(4)}</span></div>}
+                  {prices.government_funds !== undefined && <div>政府基金: <span className="font-mono font-medium text-slate-800">{prices.government_funds.toFixed(4)}</span></div>}
+                  {prices.demand_charge !== undefined && <div>需量电价: <span className="font-mono font-medium text-slate-800">{prices.demand_charge.toFixed(2)}</span></div>}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </section>
     </div>
   );

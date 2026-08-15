@@ -1,6 +1,17 @@
 
 export type TimeType = 'tip' | 'peak' | 'flat' | 'valley' | 'deep';
 
+export interface FloatRules {
+  tip?: number;
+  peak?: number;
+  flat?: number;
+  valley?: number;
+  deep?: number;
+  base_type?: 'agency_only' | 'agency_plus_transmission' | 'agency_loss_system' | 'composite' | string;
+  formula_note?: string;
+  special_period_note?: string;
+}
+
 export interface PriceSchema {
   tip: number;
   peak: number;
@@ -9,7 +20,12 @@ export interface PriceSchema {
   deep?: number;
   energy_usage?: number;
   purchase_agent?: number;
+  line_loss?: number;
+  system_cost?: number;
   transmission_distribution?: number;
+  government_funds?: number;
+  demand_charge?: number;
+  capacity_charge?: number;
 }
 
 export interface TimeRule {
@@ -27,6 +43,9 @@ export interface TimeConfig {
   special_date?: string; // YYYY-MM-DD, required when config_type='special_date'
   special_date_end?: string; // YYYY-MM-DD, optional range end for config_type='special_date'
   time_rules: TimeRule[];
+  is_market_based?: boolean;
+  market_notes?: string;
+  policy_code?: string;
   updated_at: string;
   last_modified: string; // ISO string
   _deleted?: boolean;
@@ -57,6 +76,10 @@ export interface TariffData {
   prices: PriceSchema;
   time_rules: TimeRule[];
   currency_unit: string;
+  policy_code?: string;
+  is_market_based?: boolean;
+  market_notes?: string;
+  float_rules?: FloatRules;
   source_config_id?: string;
   last_modified: string; // ISO string
   _deleted?: boolean;

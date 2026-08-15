@@ -14,6 +14,7 @@ import { AdminModule } from './components/admin/AdminModule';
 import { SettingsView } from './components/Settings';
 import { AppEntryMode, AppView, ComprehensiveResult, HourlyData, LoadPersona, PVGISParams, TariffData, TimeConfig } from './types';
 import { DEFAULT_PERSONAS, DEFAULT_TIME_CONFIGS } from './constants.tsx';
+import { DEFAULT_TARIFFS } from './constants_tariffs';
 import { getDatabase } from './services/db';
 import { initDefaultHolidays } from './services/holidayService';
 import { calculateAveragePrice } from './services/priceCalculator';
@@ -24,6 +25,11 @@ import {
   resolveEffectiveTimeRules,
 } from './utils/pwaTariffResolver';
 import { PriceInsightPwaShell } from './components/pwa/PriceInsightPwaShell';
+import { SyncStatusBadge } from './components/SyncStatusBadge';
+import { getSyncManager } from './services/sync/syncManager';
+import { syncOutboxService } from './services/sync/syncOutboxService';
+import { getDocModifiedAt } from './services/sync/syncAdapters';
+import { SyncState } from './services/sync/types';
 
 import { LandingPage } from './components/LandingPage';
 
@@ -63,7 +69,7 @@ const App: React.FC = () => {
     const searchParams = new URLSearchParams(window.location.search);
     return searchParams.get('view') === 'admin' ? 'admin' : 'home';
   });
-  const [tariffs, setTariffs] = useState<TariffData[]>([]);
+  const [tariffs, setTariffs] = useState<TariffData[]>(DEFAULT_TARIFFS);
   const [timeConfigs, setTimeConfigs] = useState<TimeConfig[]>(DEFAULT_TIME_CONFIGS);
   const [analysisTarget, setAnalysisTarget] = useState<{ province: string, category: string, voltage: string } | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -77,12 +83,30 @@ const App: React.FC = () => {
 
   const [personas, setPersonas] = useState<LoadPersona[]>([]);
   const [comprehensiveResults, setComprehensiveResults] = useState<ComprehensiveResult[]>([]);
+  const [syncState, setSyncState] = useState<SyncState>({
+    enabled: true,
+    status: 'idle',
+    pendingCount: 0,
+    lastSuccessAt: null,
+    lastError: null,
+    authenticatedEmail: null,
+  });
 
   useEffect(() => {
     const syncEntryMode = () => setEntryMode(resolveRuntimeEntryMode());
     window.addEventListener('popstate', syncEntryMode);
     return () => {
       window.removeEventListener('popstate', syncEntryMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    const manager = getSyncManager();
+    manager.start();
+    const unsubscribe = manager.subscribe(setSyncState);
+    return () => {
+      unsubscribe();
+      manager.stop();
     };
   }, []);
 
@@ -125,12 +149,26 @@ const App: React.FC = () => {
         const savedConfigs = localStorage.getItem('solar_time_configs_v2');
 
         const existingTariffCount = await db.tariffs.count().exec();
-        if (existingTariffCount === 0 && savedTariffs) {
-          const parsed = (JSON.parse(savedTariffs) as TariffData[]).map(t => ({
-            ...t,
-            last_modified: t.last_modified || new Date().toISOString()
-          }));
-          await db.tariffs.bulkInsert(parsed);
+        if (existingTariffCount === 0) {
+          let loaded = false;
+          if (savedTariffs) {
+            try {
+              const parsed = (JSON.parse(savedTariffs) as TariffData[]).map(t => ({
+                ...t,
+                last_modified: t.last_modified || new Date().toISOString()
+              }));
+              if (parsed.length > 0) {
+                await db.tariffs.bulkInsert(parsed);
+                loaded = true;
+              }
+            } catch (e) {
+              console.warn('[App] Failed to parse saved tariffs:', e);
+            }
+          }
+          if (!loaded) {
+            console.log('[App] Seeding DEFAULT_TARIFFS into RxDB...');
+            await db.tariffs.bulkInsert(DEFAULT_TARIFFS);
+          }
         }
 
         const existingConfigCount = await db.time_configs.count().exec();
@@ -206,6 +244,37 @@ const App: React.FC = () => {
     initDB();
   }, []);
 
+  const queueUpserts = async (
+    collection: 'tariffs' | 'time_configs' | 'personas',
+    docs: Array<Record<string, unknown>>,
+  ) => {
+    await Promise.all(docs.map(async (doc) => {
+      const id = String(doc.id || '');
+      if (!id) return;
+      await syncOutboxService.enqueueUpsert({
+        collection,
+        docId: id,
+        modifiedAt: getDocModifiedAt(collection, doc),
+        doc,
+      });
+    }));
+  };
+
+  const queueDeletes = async (
+    collection: 'tariffs' | 'time_configs' | 'personas',
+    docIds: string[],
+  ) => {
+    if (docIds.length === 0) return;
+    const modifiedAt = new Date().toISOString();
+    await Promise.all(docIds.map(async (id) => {
+      await syncOutboxService.enqueueDelete({
+        collection,
+        docId: id,
+        modifiedAt,
+      });
+    }));
+  };
+
   const handleUpdateTariffs = async (newTariffs: TariffData[]) => {
     try {
       const db = await getDatabase();
@@ -215,6 +284,7 @@ const App: React.FC = () => {
       const toDelete = allDocs.filter(doc => !existingIds.has(doc.id));
       if (toDelete.length > 0) {
         await db.tariffs.bulkRemove(toDelete.map(d => d.id));
+        await queueDeletes('tariffs', toDelete.map(d => d.id));
       }
       console.log('[App] Upserting tariffs:', newTariffs);
       const docsToUpsert = newTariffs.map(t => ({
@@ -222,6 +292,8 @@ const App: React.FC = () => {
         last_modified: t.last_modified || new Date().toISOString()
       }));
       await db.tariffs.bulkUpsert(docsToUpsert);
+      await queueUpserts('tariffs', docsToUpsert as unknown as Array<Record<string, unknown>>);
+      getSyncManager().requestSyncSoon();
       console.log('[App] Tariffs upsert success');
     } catch (err) {
       console.error('[App] Tariffs update failed:', err);
@@ -239,6 +311,8 @@ const App: React.FC = () => {
         last_modified: t.last_modified || new Date().toISOString()
       }));
       await db.tariffs.bulkUpsert(docsToUpsert);
+      await queueUpserts('tariffs', docsToUpsert as unknown as Array<Record<string, unknown>>);
+      getSyncManager().requestSyncSoon();
       console.log('[App] Tariffs merge success');
     } catch (err) {
       console.error('[App] Tariffs merge failed:', err);
@@ -258,6 +332,7 @@ const App: React.FC = () => {
       if (idsToDelete.length > 0) {
         console.log('[App] Removing time configs:', idsToDelete);
         await db.time_configs.bulkRemove(idsToDelete);
+        await queueDeletes('time_configs', idsToDelete);
       }
 
       const docsToUpsert = newConfigs.map(c => ({
@@ -266,6 +341,8 @@ const App: React.FC = () => {
       }));
       console.log('[App] Upserting time configs:', docsToUpsert);
       await db.time_configs.bulkUpsert(docsToUpsert);
+      await queueUpserts('time_configs', docsToUpsert as unknown as Array<Record<string, unknown>>);
+      getSyncManager().requestSyncSoon();
 
       console.log('[App] Update success');
     } catch (err) {
@@ -284,6 +361,8 @@ const App: React.FC = () => {
         last_modified: c.last_modified || new Date().toISOString()
       }));
       await db.time_configs.bulkUpsert(docsToUpsert);
+      await queueUpserts('time_configs', docsToUpsert as unknown as Array<Record<string, unknown>>);
+      getSyncManager().requestSyncSoon();
       console.log('[App] Time configs merge success');
     } catch (err) {
       console.error('[App] Time configs merge failed:', err);
@@ -301,6 +380,7 @@ const App: React.FC = () => {
       const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
       if (idsToDelete.length > 0) {
         await db.personas.bulkRemove(idsToDelete);
+        await queueDeletes('personas', idsToDelete);
       }
 
       const now = new Date().toISOString();
@@ -310,6 +390,16 @@ const App: React.FC = () => {
         last_modified: p.last_modified || now,
         _deleted: p._deleted ?? false,
       })));
+      await queueUpserts(
+        'personas',
+        nextPersonas.map(p => ({
+          ...p,
+          updated_at: p.updated_at || now,
+          last_modified: p.last_modified || now,
+          _deleted: p._deleted ?? false,
+        })) as unknown as Array<Record<string, unknown>>,
+      );
+      getSyncManager().requestSyncSoon();
     } catch (err) {
       console.error('[App] Personas update failed:', err);
       throw err;
@@ -354,12 +444,20 @@ const App: React.FC = () => {
 
   if (entryMode === 'pwa') {
     return (
-      <PriceInsightPwaShell
-        tariffs={tariffs}
-        timeConfigs={timeConfigs}
-        comprehensivePriceMap={comprehensivePriceMap}
-        onExitToWeb={handleExitToWeb}
-      />
+      <>
+        <PriceInsightPwaShell
+          tariffs={tariffs}
+          timeConfigs={timeConfigs}
+          comprehensivePriceMap={comprehensivePriceMap}
+          onExitToWeb={handleExitToWeb}
+        />
+        <SyncStatusBadge
+          state={syncState}
+          onSyncNow={() => {
+            void getSyncManager().syncNow('manual');
+          }}
+        />
+      </>
     );
   }
 
@@ -485,6 +583,12 @@ const App: React.FC = () => {
           background: #cbd5e1;
         }
       `}</style>
+      <SyncStatusBadge
+        state={syncState}
+        onSyncNow={() => {
+          void getSyncManager().syncNow('manual');
+        }}
+      />
     </div>
   );
 };

@@ -9,6 +9,9 @@ import { BackupRestore } from './BackupRestore';
 import { OperationLog } from './OperationLog';
 import { TariffData, TimeConfig, ComprehensiveResult, LoadPersona } from '../../types';
 import { getDatabase } from '../../services/db';
+import { syncOutboxService } from '../../services/sync/syncOutboxService';
+import { getSyncManager } from '../../services/sync/syncManager';
+import { getDocModifiedAt } from '../../services/sync/syncAdapters';
 
 interface AdminModuleProps {
     tariffs: TariffData[];
@@ -95,13 +98,31 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
             const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
             if (idsToDelete.length > 0) {
                 await db.comprehensive_results.bulkRemove(idsToDelete);
+                const now = new Date().toISOString();
+                await Promise.all(idsToDelete.map(async (id) => {
+                    await syncOutboxService.enqueueDelete({
+                        collection: 'comprehensive_results',
+                        docId: id,
+                        modifiedAt: now,
+                    });
+                }));
             }
 
             // 更新/新增
-            await db.comprehensive_results.bulkUpsert(results.map(r => ({
+            const upserts = results.map(r => ({
                 ...r,
                 last_modified: r.last_modified || new Date().toISOString()
-            })));
+            }));
+            await db.comprehensive_results.bulkUpsert(upserts);
+            await Promise.all(upserts.map(async (result) => {
+                await syncOutboxService.enqueueUpsert({
+                    collection: 'comprehensive_results',
+                    docId: result.id,
+                    modifiedAt: getDocModifiedAt('comprehensive_results', result as unknown as Record<string, unknown>),
+                    doc: result as unknown as Record<string, unknown>,
+                });
+            }));
+            getSyncManager().requestSyncSoon();
         } catch (err) {
             console.error('[Admin] Failed to update results:', err);
             throw err;
@@ -118,15 +139,33 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
             const idsToDelete = [...existingIds].filter(id => !newIds.has(id));
             if (idsToDelete.length > 0) {
                 await db.personas.bulkRemove(idsToDelete);
+                const now = new Date().toISOString();
+                await Promise.all(idsToDelete.map(async (id) => {
+                    await syncOutboxService.enqueueDelete({
+                        collection: 'personas',
+                        docId: id,
+                        modifiedAt: now,
+                    });
+                }));
             }
 
             const now = new Date().toISOString();
-            await db.personas.bulkUpsert(nextPersonas.map(p => ({
+            const upserts = nextPersonas.map(p => ({
                 ...p,
                 updated_at: p.updated_at || now,
                 last_modified: p.last_modified || now,
                 _deleted: p._deleted ?? false,
-            })));
+            }));
+            await db.personas.bulkUpsert(upserts);
+            await Promise.all(upserts.map(async (persona) => {
+                await syncOutboxService.enqueueUpsert({
+                    collection: 'personas',
+                    docId: persona.id,
+                    modifiedAt: getDocModifiedAt('personas', persona as unknown as Record<string, unknown>),
+                    doc: persona as unknown as Record<string, unknown>,
+                });
+            }));
+            getSyncManager().requestSyncSoon();
         } catch (err) {
             console.error('[Admin] Failed to update personas:', err);
             throw err;
