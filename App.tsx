@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { TimeConfigView } from './components/TimeConfig';
-import { SmartUpload } from './components/SmartUpload';
 import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
 
@@ -488,14 +487,6 @@ const App: React.FC = () => {
             <TimeConfigView
               configs={timeConfigs}
               readOnly
-            />
-          )}
-          {view === 'upload' && (
-            <SmartUpload
-              timeConfigs={timeConfigs}
-              tariffs={tariffs}
-              onBatchSave={handleBatchSave}
-              onNavigate={setView}
             />
           )}
           {view === 'manual' && (

@@ -232,9 +232,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button onClick={() => onNavigate('manual')} className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium flex items-center gap-2">
               <FileEdit size={18} /> 手动录入
             </button>
-            <button onClick={() => onNavigate('upload')} className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium flex items-center gap-2 shadow-lg shadow-slate-200">
-              <Plus size={18} /> 智能录入
-            </button>
           </div>
         </div>
 

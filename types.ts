@@ -129,7 +129,7 @@ export interface OperationLog {
   details?: string;
 }
 
-export type AppView = 'home' | 'dashboard' | 'config' | 'upload' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis' | 'self-consumption';
+export type AppView = 'home' | 'dashboard' | 'config' | 'manual' | 'settings' | 'analysis' | 'calculator' | 'admin' | 'pvgis' | 'self-consumption';
 export type AppEntryMode = 'web' | 'pwa';
 export type PwaView = 'overview' | 'detail';
 
