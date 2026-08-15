@@ -70,6 +70,13 @@ export const resolveEffectiveTimeRules = (
   tariff: TariffData,
   timeConfigs: TimeConfig[],
 ): EffectiveRuleResolution => {
+  if (Array.isArray(tariff.time_rules) && tariff.time_rules.length > 0) {
+    return {
+      rules: tariff.time_rules,
+      source: 'tariff',
+    };
+  }
+
   const parsed = parseYearMonth(tariff.month);
   if (parsed) {
     const resolved = resolveTimeConfigForMonth(timeConfigs, tariff.province, parsed.month, parsed.year);
@@ -79,13 +86,6 @@ export const resolveEffectiveTimeRules = (
         source: 'time_configs',
       };
     }
-  }
-
-  if (Array.isArray(tariff.time_rules) && tariff.time_rules.length > 0) {
-    return {
-      rules: tariff.time_rules,
-      source: 'tariff',
-    };
   }
 
   return {

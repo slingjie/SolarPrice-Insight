@@ -1,5 +1,8 @@
 import { getDatabase } from './db';
 import type { HolidayDefinition } from '../types';
+import { syncOutboxService } from './sync/syncOutboxService';
+import { getSyncManager } from './sync/syncManager';
+import { getDocModifiedAt } from './sync/syncAdapters';
 
 export async function getAllHolidays(): Promise<HolidayDefinition[]> {
   const db = await getDatabase();
@@ -10,6 +13,13 @@ export async function getAllHolidays(): Promise<HolidayDefinition[]> {
 export async function saveHoliday(holiday: HolidayDefinition): Promise<void> {
   const db = await getDatabase();
   await db.holidays.upsert(holiday);
+  await syncOutboxService.enqueueUpsert({
+    collection: 'holidays',
+    docId: holiday.id,
+    modifiedAt: getDocModifiedAt('holidays', holiday as unknown as Record<string, unknown>),
+    doc: holiday as unknown as Record<string, unknown>,
+  });
+  getSyncManager().requestSyncSoon();
 }
 
 export async function deleteHoliday(id: string): Promise<void> {
@@ -17,6 +27,12 @@ export async function deleteHoliday(id: string): Promise<void> {
   const doc = await db.holidays.findOne(id).exec();
   if (doc) {
     await doc.remove();
+    await syncOutboxService.enqueueDelete({
+      collection: 'holidays',
+      docId: id,
+      modifiedAt: new Date().toISOString(),
+    });
+    getSyncManager().requestSyncSoon();
   }
 }
 
@@ -89,7 +105,14 @@ export async function initDefaultHolidays(): Promise<void> {
 
   for (const holiday of defaultHolidays) {
     await db.holidays.upsert(holiday);
+    await syncOutboxService.enqueueUpsert({
+      collection: 'holidays',
+      docId: holiday.id,
+      modifiedAt: getDocModifiedAt('holidays', holiday as unknown as Record<string, unknown>),
+      doc: holiday as unknown as Record<string, unknown>,
+    });
   }
+  getSyncManager().requestSyncSoon();
 }
 
 export function expandHolidayDates(holiday: HolidayDefinition): string[] {

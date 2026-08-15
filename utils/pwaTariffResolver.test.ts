@@ -23,7 +23,7 @@ const createTariff = (params: Partial<TariffData> & { id: string; month: string;
     deep: 1,
     ...(params.prices || {}),
   },
-  time_rules: params.time_rules || [{ start: '00:00', end: '24:00', type: 'flat' }],
+  time_rules: params.time_rules ?? [],
   currency_unit: 'CNY/kWh',
   last_modified: '2026-01-01T00:00:00.000Z',
 });
@@ -56,20 +56,26 @@ describe('pwaTariffResolver', () => {
     expect(isMonthIncludedInSavedResult('2026-03', ['2026-02'])).toBe(false);
   });
 
-  it('prefers time_configs rules and falls back to tariff rules', () => {
-    const tariff = createTariff({
+  it('prefers tariff rules and falls back to time_configs rules', () => {
+    const tariffWithRules = createTariff({
       id: 't-1',
       month: '2026-03',
       time_rules: [{ start: '00:00', end: '24:00', type: 'flat' }],
     });
 
-    const fromConfig = resolveEffectiveTimeRules(tariff, [createMonthlyConfig('valley')]);
-    expect(fromConfig.source).toBe('time_configs');
-    expect(fromConfig.rules[0].type).toBe('valley');
-
-    const fromTariff = resolveEffectiveTimeRules(tariff, []);
+    const fromTariff = resolveEffectiveTimeRules(tariffWithRules, [createMonthlyConfig('valley')]);
     expect(fromTariff.source).toBe('tariff');
     expect(fromTariff.rules[0].type).toBe('flat');
+
+    const tariffWithoutRules = createTariff({
+      id: 't-2',
+      month: '2026-03',
+      time_rules: [],
+    });
+
+    const fromConfig = resolveEffectiveTimeRules(tariffWithoutRules, [createMonthlyConfig('valley')]);
+    expect(fromConfig.source).toBe('time_configs');
+    expect(fromConfig.rules[0].type).toBe('valley');
   });
 
   it('builds comprehensive map only for included months', () => {

@@ -1,0 +1,27 @@
+name = "solarprice-insight"
+compatibility_date = "2026-02-27"
+pages_build_output_dir = "dist"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[vars]
+ALLOW_DEV_AUTH = "true"
+
+[[d1_databases]]
+binding = "SYNC_DB"
+database_name = "solarprice-insight-sync"
+database_id = "d82ce46b-6767-40f9-9cce-c2a9f6db5493"
+migrations_dir = "functions/db/migrations"

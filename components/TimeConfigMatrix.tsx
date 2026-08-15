@@ -31,6 +31,10 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
   const toastMessage = useRef('保存成功');
   const monthRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  const activeProvinceConfig = configs.find(
+    (c) => c.province === selectedProvince && (c.is_market_based || c.market_notes || c.policy_code),
+  );
+
   useEffect(() => {
     if (!selectedProvince) return;
 
@@ -165,6 +169,18 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
           <Save size={18} /> 保存配置
         </button>
       </div>
+
+      {activeProvinceConfig && (activeProvinceConfig.is_market_based || activeProvinceConfig.market_notes) && (
+        <div className="mx-6 mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">⚠️ 市场化/动态时段提示：</span>
+            <span>{activeProvinceConfig.market_notes || '该省执行现货市场化出清，分时时段按交易中心动态调整。'}</span>
+          </div>
+          {activeProvinceConfig.policy_code && (
+            <span className="text-[11px] text-amber-600 font-normal">{activeProvinceConfig.policy_code}</span>
+          )}
+        </div>
+      )}
 
       <div
         className="flex-1 overflow-auto p-6"
