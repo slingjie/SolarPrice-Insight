@@ -107,7 +107,7 @@ const tariffSchema = {
 // 定义 TimeConfig Schema
 const timeConfigSchema = {
     title: 'time config schema',
-    version: 4,
+    version: 5,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -413,6 +413,25 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
                         }
 
                         return doc;
+                    },
+                    5: (oldDoc: any) => {
+                        const doc = { ...oldDoc };
+                        doc.last_modified = doc.last_modified || new Date().toISOString();
+                        doc.updated_at = doc.updated_at || doc.last_modified;
+                        doc._deleted = doc._deleted || false;
+                        if (doc.is_market_based === undefined) {
+                            doc.is_market_based = false;
+                        }
+                        if (doc.market_notes === undefined) {
+                            doc.market_notes = null;
+                        }
+                        if (doc.policy_code === undefined) {
+                            doc.policy_code = null;
+                        }
+                        if (doc.created_at === undefined) {
+                            doc.created_at = null;
+                        }
+                        return doc;
                     }
                 }
             },
@@ -453,8 +472,11 @@ const createDatabase = async (isRetry = false): Promise<SolarDatabase> => {
 
         const isDexieClosed = err instanceof Error &&
             (err.message?.includes('is closed') || (err as any)?.code === 'DM4');
-        if (isDexieClosed && !isRetry) {
-            console.warn('[RxDB] Migration failed (Dexie storage closed). Removing corrupted DB and retrying...');
+        const isSchemaMismatch = (err as any)?.code === 'DB6' ||
+            (err instanceof Error && (err.message?.includes('schema') || err.message?.includes('DB6')));
+
+        if ((isDexieClosed || isSchemaMismatch) && !isRetry) {
+            console.warn('[RxDB] Migration/Schema error detected. Removing outdated DB and retrying initialization...', err);
             try {
                 await removeRxDatabase('solardb', getRxStorageDexie());
             } catch (removeErr) {
