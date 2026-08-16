@@ -620,6 +620,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="space-y-2.5 pt-1">
+            <div className="flex items-center gap-3 px-1 text-[10px] text-slate-400 font-mono">
+              <div className="w-24 shrink-0">省份/分类</div>
+              <div className="flex-1 flex justify-between px-0.5">
+                <span>00:00</span>
+                <span>04:00</span>
+                <span>08:00</span>
+                <span>12:00</span>
+                <span>16:00</span>
+                <span>20:00</span>
+                <span>24:00</span>
+              </div>
+              <div className="w-28 shrink-0 text-right">最大峰谷价差</div>
+            </div>
+
             {multiProvinceRibbons.map((item) => (
               <div key={item.province} className="flex items-center gap-3 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
                 <div className="w-24 shrink-0">
@@ -627,7 +641,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div className="text-[10px] text-slate-400 truncate">{item.category || item.month}</div>
                 </div>
 
-                <div className="flex-1 grid grid-cols-24 gap-px bg-slate-200 rounded overflow-hidden h-6 shadow-inner">
+                <div className="flex-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 rounded overflow-hidden h-7 shadow-inner">
                   {item.hourly.map((h) => (
                     <div
                       key={h.hour}
@@ -715,7 +729,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                   {/* 24h 彩色连续时间轴 */}
                   <div className="space-y-1">
-                    <div className="grid grid-cols-24 gap-px bg-slate-200 rounded-md overflow-hidden h-4 shadow-sm">
+                    <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 rounded-md overflow-hidden h-5 shadow-sm">
                       {focusedHourlyData.map((h, idx) => (
                         <div
                           key={idx}
