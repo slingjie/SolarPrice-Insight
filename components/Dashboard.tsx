@@ -46,6 +46,7 @@ import {
   Cell
 } from 'recharts';
 import { resolveEffectiveTimeRules } from '../utils/pwaTariffResolver';
+import { normalizeProvinceName, provinceMatches } from '../utils/provinceNormalize';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -83,16 +84,17 @@ const buildHourlyTypes = (rules: TimeRule[]): TimeType[] => {
   return result;
 };
 
-// 区域分组
+// 区域分组与Tab
+const REGION_TABS = ['全部', '常用', '华东', '华南', '华北', '华中', '西南', '西北', '东北'];
 const REGION_GROUPS: Record<string, string[]> = {
-  常用: ['江苏省', '浙江省', '广东省', '山东省', '安徽省', '上海市', '北京市'],
-  华东: ['上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省'],
-  华南: ['广东省', '广西壮族自治区', '海南省'],
-  华北: ['北京市', '天津市', '河北省', '冀北', '山西省', '内蒙古自治区'],
-  华中: ['河南省', '湖北省', '湖南省'],
-  西南: ['重庆市', '四川省', '贵州省', '云南省', '西藏自治区'],
-  西北: ['陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区'],
-  东北: ['辽宁省', '吉林省', '黑龙江省'],
+  常用: ['江苏', '浙江', '广东', '山东', '安徽', '上海', '北京'],
+  华东: ['上海', '江苏', '浙江', '安徽', '福建', '江西', '山东'],
+  华南: ['广东', '广西', '海南'],
+  华北: ['北京', '天津', '河北', '冀北', '山西', '内蒙古'],
+  华中: ['河南', '湖北', '湖南'],
+  西南: ['重庆', '四川', '贵州', '云南', '西藏'],
+  西北: ['陕西', '甘肃', '青海', '宁夏', '新疆'],
+  东北: ['辽宁', '吉林', '黑龙江'],
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -114,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // 下拉菜单浮层开闭状态
   const [openDropdown, setOpenDropdown] = useState<'province' | 'month' | 'category' | 'voltage' | null>(null);
   const [provinceSearch, setProvinceSearch] = useState<string>('');
-  const [selectedRegionTab, setSelectedRegionTab] = useState<string>('常用');
+  const [selectedRegionTab, setSelectedRegionTab] = useState<string>('全部');
   const [monthYearPicker, setMonthYearPicker] = useState<number>(() => new Date().getFullYear());
 
   // 截图区域引用与状态
@@ -177,7 +179,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const kw = searchKeyword.trim().toLowerCase();
     return tariffs
       .filter((t) => {
-        const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(t.province);
+        const matchProvince =
+          selectedProvinces.length === 0 ||
+          selectedProvinces.some((sp) => provinceMatches(t.province, sp));
         const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(t.category);
         const matchVoltage = selectedVoltages.length === 0 || selectedVoltages.includes(t.voltage_level);
         const year = t.month.match(/^(\d{4})-/)?.[1] || '';
@@ -455,17 +459,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 过滤后的省份网格列表
   const displayedProvinces = useMemo(() => {
-    let list = uniqueProvinces;
-    if (selectedRegionTab !== '常用' && REGION_GROUPS[selectedRegionTab]) {
-      const regionSet = new Set(REGION_GROUPS[selectedRegionTab]);
-      list = list.filter((p) => regionSet.has(p));
-    } else if (selectedRegionTab === '常用') {
-      const commonSet = new Set(REGION_GROUPS['常用']);
-      list = list.filter((p) => commonSet.has(p));
+    const baseList = uniqueProvinces.length > 0 ? uniqueProvinces : PROVINCES;
+    let list = baseList;
+    if (selectedRegionTab !== '全部' && REGION_GROUPS[selectedRegionTab]) {
+      const groupList = REGION_GROUPS[selectedRegionTab];
+      list = baseList.filter((p) => groupList.some((target) => provinceMatches(p, target)));
     }
     if (provinceSearch.trim()) {
       const kw = provinceSearch.trim().toLowerCase();
-      list = uniqueProvinces.filter((p) => p.toLowerCase().includes(kw));
+      list = baseList.filter((p) => p.toLowerCase().includes(kw) || normalizeProvinceName(p).includes(kw));
     }
     return list;
   }, [uniqueProvinces, selectedRegionTab, provinceSearch]);
@@ -525,7 +527,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {/* 区域切换 */}
                 {!provinceSearch && (
                   <div className="flex items-center gap-1 pb-2 mb-2 border-b border-slate-100 overflow-x-auto text-[11px]">
-                    {Object.keys(REGION_GROUPS).map((tab) => (
+                    {REGION_TABS.map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setSelectedRegionTab(tab)}
