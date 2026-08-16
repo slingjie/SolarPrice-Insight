@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Library, MapPin, Plus, Search } from 'lucide-react';
+import { CalendarDays, Library, MapPin, Plus, Search, CheckCircle2, Circle, X } from 'lucide-react';
 import { TimeConfig, TimeType } from '../types';
 import { PROVINCES, getTypeColor, getTypeLabel } from '../constants.tsx';
 import { TimeConfigMatrix } from './TimeConfigMatrix';
 import { Card, ConfirmModal, Toast } from './UI';
 import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
 import { rulesToGrid, gridToRules } from '../utils/timeUtils';
+import { normalizeProvinceName, provinceMatches } from '../utils/provinceNormalize';
 
 interface TimeConfigProps {
   configs: TimeConfig[];
@@ -114,43 +115,77 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, rea
   const matrixContainerRef = useRef<HTMLDivElement | null>(null);
   const toastMessage = useRef('操作成功');
 
+  const [statusFilter, setStatusFilter] = useState<'all' | 'configured' | 'unconfigured'>('all');
+
   const provinceStatus = useMemo(() => {
     const status: Record<string, boolean> = {};
     configs.forEach((config) => {
-      if (config.province) {
-        status[config.province] = true;
+      if (config.province && !config._deleted) {
+        const raw = config.province.trim();
+        const norm = normalizeProvinceName(raw);
+        status[raw] = true;
+        if (norm) status[norm] = true;
+        const matchStandard = PROVINCES.find((p) => normalizeProvinceName(p) === norm);
+        if (matchStandard) {
+          status[matchStandard] = true;
+        }
       }
     });
     return status;
   }, [configs]);
 
+  // 去重后的省份选项：标准 PROVINCES 列表 + 真正的自定义非标准省份（按归一化去重，彻底消除“江苏”与“江苏省”等重复）
   const derivedProvinceOptions = useMemo(() => {
-    const configuredProvinces = configs.map((config) => config.province);
-    const uniqueCustomProvinces = Array.from(new Set<string>(configuredProvinces))
-      .filter((province) => !PROVINCES.includes(province))
-      .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+    const standardNormSet = new Set(PROVINCES.map((p) => normalizeProvinceName(p)));
+    const customProvinces = Array.from(
+      new Set(
+        configs
+          .map((config) => config.province?.trim())
+          .filter((p): p is string => Boolean(p) && !standardNormSet.has(normalizeProvinceName(p)))
+      )
+    ).sort((a: string, b: string) => a.localeCompare(b, 'zh-Hans-CN'));
 
-    return [...PROVINCES, ...uniqueCustomProvinces];
+    return [...PROVINCES, ...customProvinces];
   }, [configs]);
 
-  const normalizedDerivedProvinceOptions = useMemo(
-    () => derivedProvinceOptions.map(normalizeProvinceLabel).filter(Boolean),
-    [derivedProvinceOptions],
+  const configuredCount = useMemo(
+    () => derivedProvinceOptions.filter((p) => provinceStatus[p]).length,
+    [derivedProvinceOptions, provinceStatus]
   );
+  const unconfiguredCount = derivedProvinceOptions.length - configuredCount;
 
   const trimmedSearchTerm = normalizeProvinceLabel(searchTerm);
-  const isTrimmedDuplicate = trimmedSearchTerm
-    ? normalizedDerivedProvinceOptions.includes(trimmedSearchTerm)
-    : false;
+  const isTrimmedDuplicate = useMemo(() => {
+    if (!trimmedSearchTerm) return false;
+    const norm = normalizeProvinceName(trimmedSearchTerm);
+    return derivedProvinceOptions.some(
+      (p) => p === trimmedSearchTerm || (norm && normalizeProvinceName(p) === norm)
+    );
+  }, [trimmedSearchTerm, derivedProvinceOptions]);
 
   const filteredProvinces = useMemo(() => {
-    if (!searchTerm) return derivedProvinceOptions;
-    return derivedProvinceOptions.filter((province) => province.includes(searchTerm));
-  }, [derivedProvinceOptions, searchTerm]);
+    let list = derivedProvinceOptions;
+    if (statusFilter === 'configured') {
+      list = list.filter((p) => provinceStatus[p]);
+    } else if (statusFilter === 'unconfigured') {
+      list = list.filter((p) => !provinceStatus[p]);
+    }
+
+    if (!searchTerm.trim()) return list;
+    const term = searchTerm.trim();
+    const normTerm = normalizeProvinceName(term);
+    return list.filter((province) =>
+      province.includes(term) || (normTerm && normalizeProvinceName(province).includes(normTerm))
+    );
+  }, [derivedProvinceOptions, searchTerm, statusFilter, provinceStatus]);
 
   const selectedProvinceConfigs = useMemo(() => {
     if (!selectedProvince) return [];
-    return configs.filter((config) => config.province === selectedProvince && !config._deleted);
+    return configs.filter(
+      (config) =>
+        (config.province === selectedProvince || provinceMatches(config.province, selectedProvince)) &&
+        !config._deleted
+    );
   }, [configs, selectedProvince]);
 
   const availableYears = useMemo(() => {
@@ -455,23 +490,64 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, rea
     <div className="max-w-7xl mx-auto">
       <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in slide-in-from-right-4 duration-500">
         <div className="w-full lg:w-1/4 flex flex-col gap-4 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200">
-          <div className="p-4 border-b bg-slate-50">
-            <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 mb-3">
-              <Library className="text-blue-600" /> 省份列表
-            </h2>
+          <div className="p-4 border-b bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold flex items-center gap-2 text-slate-800">
+                <Library size={18} className="text-blue-600" /> 省份列表
+              </h2>
+              <span className="text-[11px] font-mono text-slate-400">
+                已配置 <strong className="text-emerald-600">{configuredCount}</strong> / {derivedProvinceOptions.length}
+              </span>
+            </div>
+
+            {/* 搜索框 */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
               <input
                 type="text"
                 placeholder="搜索省份..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
-            <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-              {readOnly ? '选择省份查看分时规则' : '输入不存在的省份名称后，列表底部会出现"新增\u0022省份名\u0022"按钮。'}
-            </p>
+
+            {/* 状态筛选切换药丸 */}
+            <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-lg text-xs font-medium">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`py-1 rounded-md transition-all text-center text-[11px] ${
+                  statusFilter === 'all' ? 'bg-white text-blue-700 font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                全部 ({derivedProvinceOptions.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('configured')}
+                className={`py-1 rounded-md transition-all text-center text-[11px] flex items-center justify-center gap-1 ${
+                  statusFilter === 'configured' ? 'bg-white text-emerald-700 font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                已配 ({configuredCount})
+              </button>
+              <button
+                onClick={() => setStatusFilter('unconfigured')}
+                className={`py-1 rounded-md transition-all text-center text-[11px] ${
+                  statusFilter === 'unconfigured' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                未配 ({unconfiguredCount})
+              </button>
+            </div>
           </div>
 
           <div className="overflow-y-auto flex-1 custom-scrollbar">
