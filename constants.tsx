@@ -13,17 +13,24 @@ export const PROVINCES = [
 
 export const getTypeColor = (type: string) => {
   switch (type) {
-    case 'tip': return '#ef4444';
-    case 'peak': return '#f97316';
-    case 'flat': return '#22c55e';
-    case 'valley': return '#3b82f6';
-    case 'deep': return '#6366f1';
-    default: return '#94a3b8';
+    case 'tip':
+    case 'sharp':
+      return '#e11d48'; // 玫瑰红 (尖峰)
+    case 'peak':
+      return '#d97706'; // 琥珀橙 (高峰)
+    case 'flat':
+      return '#2563eb'; // 纯净蓝 (平段)
+    case 'valley':
+      return '#16a34a'; // 翠绿 (低谷)
+    case 'deep':
+      return '#9333ea'; // 高贵紫 (深谷)
+    default:
+      return '#94a3b8';
   }
 };
 
 export const getTypeLabel = (type: string) => {
-  const map: Record<string, string> = { tip: '尖峰', peak: '高峰', flat: '平段', valley: '低谷', deep: '深谷' };
+  const map: Record<string, string> = { tip: '尖峰', sharp: '尖峰', peak: '高峰', flat: '平段', valley: '低谷', deep: '深谷' };
   return map[type] || type;
 };
 

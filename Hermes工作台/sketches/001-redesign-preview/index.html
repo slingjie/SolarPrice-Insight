@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarPrice Insight - 电价工作台视觉重构 (全量下拉筛选展开)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2canvas for Screenshot Export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- SheetJS for 12-Month Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        period: {
+                            deep: { bg: '#faf5ff', text: '#9333ea', border: '#f3e8ff', badge: '#7e22ce' },
+                            valley: { bg: '#f0fdf4', text: '#16a34a', border: '#dcfce7', badge: '#15803d' },
+                            flat: { bg: '#eff6ff', text: '#2563eb', border: '#dbeafe', badge: '#1d4ed8' },
+                            peak: { bg: '#fffbeb', text: '#d97706', border: '#fef3c7', badge: '#b45309' },
+                            sharp: { bg: '#fff1f2', text: '#e11d48', border: '#ffe4e6', badge: '#be123c' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.85);
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+        }
+        .glass-panel-hover {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-panel-hover:hover {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: rgba(199, 210, 254, 0.8);
+            box-shadow: 0 12px 32px -4px rgba(79, 70, 229, 0.08);
+            transform: translateY(-2px);
+        }
+        .dropdown-menu {
+            transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+        #toast {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex text-slate-800" onclick="closeAllDropdowns(event)">
+
+    <!-- 成功提示 Toast -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-150%] opacity-0 glass-panel px-4 py-3 rounded-2xl shadow-xl border border-emerald-200 flex items-center gap-3">
+        <div class="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+            <i data-lucide="check" class="w-4 h-4"></i>
+        </div>
+        <div>
+            <div id="toast-title" class="text-xs font-bold text-slate-800">下载成功</div>
+            <div id="toast-desc" class="text-[11px] text-slate-500">文件已保存到您的本地下载目录</div>
+        </div>
+    </div>
+
+    <!-- 侧边导航栏 -->
+    <aside class="w-64 glass-panel border-r border-slate-200/70 h-screen sticky top-0 flex flex-col z-30 p-4">
+        <!-- Logo -->
+        <div class="flex items-center gap-3 px-3 py-3 mb-4">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                <i data-lucide="zap" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-base tracking-tight text-slate-900 leading-none">电价工作台</h1>
+                <span class="text-[11px] font-medium text-slate-400">SolarPrice Insight</span>
+            </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <div class="space-y-1">
+            <div class="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">核心功能</div>
+            
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-brand-50/80 text-brand-600 font-semibold border border-brand-100/60 shadow-sm">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 text-brand-600"></i>
+                <span class="text-sm">电价与时段总览</span>
+            </a>
+
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 transition-colors font-medium">
+                <i data-lucide="git-compare" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-sm">跨省横向对比</span>
+                <span class="ml-auto text-[10px] bg-brand-50 text-brand-600 font-semibold px-1.5 py-0.5 rounded-md border border-brand-100">多省同屏</span>
+            </a>
+
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 transition-colors font-medium">
+                <i data-lucide="library" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-sm">分时规则与矩阵</span>
+            </a>
+
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 transition-colors font-medium">
+                <i data-lucide="calculator" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-sm">综合电价测算</span>
+            </a>
+
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 transition-colors font-medium">
+                <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-sm">系统与数据管理</span>
+            </a>
+        </div>
+
+        <!-- 底部权威数据状态卡 -->
+        <div class="mt-auto pt-4 border-t border-slate-100 space-y-3">
+            <div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-semibold text-slate-700">95598 权威数据库</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span>已同步
+                    </span>
+                </div>
+                <div class="text-[11px] text-slate-400 tabular-nums">覆盖 31 省份 · 2026年最新</div>
+            </div>
+            
+            <button class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors text-xs font-medium border border-transparent hover:border-slate-200">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>返回模块门户</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- 主工作区 -->
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto custom-scrollbar">
+        
+        <!-- 🌟 顶部通栏控制条 (全量筛选下拉展开 + 胶囊箭头) -->
+        <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/70 px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- 左侧筛选组：省份 + 执行月份 + 用电类别 + 电压等级（全部配备下拉展开） -->
+            <div class="flex flex-wrap items-center gap-3">
+                
+                <!-- 1. 省份选择下拉 (带全量 31 省搜索 & 区域分组) -->
+                <div class="relative dropdown-container">
+                    <button 
+                        onclick="toggleDropdown(event, 'province-dropdown')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50/20 text-xs font-semibold text-slate-800 shadow-sm transition-all group"
+                    >
+                        <div class="w-5 h-5 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                            <i data-lucide="map-pin" class="w-3 h-3"></i>
+                        </div>
+                        <span id="selected-province-label">江苏省</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition-transform dropdown-arrow"></i>
+                    </button>
+
+                    <!-- 省份下拉浮层面板 -->
+                    <div id="province-dropdown" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-80 glass-panel rounded-2xl p-3 shadow-2xl border border-slate-200 z-50">
+                        <!-- 搜索框 -->
+                        <div class="relative mb-2.5">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input 
+                                type="text" 
+                                id="province-search-input"
+                                placeholder="输入省份名称或拼音快速检索..." 
+                                class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-500 focus:bg-white"
+                                oninput="filterProvinces(this.value)"
+                            />
+                        </div>
+
+                        <!-- 快捷区域标签 -->
+                        <div class="flex items-center gap-1.5 pb-2 mb-2 border-b border-slate-100 overflow-x-auto text-[11px] text-slate-500">
+                            <span class="px-2 py-0.5 rounded-lg bg-brand-50 text-brand-600 font-semibold cursor-pointer">常用</span>
+                            <span class="px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer">华东</span>
+                            <span class="px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer">华南</span>
+                            <span class="px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer">华北</span>
+                            <span class="px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer">华中</span>
+                            <span class="px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer">西北</span>
+                        </div>
+
+                        <!-- 31+ 省份列表网格 -->
+                        <div id="province-list-grid" class="max-h-56 overflow-y-auto custom-scrollbar grid grid-cols-3 gap-1.5 p-1 text-xs">
+                            <!-- JS 动态渲染 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 执行月份下拉 (支持年份切换 + 1~12月全量选择) -->
+                <div class="relative dropdown-container">
+                    <button 
+                        onclick="toggleDropdown(event, 'month-dropdown')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50/20 text-xs font-semibold text-slate-800 shadow-sm transition-all group"
+                    >
+                        <div class="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <i data-lucide="calendar" class="w-3 h-3"></i>
+                        </div>
+                        <span id="selected-month-label">2026年08月 (当期)</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition-transform dropdown-arrow"></i>
+                    </button>
+
+                    <!-- 月份下拉浮层面板 -->
+                    <div id="month-dropdown" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-72 glass-panel rounded-2xl p-3 shadow-2xl border border-slate-200 z-50">
+                        <!-- 年份切换 -->
+                        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                            <button class="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-800"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                            <span class="text-xs font-bold text-slate-800">2026 年度</span>
+                            <button class="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-800"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <!-- 12 个月份矩阵 -->
+                        <div class="grid grid-cols-3 gap-1.5 text-xs text-center">
+                            <button onclick="selectMonth('2026-01')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">01月</button>
+                            <button onclick="selectMonth('2026-02')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">02月</button>
+                            <button onclick="selectMonth('2026-03')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">03月</button>
+                            <button onclick="selectMonth('2026-04')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">04月</button>
+                            <button onclick="selectMonth('2026-05')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">05月</button>
+                            <button onclick="selectMonth('2026-06')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">06月</button>
+                            <button onclick="selectMonth('2026-07')" class="py-2 rounded-xl hover:bg-slate-100 text-slate-600 font-medium">07月</button>
+                            <button onclick="selectMonth('2026-08')" class="py-2 rounded-xl bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20">08月 (当期)</button>
+                            <button class="py-2 rounded-xl text-slate-300 cursor-not-allowed">09月 (未出)</button>
+                            <button class="py-2 rounded-xl text-slate-300 cursor-not-allowed">10月</button>
+                            <button class="py-2 rounded-xl text-slate-300 cursor-not-allowed">11月</button>
+                            <button class="py-2 rounded-xl text-slate-300 cursor-not-allowed">12月</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                <!-- 3. 用电类别下拉 (大工业/一般工商业/单一制/两部制) -->
+                <div class="relative dropdown-container">
+                    <button 
+                        onclick="toggleDropdown(event, 'category-dropdown')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50/20 text-xs font-semibold text-slate-800 shadow-sm transition-all group"
+                    >
+                        <span class="text-slate-400 font-normal">类别:</span>
+                        <span id="selected-category-label">大工业用电 (两部制)</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition-transform dropdown-arrow"></i>
+                    </button>
+
+                    <div id="category-dropdown" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-56 glass-panel rounded-2xl p-2 shadow-2xl border border-slate-200 z-50 space-y-1 text-xs">
+                        <button onclick="selectCategory('大工业用电 (两部制)')" class="w-full text-left px-3 py-2 rounded-xl bg-brand-50 text-brand-600 font-bold flex items-center justify-between">
+                            <span>大工业用电 (两部制)</span>
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="selectCategory('一般工商业 (单一制)')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">
+                            <span>一般工商业 (单一制)</span>
+                        </button>
+                        <button onclick="selectCategory('工商业及其他用电')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">
+                            <span>工商业及其他用电</span>
+                        </button>
+                        <button onclick="selectCategory('农业生产用电')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">
+                            <span>农业生产用电</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. 电压等级下拉 (不满1kV ~ 220kV及以上) -->
+                <div class="relative dropdown-container">
+                    <button 
+                        onclick="toggleDropdown(event, 'voltage-dropdown')"
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50/20 text-xs font-semibold text-slate-800 shadow-sm transition-all group"
+                    >
+                        <span class="text-slate-400 font-normal">电压:</span>
+                        <span id="selected-voltage-label">10(20)千伏</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition-transform dropdown-arrow"></i>
+                    </button>
+
+                    <div id="voltage-dropdown" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-48 glass-panel rounded-2xl p-2 shadow-2xl border border-slate-200 z-50 space-y-1 text-xs">
+                        <button onclick="selectVoltage('不满1千伏')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">不满 1 千伏 (380V)</button>
+                        <button onclick="selectVoltage('10(20)千伏')" class="w-full text-left px-3 py-2 rounded-xl bg-brand-50 text-brand-600 font-bold flex items-center justify-between">
+                            <span>10(20) 千伏</span>
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="selectVoltage('35千伏')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">35 千伏</button>
+                        <button onclick="selectVoltage('110千伏')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">110 千伏</button>
+                        <button onclick="selectVoltage('220千伏及以上')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 font-medium">220 千伏及以上</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 右侧：全局导出工具组 -->
+            <div class="flex items-center gap-3">
+                <button 
+                    onclick="exportRecent12MonthsData()"
+                    class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200/90 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm transition-all group"
+                    title="默认按当前月份回溯导出最近连续12个月的电价与分时时段数据 (例如 2025/09～2026/08)"
+                >
+                    <div class="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span>导出该省近 12 个月电价与时段 (Excel)</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="p-8 space-y-6 max-w-7xl w-full mx-auto">
+
+            <!-- 1. 核心关键指标卡片 (Metric Cards with Glass Effect) -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                
+                <!-- 卡片 1: 尖峰电价 -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">最高尖峰电价 (夏高峰)</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-period-sharp-bg text-period-sharp-text border border-period-sharp-border">尖峰</span>
+                    </div>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">1.2486</span>
+                        <span class="text-xs font-medium text-slate-400">元/kWh</span>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">时段: 14:00-15:00, 19:00-21:00</span>
+                        <span class="text-rose-600 font-semibold flex items-center gap-0.5">
+                            <i data-lucide="trending-up" class="w-3 h-3"></i> +0.082
+                        </span>
+                    </div>
+                    <div class="absolute -right-3 -bottom-3 w-16 h-16 bg-rose-500/5 rounded-full blur-xl pointer-events-none"></div>
+                </div>
+
+                <!-- 卡片 2: 最低低谷电价 -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">最低低谷电价</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-period-valley-bg text-period-valley-text border border-period-valley-border">谷段</span>
+                    </div>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">0.3120</span>
+                        <span class="text-xs font-medium text-slate-400">元/kWh</span>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">时段: 00:00-08:00 (夜间)</span>
+                        <span class="text-emerald-600 font-semibold flex items-center gap-0.5">
+                            <i data-lucide="minus" class="w-3 h-3"></i> 环比持平
+                        </span>
+                    </div>
+                    <div class="absolute -right-3 -bottom-3 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+                </div>
+
+                <!-- 卡片 3: 最大峰谷套利价差 (储能黄金指标) -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-indigo-200/80 bg-gradient-to-b from-white/90 to-brand-50/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-brand-700 uppercase tracking-wider">最大峰谷套利价差</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-brand-100/70 text-brand-700 border border-brand-200">储能套利</span>
+                    </div>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-3xl font-extrabold text-brand-600 tracking-tight tabular-nums">0.9366</span>
+                        <span class="text-xs font-medium text-slate-400">元/kWh</span>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">两充两放套利指数: <b class="text-slate-700">优 (4.2h/4.0h)</b></span>
+                        <span class="text-brand-600 font-bold">Top 5 全国</span>
+                    </div>
+                    <div class="absolute -right-3 -bottom-3 w-16 h-16 bg-brand-500/10 rounded-full blur-xl pointer-events-none"></div>
+                </div>
+
+                <!-- 卡片 4: 综合均价 -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">全日综合算术均价</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-600 border border-blue-200">全日均值</span>
+                    </div>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">0.7185</span>
+                        <span class="text-xs font-medium text-slate-400">元/kWh</span>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-500">平段基准: <b class="text-slate-700">0.6720 元/kWh</b></span>
+                        <span class="text-blue-600 font-semibold">波动适中</span>
+                    </div>
+                    <div class="absolute -right-3 -bottom-3 w-16 h-16 bg-blue-500/5 rounded-full blur-xl pointer-events-none"></div>
+                </div>
+
+            </div>
+
+            <!-- 2. 核心大卡片：24小时连续分时色谱与走势图 (24H 区间分时块 + 分色圆点 + 截图下载) -->
+            <div id="spectrum-chart-capture-zone" class="glass-panel p-6 rounded-2xl space-y-5 bg-white/95 transition-all">
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <span>24小时分时时段色谱与电价走势</span>
+                            <span id="chart-sub-label" class="text-xs font-normal text-slate-400">江苏省 · 2026年08月执行标准（夏高峰）</span>
+                        </h2>
+                    </div>
+                    
+                    <!-- 右侧工具栏：图例 + 截图下载 -->
+                    <div class="flex items-center gap-3">
+                        <!-- 图例 -->
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-period-sharp-bg text-period-sharp-text font-semibold border border-period-sharp-border">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#e11d48] shadow-sm"></span> 尖峰 (1.2486)
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-period-peak-bg text-period-peak-text font-semibold border border-period-peak-border">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#d97706] shadow-sm"></span> 高峰 (1.0820)
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-period-flat-bg text-period-flat-text font-semibold border border-period-flat-border">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#2563eb] shadow-sm"></span> 平段 (0.6720)
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-period-valley-bg text-period-valley-text font-semibold border border-period-valley-border">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#16a34a] shadow-sm"></span> 谷段 (0.3120)
+                            </span>
+                        </div>
+
+                        <!-- 截图下载按钮 -->
+                        <button 
+                            id="download-screenshot-btn"
+                            onclick="captureSpectrumChart()"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-brand-50 text-slate-700 hover:text-brand-600 border border-slate-200 text-xs font-semibold transition-all shadow-sm group"
+                            title="下载 24H 谱带与走势图高清 PNG 图片"
+                        >
+                            <i data-lucide="camera" class="w-3.5 h-3.5 text-slate-500 group-hover:text-brand-600"></i>
+                            <span>下载图表截图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 24小时连续时段谱带 (00:00~01:00 至 23:00~24:00) -->
+                <div>
+                    <div class="text-xs font-semibold text-slate-500 mb-2.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <span>24H 连续分时状态谱带</span>
+                            <span class="text-[11px] text-slate-400 font-normal">(按 00:00~01:00 至 23:00~24:00 顺次排列)</span>
+                        </span>
+                        <span class="text-[11px] text-slate-400 font-normal">鼠标悬浮可查看完整时段区间与电价</span>
+                    </div>
+
+                    <div id="spectrum-grid-container" class="grid grid-cols-24 gap-1 p-2 rounded-xl bg-slate-100/80 border border-slate-200/70" style="grid-template-columns: repeat(24, minmax(0, 1fr));">
+                        <!-- 动态渲染 -->
+                    </div>
+                </div>
+
+                <!-- 24小时电价走势曲线图 -->
+                <div class="h-64 w-full pt-2">
+                    <canvas id="price24hChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 3. 下半区两栏：6+2 成本构成横向穿透 + 储能充放窗口经济性测算 -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- 6+2 成本构成拆解表 -->
+                <div class="lg:col-span-8 glass-panel p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <span>6+2 电价成本横向穿透拆解</span>
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-brand-50 text-brand-600 border border-brand-100">权威锚点</span>
+                            </h3>
+                            <p id="cost-table-sub-label" class="text-xs text-slate-400 mt-0.5">江苏省 · 大工业 10kV 两部制分项费用 (元/kWh)</p>
+                        </div>
+                        <button class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                            <span>查看政策依据</span>
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead>
+                                <tr class="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200/80">
+                                    <th class="py-3 px-3.5 rounded-l-lg">时段类型</th>
+                                    <th class="py-3 px-3">最终电价</th>
+                                    <th class="py-3 px-3 text-slate-400">代理购电/上网</th>
+                                    <th class="py-3 px-3 text-slate-400">输配电价</th>
+                                    <th class="py-3 px-3 text-slate-400">上网线损</th>
+                                    <th class="py-3 px-3 text-slate-400">系统运行费</th>
+                                    <th class="py-3 px-3 text-slate-400 rounded-r-lg">政府基金附加</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-rose-50/30 transition-colors">
+                                    <td class="py-3 px-3.5 font-bold text-rose-600 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> 尖峰时段
+                                    </td>
+                                    <td class="py-3 px-3 font-extrabold text-slate-900 tabular-nums text-sm">1.2486</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.7852</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.2450</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0384</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.1380</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0420</td>
+                                </tr>
+                                <tr class="hover:bg-amber-50/30 transition-colors">
+                                    <td class="py-3 px-3.5 font-bold text-amber-600 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> 高峰时段
+                                    </td>
+                                    <td class="py-3 px-3 font-extrabold text-slate-900 tabular-nums text-sm">1.0820</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.6580</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.2040</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0340</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.1440</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0420</td>
+                                </tr>
+                                <tr class="hover:bg-blue-50/30 transition-colors">
+                                    <td class="py-3 px-3.5 font-bold text-blue-600 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> 平段时段
+                                    </td>
+                                    <td class="py-3 px-3 font-extrabold text-slate-900 tabular-nums text-sm">0.6720</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.4120</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.1280</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0210</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0690</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0420</td>
+                                </tr>
+                                <tr class="hover:bg-emerald-50/30 transition-colors">
+                                    <td class="py-3 px-3.5 font-bold text-emerald-600 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 谷段时段
+                                    </td>
+                                    <td class="py-3 px-3 font-extrabold text-slate-900 tabular-nums text-sm">0.3120</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.1650</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0520</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0080</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0450</td>
+                                    <td class="py-3 px-3 tabular-nums text-slate-600">0.0420</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 储能充放窗口与策略建议 -->
+                <div class="lg:col-span-4 glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="battery-charging" class="w-4 h-4 text-emerald-600"></i>
+                                <span>工商业储能建议充放策略</span>
+                            </h3>
+                            <span class="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">两充两放</span>
+                        </div>
+                        <p class="text-xs text-slate-400">基于当月分时电价的最优套利排程</p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">一充：夜间低谷充电</div>
+                                    <div class="text-[11px] text-slate-500 tabular-nums">00:00 - 07:00 (均价 0.3120)</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-emerald-700 tabular-nums">充入</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">一放：上午高峰放电</div>
+                                    <div class="text-[11px] text-slate-500 tabular-nums">08:00 - 11:00 (均价 1.0820)</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-rose-700 tabular-nums">价差 0.77</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">二充：午间平段/深谷充电</div>
+                                    <div class="text-[11px] text-slate-500 tabular-nums">11:00 - 13:30 (均价 0.6720)</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-blue-700 tabular-nums">充入</span>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs font-bold">4</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">二放：傍晚尖峰放电</div>
+                                    <div class="text-[11px] text-slate-500 tabular-nums">19:00 - 21:00 (均价 1.2486)</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-rose-700 tabular-nums">价差 0.57</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="text-slate-500">单日综合套利理论收益:</span>
+                        <span class="font-extrabold text-brand-600 tabular-nums text-sm">1.34 元/kWh·日</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // 31 省份全量元数据
+        const allProvinces = [
+            '江苏省', '浙江省', '广东省', '山东省', '安徽省', '上海市', '北京市', '天津市', 
+            '河北省', '河南省', '湖北省', '湖南省', '江西省', '福建省', '四川省', '重庆市', 
+            '陕西省', '山西省', '辽宁省', '吉林省', '黑龙江省', '内蒙古', '广西', '海南省', 
+            '贵州省', '云南省', '西藏', '甘肃省', '青海省', '宁夏', '新疆'
+        ];
+
+        let currentSelectedProvince = '江苏省';
+        let currentSelectedMonth = '2026年08月 (当期)';
+        let currentSelectedCategory = '大工业用电 (两部制)';
+        let currentSelectedVoltage = '10(20)千伏';
+
+        // 初始化渲染 31 省份网格
+        function renderProvinceList(list) {
+            const grid = document.getElementById('province-list-grid');
+            grid.innerHTML = '';
+            list.forEach(p => {
+                const isSelected = p === currentSelectedProvince;
+                const btn = document.createElement('button');
+                btn.className = `py-1.5 px-2 rounded-xl text-left truncate transition-all ${
+                    isSelected 
+                        ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20' 
+                        : 'hover:bg-slate-100 text-slate-700'
+                }`;
+                btn.textContent = p;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    selectProvince(p);
+                };
+                grid.appendChild(btn);
+            });
+        }
+        renderProvinceList(allProvinces);
+
+        // 筛选省份
+        function filterProvinces(keyword) {
+            const trimmed = keyword.trim();
+            if (!trimmed) {
+                renderProvinceList(allProvinces);
+                return;
+            }
+            const filtered = allProvinces.filter(p => p.includes(trimmed));
+            renderProvinceList(filtered);
+        }
+
+        // 下拉菜单显示/隐藏控制
+        function toggleDropdown(event, dropdownId) {
+            event.stopPropagation();
+            const target = document.getElementById(dropdownId);
+            const isHidden = target.classList.contains('hidden');
+            
+            // 先关闭所有其他下拉
+            closeAllDropdowns();
+            
+            if (isHidden) {
+                target.classList.remove('hidden');
+            }
+        }
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+        }
+
+        // 选择省份
+        function selectProvince(p) {
+            currentSelectedProvince = p;
+            document.getElementById('selected-province-label').textContent = p;
+            document.getElementById('chart-sub-label').textContent = `${p} · 2026年08月执行标准（夏高峰）`;
+            document.getElementById('cost-table-sub-label').textContent = `${p} · ${currentSelectedCategory} ${currentSelectedVoltage} 分项费用 (元/kWh)`;
+            renderProvinceList(allProvinces);
+            closeAllDropdowns();
+            showToast('已切换省份', `已加载【${p}】最新分时电价与成本数据`);
+        }
+
+        // 选择月份
+        function selectMonth(m) {
+            currentSelectedMonth = `${m.slice(0,4)}年${m.slice(5,7)}月`;
+            document.getElementById('selected-month-label').textContent = currentSelectedMonth;
+            closeAllDropdowns();
+            showToast('已切换月份', `已加载【${currentSelectedMonth}】电价标准`);
+        }
+
+        // 选择类别
+        function selectCategory(c) {
+            currentSelectedCategory = c;
+            document.getElementById('selected-category-label').textContent = c;
+            closeAllDropdowns();
+            showToast('已切换用电类别', `已切换为【${c}】`);
+        }
+
+        // 选择电压
+        function selectVoltage(v) {
+            currentSelectedVoltage = v;
+            document.getElementById('selected-voltage-label').textContent = v;
+            closeAllDropdowns();
+            showToast('已切换电压等级', `已切换为【${v}】`);
+        }
+
+        // 初始化 Lucide 图标
+        lucide.createIcons();
+
+        // Toast 消息展示助手
+        function showToast(title, desc) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-desc').textContent = desc;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-150%)';
+            }, 3000);
+        }
+
+        // 24小时分时类型与电价数据
+        const hourlyTypes = [
+            'valley', 'valley', 'valley', 'valley', 'valley', 'valley', 'valley', 'valley', // 00:00~08:00 谷
+            'peak', 'peak', 'peak', // 08:00~11:00 峰
+            'flat', 'flat', 'flat', // 11:00~14:00 平
+            'sharp', // 14:00~15:00 尖
+            'peak', 'peak', // 15:00~17:00 峰
+            'flat', 'flat', // 17:00~19:00 平
+            'sharp', 'sharp', // 19:00~21:00 尖
+            'peak', // 21:00~22:00 峰
+            'flat', 'flat'  // 22:00~24:00 平
+        ];
+
+        const dataValues = [
+            0.3120, 0.3120, 0.3120, 0.3120, 0.3120, 0.3120, 0.3120, 0.3120, // 00~08 谷
+            1.0820, 1.0820, 1.0820, // 08~11 峰
+            0.6720, 0.6720, 0.6720, // 11~14 平
+            1.2486, // 14~15 尖
+            1.0820, 1.0820, // 15~17 峰
+            0.6720, 0.6720, // 17~19 平
+            1.2486, 1.2486, // 19~21 尖
+            1.0820, // 21~22 峰
+            0.6720, 0.6720  // 22~24 平
+        ];
+
+        const typeColorMap = {
+            'sharp': { bgClass: 'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200', badgeClass: 'text-rose-600', dotColor: '#e11d48', label: '尖' },
+            'peak': { bgClass: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200', badgeClass: 'text-amber-600', dotColor: '#d97706', label: '峰' },
+            'flat': { bgClass: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200', badgeClass: 'text-blue-600', dotColor: '#2563eb', label: '平' },
+            'valley': { bgClass: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200', badgeClass: 'text-emerald-600', dotColor: '#16a34a', label: '谷' },
+            'deep': { bgClass: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200', badgeClass: 'text-purple-600', dotColor: '#9333ea', label: '深' }
+        };
+
+        // 渲染 24 个时段块
+        const gridContainer = document.getElementById('spectrum-grid-container');
+        gridContainer.innerHTML = '';
+        for (let h = 0; h < 24; h++) {
+            const startH = String(h).padStart(2, '0');
+            const endH = String(h + 1).padStart(2, '0');
+            const rangeText = `${startH}:00~${endH}:00`;
+            const shortRange = `${startH}-${endH}`;
+            const type = hourlyTypes[h];
+            const price = dataValues[h];
+            const meta = typeColorMap[type];
+
+            const block = document.createElement('div');
+            block.className = `group relative flex flex-col items-center justify-center py-2 px-0.5 rounded-lg border ${meta.bgClass} hover:scale-105 hover:z-20 hover:shadow-lg transition-all cursor-pointer`;
+            block.innerHTML = `
+                <span class="text-[10px] font-bold tabular-nums tracking-tighter leading-tight text-slate-700">${shortRange}</span>
+                <span class="text-[9px] ${meta.badgeClass} font-bold mt-0.5 leading-none">${meta.label}</span>
+                
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-28">
+                    <div class="bg-slate-900 text-white text-[10px] py-1.5 px-2 rounded-lg shadow-xl text-center whitespace-nowrap">
+                        <div class="font-bold text-slate-200">${rangeText}</div>
+                        <div class="text-brand-300 font-extrabold mt-0.5">${price.toFixed(4)} 元/kWh</div>
+                        <div class="text-[9px] text-slate-400 font-medium mt-0.5">${meta.label}段时段</div>
+                    </div>
+                    <div class="w-2 h-2 bg-slate-900 transform rotate-45 -mt-1"></div>
+                </div>
+            `;
+            gridContainer.appendChild(block);
+        }
+
+        // 绘制 24 小时曲线
+        const ctx = document.getElementById('price24hChart').getContext('2d');
+        const labels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2, '0')}:00`);
+        const pointBackgroundColors = hourlyTypes.map(t => typeColorMap[t].dotColor);
+        const pointBorderColors = hourlyTypes.map(() => '#ffffff');
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.12)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        const priceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '分时电价 (元/kWh)',
+                    data: dataValues,
+                    borderColor: '#6366f1',
+                    borderWidth: 2.5,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.25,
+                    pointRadius: 4.5,
+                    pointHoverRadius: 7.5,
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointBorderColor: pointBorderColors,
+                    pointBorderWidth: 2,
+                    pointHoverBorderWidth: 2.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        titleFont: { size: 12, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        cornerRadius: 10,
+                        displayColors: true,
+                        boxPadding: 4,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const h = tooltipItems[0].dataIndex;
+                                const startH = String(h).padStart(2, '0');
+                                const endH = String(h + 1).padStart(2, '0');
+                                return `${startH}:00 ~ ${endH}:00`;
+                            },
+                            labelColor: function(context) {
+                                const index = context.dataIndex;
+                                const type = hourlyTypes[index];
+                                const color = typeColorMap[type].dotColor;
+                                return { borderColor: color, backgroundColor: color, borderWidth: 1, borderRadius: 4 };
+                            },
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                const type = hourlyTypes[index];
+                                const typeName = typeColorMap[type].label;
+                                return ` [${typeName}段] ${context.parsed.y.toFixed(4)} 元/kWh`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11, family: '"Plus Jakarta Sans", sans-serif' }, color: '#94a3b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
+                    },
+                    y: {
+                        min: 0,
+                        max: 1.5,
+                        grid: { color: '#f1f5f9', drawBorder: false },
+                        ticks: { font: { size: 11, family: '"Plus Jakarta Sans", sans-serif' }, color: '#94a3b8', stepSize: 0.3, callback: function(value) { return value.toFixed(2); } }
+                    }
+                }
+            }
+        });
+
+        // 截图下载
+        async function captureSpectrumChart() {
+            const captureArea = document.getElementById('spectrum-chart-capture-zone');
+            const btn = document.getElementById('download-screenshot-btn');
+            btn.style.visibility = 'hidden';
+            try {
+                const canvas = await html2canvas(captureArea, { scale: 2, useCORS: true, backgroundColor: '#ffffff', borderRadius: 16 });
+                const imgData = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `${currentSelectedProvince}_2026年08月_24小时分时电价走势谱带图.png`;
+                link.href = imgData;
+                link.click();
+                showToast('图表截图已保存', '已成功导出 24H 高清谱带与分色圆点走势图 (PNG)');
+            } catch (err) {
+                console.error(err);
+                alert('截图生成失败');
+            } finally {
+                btn.style.visibility = 'visible';
+            }
+        }
+
+        // Excel 导出
+        function exportRecent12MonthsData() {
+            const province = currentSelectedProvince;
+            const currentYear = 2026;
+            const currentMonth = 8;
+
+            const monthList = [];
+            let y = currentYear;
+            let m = currentMonth;
+            for (let i = 0; i < 12; i++) {
+                const mStr = String(m).padStart(2, '0');
+                monthList.unshift(`${y}-${mStr}`);
+                m--;
+                if (m < 1) { m = 12; y--; }
+            }
+
+            const rangeLabel = `${monthList[0]} ~ ${monthList[monthList.length - 1]}`;
+
+            const monthlySummary = [];
+            for (const monthStr of monthList) {
+                const monthNum = parseInt(monthStr.split('-')[1], 10);
+                const isSummer = (monthNum === 7 || monthNum === 8);
+                const isWinter = (monthNum === 1 || monthNum === 12);
+                const sharpPrice = isSummer ? 1.2486 : (isWinter ? 1.1820 : 0);
+                const peakPrice = isSummer ? 1.0820 : 0.9850;
+                const flatPrice = 0.6720;
+                const valleyPrice = 0.3120;
+
+                monthlySummary.push({
+                    '省份': province,
+                    '执行月份': monthStr,
+                    '用电类别': currentSelectedCategory,
+                    '电压等级': currentSelectedVoltage,
+                    '尖峰电价(元/kWh)': sharpPrice > 0 ? sharpPrice : '无',
+                    '高峰电价(元/kWh)': peakPrice,
+                    '平段电价(元/kWh)': flatPrice,
+                    '低谷电价(元/kWh)': valleyPrice,
+                    '深谷电价(元/kWh)': '无',
+                    '最大峰谷价差(元/kWh)': ((sharpPrice || peakPrice) - valleyPrice).toFixed(4),
+                    '代理购电/上网(元/kWh)': 0.4120,
+                    '输配电价(元/kWh)': 0.1280,
+                    '上网线损(元/kWh)': 0.0210,
+                    '系统运行费(元/kWh)': 0.0690,
+                    '政府性基金及附加(元/kWh)': 0.0420
+                });
+            }
+
+            const hourly24Months = [];
+            for (const monthStr of monthList) {
+                const monthNum = parseInt(monthStr.split('-')[1], 10);
+                const isSummer = (monthNum === 7 || monthNum === 8);
+
+                const row = { '省份': province, '月份': monthStr, '数据类型': '分时类型' };
+                const priceRow = { '省份': province, '月份': monthStr, '数据类型': '小时电价(元/kWh)' };
+
+                for (let h = 0; h < 24; h++) {
+                    const startH = String(h).padStart(2, '0');
+                    const endH = String(h + 1).padStart(2, '0');
+                    const hRange = `${startH}:00~${endH}:00`;
+                    
+                    let type = '平';
+                    let price = 0.6720;
+                    if (h < 8) { type = '谷'; price = 0.3120; }
+                    else if ((h >= 8 && h < 11) || (h >= 15 && h < 17) || (h >= 21 && h < 22)) { type = '峰'; price = 1.0820; }
+                    else if (isSummer && ((h >= 14 && h < 15) || (h >= 19 && h < 21))) { type = '尖'; price = 1.2486; }
+                    
+                    row[hRange] = type;
+                    priceRow[hRange] = price;
+                }
+                hourly24Months.push(row);
+                hourly24Months.push(priceRow);
+            }
+
+            const wb = XLSX.utils.book_new();
+            const ws1 = XLSX.utils.json_to_sheet(monthlySummary);
+            XLSX.utils.book_append_sheet(wb, ws1, "近12个月电价与成本分项");
+            const ws2 = XLSX.utils.json_to_sheet(hourly24Months);
+            XLSX.utils.book_append_sheet(wb, ws2, "近12个月24小时逐时时段表");
+
+            const fileName = `${province}_近12个月(${monthList[0]}至${monthList[monthList.length - 1]})分时电价与时段数据表.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showToast('Excel 数据已导出', `已成功生成 ${province} 最近 12 个月 (${rangeLabel}) 完整电价与时段表`);
+        }
+    </script>
+</body>
+</html>
