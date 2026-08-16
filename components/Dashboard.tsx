@@ -149,30 +149,63 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 基础统计列表
   const uniqueProvinces = useMemo(() => Array.from(new Set(tariffs.map((t) => t.province))).sort(), [tariffs]);
-  const uniqueCategories = useMemo(
-    () => Array.from(new Set(tariffs.map((t) => t.category))).filter(Boolean).sort(),
-    [tariffs],
-  );
-  const uniqueVoltages = useMemo(
-    () => Array.from(new Set(tariffs.map((t) => t.voltage_level))).filter(Boolean).sort(),
-    [tariffs],
-  );
-  const uniqueMonths = useMemo(
-    () => Array.from(new Set(tariffs.map((t) => t.month))).filter(Boolean).sort().reverse(),
-    [tariffs],
-  );
-  const uniqueYears = useMemo(() => {
-    return Array.from(
-      new Set(
-        tariffs
-          .map((tariff) => {
-            const match = tariff.month.match(/^(\d{4})-/);
-            return match ? match[1] : '';
-          })
-          .filter(Boolean),
-      ),
-    ).sort();
-  }, [tariffs]);
+
+  // 1. 基于所选省份，动态级联计算可用月份列表
+  const availableMonths = useMemo(() => {
+    const matched = tariffs.filter(
+      (t) => selectedProvinces.length === 0 || selectedProvinces.some((sp) => provinceMatches(t.province, sp)),
+    );
+    return Array.from(new Set(matched.map((t) => t.month))).filter(Boolean).sort().reverse();
+  }, [tariffs, selectedProvinces]);
+
+  // 2. 基于所选省份 + 所选月份，动态级联计算可用用电类别列表
+  const availableCategories = useMemo(() => {
+    const matched = tariffs.filter((t) => {
+      const matchProv = selectedProvinces.length === 0 || selectedProvinces.some((sp) => provinceMatches(t.province, sp));
+      const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(t.month);
+      return matchProv && matchMonth;
+    });
+    return Array.from(new Set(matched.map((t) => t.category))).filter(Boolean).sort();
+  }, [tariffs, selectedProvinces, selectedMonths]);
+
+  // 3. 基于所选省份 + 所选月份 + 所选类别，动态级联计算可用电压等级列表
+  const availableVoltages = useMemo(() => {
+    const matched = tariffs.filter((t) => {
+      const matchProv = selectedProvinces.length === 0 || selectedProvinces.some((sp) => provinceMatches(t.province, sp));
+      const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(t.month);
+      const matchCat = selectedCategories.length === 0 || selectedCategories.includes(t.category);
+      return matchProv && matchMonth && matchCat;
+    });
+    return Array.from(new Set(matched.map((t) => t.voltage_level))).filter(Boolean).sort();
+  }, [tariffs, selectedProvinces, selectedMonths, selectedCategories]);
+
+  // 4. 级联自动校准保护：当上级筛选改变导致下级选中项失效时，自动平滑对齐有效项
+  useEffect(() => {
+    if (selectedMonths.length > 0 && availableMonths.length > 0) {
+      const valid = selectedMonths.filter((m) => availableMonths.includes(m));
+      if (valid.length === 0) {
+        setSelectedMonths([availableMonths[0]]);
+      }
+    }
+  }, [availableMonths, selectedMonths]);
+
+  useEffect(() => {
+    if (selectedCategories.length > 0 && availableCategories.length > 0) {
+      const valid = selectedCategories.filter((c) => availableCategories.includes(c));
+      if (valid.length === 0) {
+        setSelectedCategories([availableCategories[0]]);
+      }
+    }
+  }, [availableCategories, selectedCategories]);
+
+  useEffect(() => {
+    if (selectedVoltages.length > 0 && availableVoltages.length > 0) {
+      const valid = selectedVoltages.filter((v) => availableVoltages.includes(v));
+      if (valid.length === 0) {
+        setSelectedVoltages([availableVoltages[0]]);
+      }
+    }
+  }, [availableVoltages, selectedVoltages]);
 
   // 多维交叉过滤后的电价数据
   const filteredTariffs = useMemo(() => {
@@ -637,7 +670,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {Array.from({ length: 12 }, (_, i) => {
                     const mNum = String(i + 1).padStart(2, '0');
                     const monthKey = `${monthYearPicker}-${mNum}`;
-                    const hasData = uniqueMonths.includes(monthKey);
+                    const hasData = availableMonths.includes(monthKey);
                     const isSelected = selectedMonths.includes(monthKey);
 
                     return (
@@ -652,7 +685,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           isSelected
                             ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/20'
                             : hasData
-                            ? 'hover:bg-slate-100 text-slate-700'
+                            ? 'hover:bg-slate-100 text-slate-700 font-semibold bg-indigo-50/30'
                             : 'text-slate-300 cursor-not-allowed'
                         }`}
                       >
@@ -696,7 +729,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>全部类别</span>
                   {selectedCategories.length === 0 && <Check size={14} />}
                 </button>
-                {uniqueCategories.map((cat) => {
+                {availableCategories.map((cat) => {
                   const isSelected = selectedCategories.includes(cat);
                   return (
                     <button
@@ -747,7 +780,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>全部电压等级</span>
                   {selectedVoltages.length === 0 && <Check size={14} />}
                 </button>
-                {uniqueVoltages.map((volt) => {
+                {availableVoltages.map((volt) => {
                   const isSelected = selectedVoltages.includes(volt);
                   return (
                     <button
