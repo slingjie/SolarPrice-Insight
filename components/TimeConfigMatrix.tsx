@@ -1,9 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Save, Sparkles, BatteryCharging, Zap, Calendar } from 'lucide-react';
+import {
+  Save,
+  Sparkles,
+  BatteryCharging,
+  Zap,
+  Calendar,
+  Camera,
+  FileSpreadsheet,
+  Check,
+  RotateCcw,
+  Copy,
+  Paintbrush
+} from 'lucide-react';
 import { TimeConfig, TimeType } from '../types';
 import { getTypeColor, getTypeLabel } from '../constants';
 import { rulesToGrid, gridToRules } from '../utils/timeUtils';
-import { Card, Toast } from './UI';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 
 interface TimeConfigMatrixProps {
   configs: TimeConfig[];
@@ -23,17 +36,19 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
   focusMonth = null,
   onSave,
 }) => {
+  const matrixCaptureRef = useRef<HTMLDivElement>(null);
   const [matrix, setMatrix] = useState<Record<number, TimeType[]>>({});
   const [activeType, setActiveType] = useState<TimeType>('valley');
   const [isDragging, setIsDragging] = useState(false);
   const [highlightedMonth, setHighlightedMonth] = useState<number | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const toastMessage = useRef('保存成功');
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const [toastMsg, setToastMsg] = useState<{ title: string; desc: string } | null>(null);
   const monthRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  const activeProvinceConfig = configs.find(
-    (c) => c.province === selectedProvince && (c.is_market_based || c.market_notes || c.policy_code),
-  );
+  const showToast = (title: string, desc: string) => {
+    setToastMsg({ title, desc });
+    setTimeout(() => setToastMsg(null), 3500);
+  };
 
   useEffect(() => {
     if (!selectedProvince) return;
@@ -129,8 +144,7 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
     }));
 
     onSave(selectedProvince, newConfigs);
-    toastMessage.current = `已保存 ${selectedProvince} ${selectedYear} 年配置`;
-    setShowToast(true);
+    showToast('配置已保存', `已成功保存 ${selectedProvince} ${selectedYear} 年度分时规则`);
   };
 
   // 全年时段宏观统计
@@ -143,7 +157,7 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
 
     MONTHS.forEach((m) => {
       const row = matrix[m] || Array(24).fill('valley');
-      const tipCount = row.filter((t) => t === 'tip').length;
+      const tipCount = row.filter((t) => t === 'tip' || (t as string) === 'sharp').length;
       const peakCount = row.filter((t) => t === 'peak').length;
       const valleyCount = row.filter((t) => t === 'valley' || t === 'deep').length;
 
@@ -153,7 +167,6 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
 
       if (tipCount > 0) tipMonthsCount++;
 
-      // 判断是否有午间低谷 (10-15h)
       const middayValley = row.slice(10, 15).some((t) => t === 'valley' || t === 'deep');
       if (middayValley && valleyCount >= 8) twoChargeMonthsCount++;
     });
@@ -167,138 +180,269 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
     };
   }, [matrix]);
 
+  // 🌟 功能 1：下载 12×24 全景矩阵高清长图 (PNG)
+  const handleCaptureMatrix = async () => {
+    if (!matrixCaptureRef.current) return;
+    setIsCapturing(true);
+    try {
+      const canvas = await html2canvas(matrixCaptureRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${selectedProvince}_${selectedYear}年_12个月分时时段规则全景矩阵图.png`;
+      link.href = imgData;
+      link.click();
+      showToast('矩阵长图已导出', `已成功保存 ${selectedProvince} 12×24 分时全景矩阵长图 (PNG)`);
+    } catch (err) {
+      console.error(err);
+      alert('矩阵长图生成失败');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  // 🌟 功能 2：导出 12 个月 24 小时分时规则表 (Excel)
+  const handleExportMatrixExcel = () => {
+    const rows: Record<string, any>[] = [];
+
+    MONTHS.forEach((m) => {
+      const mStr = `${selectedYear}-${String(m).padStart(2, '0')}`;
+      const rowData = matrix[m] || Array(24).fill('valley');
+
+      const tipCount = rowData.filter((t) => t === 'tip' || (t as string) === 'sharp').length;
+      const peakCount = rowData.filter((t) => t === 'peak').length;
+      const flatCount = rowData.filter((t) => t === 'flat').length;
+      const valleyCount = rowData.filter((t) => t === 'valley').length;
+      const deepCount = rowData.filter((t) => t === 'deep').length;
+
+      const row: Record<string, any> = {
+        省份: selectedProvince,
+        年份: selectedYear,
+        月份: mStr,
+        '尖峰(h)': tipCount,
+        '高峰(h)': peakCount,
+        '平段(h)': flatCount,
+        '低谷(h)': valleyCount,
+        '深谷(h)': deepCount,
+      };
+
+      for (let h = 0; h < 24; h++) {
+        const startH = h.toString().padStart(2, '0');
+        const endH = (h + 1).toString().padStart(2, '0');
+        const rangeKey = `${startH}:00~${endH}:00`;
+        row[rangeKey] = getTypeLabel(rowData[h]);
+      }
+      rows.push(row);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, '全年分时时段规则');
+
+    const fileName = `${selectedProvince}_${selectedYear}年_12个月分时时段规则矩阵表.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('规则表已导出', `已成功生成 ${selectedProvince} 全年 12 个月分时时段 Excel 矩阵表`);
+  };
+
   return (
-    <Card className="flex-1 flex flex-col overflow-hidden h-full bg-white border border-slate-200 shadow-sm">
-      {/* 顶部标题与刷子工具栏 */}
-      <div className="p-4 border-b flex flex-wrap justify-between items-center bg-white z-10 gap-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-            {selectedProvince}
-            <span className="text-xs font-normal text-slate-500 px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200/60">
-              {selectedYear}年 12个月×24h 分时规则全景大矩阵
-            </span>
-          </h3>
-
-          {/* 刷子工具条 */}
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-            {(['tip', 'peak', 'flat', 'valley', 'deep'] as TimeType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setActiveType(type)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeType === type
-                    ? 'bg-white shadow text-slate-800 ring-1 ring-slate-200'
-                    : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                }`}
-              >
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: getTypeColor(type) }} />
-                {getTypeLabel(type)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          onClick={handleSave}
-          className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700 flex items-center gap-1.5 text-xs font-bold shadow-md shadow-blue-200 transition-all active:scale-95"
-        >
-          <Save size={15} /> 保存配置
-        </button>
-      </div>
-
-      {/* 全年时段宏观统计看板卡 */}
-      <div className="mx-6 mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-red-100 bg-red-50/50 p-2.5 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-            尖
+    <div className="space-y-6">
+      {/* Toast 提示浮窗 */}
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 glass-panel px-4 py-3 rounded-2xl shadow-xl border border-emerald-200 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+            <Check size={16} />
           </div>
           <div>
-            <div className="text-[10px] text-slate-400">尖峰执行月数</div>
-            <div className="text-sm font-mono font-bold text-red-900">
-              {yearStats.tipMonthsCount} 个月 <span className="text-[10px] text-slate-500 font-sans font-normal">({yearStats.totalTipHours}h)</span>
-            </div>
+            <div className="text-xs font-bold text-slate-800">{toastMsg.title}</div>
+            <div className="text-[11px] text-slate-500">{toastMsg.desc}</div>
           </div>
-        </div>
-
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-2.5 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-            谷
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-400">低谷总计小时</div>
-            <div className="text-sm font-mono font-bold text-emerald-900">
-              {yearStats.totalValleyHours} 小时 <span className="text-[10px] text-slate-500 font-sans font-normal">(占比 {((yearStats.totalValleyHours / (12 * 24)) * 100).toFixed(0)}%)</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-2.5 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-            <Zap size={14} />
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-400">两充两放黄金月</div>
-            <div className="text-sm font-mono font-bold text-blue-900">
-              {yearStats.twoChargeMonthsCount} 个月 <span className="text-[10px] text-slate-500 font-sans font-normal">（午间谷充）</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-slate-700 text-white flex items-center justify-center shrink-0">
-            <Calendar size={14} />
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-400">政策状态</div>
-            <div className="text-xs font-semibold text-slate-800 truncate">
-              {activeProvinceConfig?.policy_code || '发改委标准分时'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {activeProvinceConfig && (activeProvinceConfig.is_market_based || activeProvinceConfig.market_notes) && (
-        <div className="mx-6 mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="font-bold">⚠️ 市场化/动态时段提示：</span>
-            <span>{activeProvinceConfig.market_notes || '该省执行现货市场化出清，分时时段按交易中心动态调整。'}</span>
-          </div>
-          {activeProvinceConfig.policy_code && (
-            <span className="text-[11px] text-amber-600 font-normal">{activeProvinceConfig.policy_code}</span>
-          )}
         </div>
       )}
 
-      {/* 12 个月 × 24 小时大矩阵网格 */}
+      {/* 🌟 1. 4 大年度宏观时段统计看板卡片 */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="glass-panel glass-panel-hover p-4 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">尖峰执行月数</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+              尖峰覆盖
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              {yearStats.tipMonthsCount}
+            </span>
+            <span className="text-xs font-medium text-slate-400">个月</span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-500">
+            全年累计 <b className="text-rose-600 tabular-nums">{yearStats.totalTipHours}</b> 小时尖峰
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-14 h-14 bg-rose-500/5 rounded-full blur-lg pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-4 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">低谷累计时长</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+              谷电基准
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              {yearStats.totalValleyHours}
+            </span>
+            <span className="text-xs font-medium text-slate-400">小时/年</span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-500">
+            日均低谷约 <b className="text-emerald-600 tabular-nums">{(yearStats.totalValleyHours / 12).toFixed(1)}h</b> (占比 {((yearStats.totalValleyHours / (12 * 24)) * 100).toFixed(0)}%)
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-14 h-14 bg-emerald-500/5 rounded-full blur-lg pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-4 rounded-2xl relative overflow-hidden border-indigo-200/80 bg-gradient-to-b from-white/90 to-indigo-50/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">两充两放黄金月</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+              储能窗口
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-extrabold text-indigo-600 tracking-tight tabular-nums">
+              {yearStats.twoChargeMonthsCount}
+            </span>
+            <span className="text-xs font-medium text-slate-400">个月</span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-500">
+            具备午间低谷充/傍晚尖峰放
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-14 h-14 bg-indigo-500/10 rounded-full blur-lg pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-4 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">全年规则状态</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+              12月在册
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              100%
+            </span>
+            <span className="text-xs font-medium text-slate-400">完整度</span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-500">
+            {selectedProvince} · {selectedYear} 年度基准规则
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-14 h-14 bg-blue-500/5 rounded-full blur-lg pointer-events-none"></div>
+        </div>
+      </div>
+
+      {/* 🌟 2. 核心 12×24 全景矩阵大画板 */}
       <div
-        className="flex-1 overflow-auto p-6"
+        ref={matrixCaptureRef}
+        className="glass-panel p-6 rounded-2xl space-y-5 bg-white border border-slate-200/90 shadow-sm select-none"
         onMouseUp={() => setIsDragging(false)}
         onMouseLeave={() => setIsDragging(false)}
       >
-        <div className="min-w-[960px] select-none">
-          {/* 小时标头 (00 - 23) */}
-          <div className="flex mb-2">
-            <div className="w-28 shrink-0"></div>
-            <div className="flex-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px">
-              {HOURS.map((hour) => (
-                <div key={hour} className="text-[10px] text-slate-400 font-mono text-center border-l border-slate-100 pb-1">
-                  {hour.toString().padStart(2, '0')}
-                </div>
-              ))}
+        {/* 顶部标题、调色盘笔刷与操作按钮 */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-100">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Calendar size={16} className="text-indigo-600" />
+                <span>{selectedProvince} · {selectedYear} 年 12个月×24h 分时时段全景大矩阵</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                支持画笔涂抹、鼠标拖拽批量绘制，可导出长图与 Excel 规则表
+              </p>
             </div>
-            <div className="w-64 shrink-0 pl-3 text-[10px] text-slate-400 font-medium">各月时段时长汇总</div>
+
+            {/* 调色盘笔刷工具栏 */}
+            <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 text-xs">
+              {(['tip', 'peak', 'flat', 'valley', 'deep'] as TimeType[]).map((type) => {
+                const isActive = activeType === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setActiveType(type)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-white shadow text-slate-900 ring-1 ring-slate-200'
+                        : 'text-slate-500 hover:bg-slate-200 hover:text-slate-800'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getTypeColor(type) }} />
+                    <span>{getTypeLabel(type)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* 12 个月逐行矩阵 */}
+          <div className="flex items-center gap-2.5">
+            {/* 截图长图下载 */}
+            <button
+              onClick={handleCaptureMatrix}
+              disabled={isCapturing}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200 text-xs font-semibold transition-all shadow-sm group"
+              title="下载 12×24 全景矩阵高清长图"
+            >
+              <Camera size={14} className="text-slate-500 group-hover:text-indigo-600" />
+              <span>{isCapturing ? '生成中...' : '下载矩阵长图'}</span>
+            </button>
+
+            {/* 导出 Excel 规则表 */}
+            <button
+              onClick={handleExportMatrixExcel}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm transition-all group"
+              title="导出 12 个月 24 小时分时规则表"
+            >
+              <FileSpreadsheet size={14} />
+              <span>导出规则 (Excel)</span>
+            </button>
+
+            {/* 保存配置 */}
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
+            >
+              <Save size={14} />
+              <span>保存配置</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 12×24 矩阵画板主体 */}
+        <div className="space-y-2">
+          {/* 顶部 24 小时连续刻度尺 (00-01 ~ 23-24) */}
+          <div className="flex items-center gap-2 pl-14 pr-24">
+            <div className="grid grid-cols-24 gap-1 w-full" style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}>
+              {HOURS.map((h) => {
+                const startH = String(h).padStart(2, '0');
+                const endH = String(h + 1).padStart(2, '0');
+                return (
+                  <div key={h} className="text-center text-[10px] font-bold text-slate-400 tabular-nums tracking-tighter">
+                    {startH}-{endH}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 1~12 月行矩阵 */}
           <div className="space-y-1.5">
             {MONTHS.map((month) => {
-              const row = matrix[month] ?? Array(24).fill('valley');
-              const tipH = row.filter((t) => t === 'tip').length;
-              const peakH = row.filter((t) => t === 'peak').length;
-              const flatH = row.filter((t) => t === 'flat').length;
-              const valleyH = row.filter((t) => t === 'valley').length;
-              const deepH = row.filter((t) => t === 'deep').length;
-              const hasMiddayV = row.slice(10, 15).some((t) => t === 'valley' || t === 'deep');
+              const row = matrix[month] || Array(24).fill('valley');
+              const isHighlighted = highlightedMonth === month;
+
+              const tipCount = row.filter((t) => t === 'tip' || (t as string) === 'sharp').length;
+              const peakCount = row.filter((t) => t === 'peak').length;
+              const flatCount = row.filter((t) => t === 'flat').length;
+              const valleyCount = row.filter((t) => t === 'valley' || t === 'deep').length;
 
               return (
                 <div
@@ -306,84 +450,75 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
                   ref={(el) => {
                     monthRowRefs.current[month] = el;
                   }}
-                  className={`flex items-center hover:bg-slate-50/80 rounded-xl p-1.5 transition-colors group ${
-                    highlightedMonth === month ? 'ring-2 ring-blue-400 bg-blue-50/60 shadow-sm' : ''
+                  className={`flex items-center gap-2 p-1.5 rounded-xl border transition-all ${
+                    isHighlighted
+                      ? 'bg-indigo-50 border-indigo-400 shadow-md ring-2 ring-indigo-300/50'
+                      : 'bg-slate-50/70 border-slate-200/80 hover:bg-white hover:border-indigo-200'
                   }`}
                 >
-                  <div className="w-28 shrink-0 font-bold text-slate-700 text-xs flex items-center justify-between pr-2">
-                    <span className="flex items-center gap-1">
-                      <span>{month}月</span>
-                      {tipH > 0 && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 inline-block" title="含尖峰时段" />
-                      )}
-                    </span>
+                  {/* 月份标题 */}
+                  <div className="w-12 text-center text-xs font-bold text-slate-700 tabular-nums flex-shrink-0">
+                    {String(month).padStart(2, '0')}月
+                  </div>
+
+                  {/* 24 个时间块 */}
+                  <div
+                    className="grid grid-cols-24 gap-1 flex-1 h-7"
+                    style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}
+                  >
+                    {HOURS.map((h) => {
+                      const type = row[h];
+                      const startH = String(h).padStart(2, '0');
+                      const endH = String(h + 1).padStart(2, '0');
+                      const rangeText = `${startH}:00~${endH}:00`;
+                      const label = getTypeLabel(type);
+
+                      return (
+                        <div
+                          key={h}
+                          title={`${month}月 ${h}:00 - ${h + 1}:00: ${label}`}
+                          onMouseDown={() => {
+                            setIsDragging(true);
+                            handleCellClick(month, h);
+                          }}
+                          onMouseEnter={() => handleMouseEnter(month, h)}
+                          className="group relative h-full rounded-md cursor-pointer transition-transform hover:scale-110 hover:z-20 shadow-xs border border-black/5 flex items-center justify-center"
+                          style={{ backgroundColor: getTypeColor(type) }}
+                        >
+                          {/* 悬浮 Tooltip 气泡 */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-28">
+                            <div className="bg-slate-900 text-white text-[10px] py-1.5 px-2 rounded-lg shadow-xl text-center whitespace-nowrap">
+                              <div className="font-bold text-slate-200">{String(month).padStart(2, '0')}月 · {rangeText}</div>
+                              <div className="text-indigo-300 font-extrabold mt-0.5">[{label}]</div>
+                            </div>
+                            <div className="w-2 h-2 bg-slate-900 transform rotate-45 -mt-1"></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 右侧微型操作与结构徽章 (快捷整行铺色、复制上一月) */}
+                  <div className="flex items-center gap-1 w-20 flex-shrink-0 justify-end">
+                    <button
+                      onClick={() => applyRow(month)}
+                      className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-200/80 transition-colors"
+                      title="按当前画笔铺满整月"
+                    >
+                      <Paintbrush size={13} />
+                    </button>
                     {month > 1 && (
                       <button
                         onClick={() => copyPrevMonth(month)}
-                        className="text-[10px] text-blue-500 hover:text-blue-700 font-normal opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="复制上月配置"
+                        className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-200/80 transition-colors"
+                        title="复制上一月时段规则"
                       >
-                        同上月
+                        <Copy size={13} />
                       </button>
                     )}
-                  </div>
-
-                  {/* 24 小时色块条 */}
-                  <div
-                    className="flex-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden cursor-crosshair h-7 shadow-inner"
-                    onMouseDown={() => setIsDragging(true)}
-                  >
-                    {row.map((type, hour) => (
-                      <div
-                        key={hour}
-                        className="h-full transition-colors relative hover:opacity-90"
-                        style={{ background: getTypeColor(type) }}
-                        onMouseDown={() => handleCellClick(month, hour)}
-                        onMouseEnter={() => handleMouseEnter(month, hour)}
-                        title={`${month}月 ${hour}:00 - ${hour + 1}:00: ${getTypeLabel(type)}`}
-                      />
-                    ))}
-                  </div>
-
-                  {/* 右侧时段时长结构小徽章 */}
-                  <div className="w-64 shrink-0 pl-3 flex items-center gap-1.5 text-[10px] font-mono">
-                    {tipH > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-red-50 text-red-700 border border-red-200 font-bold">
-                        尖{tipH}h
-                      </span>
-                    )}
-                    {peakH > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-orange-50 text-orange-700 border border-orange-200">
-                        峰{peakH}h
-                      </span>
-                    )}
-                    {flatH > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-yellow-50 text-yellow-800 border border-yellow-200">
-                        平{flatH}h
-                      </span>
-                    )}
-                    {valleyH > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        谷{valleyH}h
-                      </span>
-                    )}
-                    {deepH > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                        深{deepH}h
-                      </span>
-                    )}
-                    {hasMiddayV && (
-                      <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 font-sans text-[9px]">
-                        2充2放
-                      </span>
-                    )}
-                    <button
-                      onClick={() => applyRow(month)}
-                      className="ml-auto text-[10px] text-slate-400 hover:text-blue-600 font-sans opacity-0 group-hover:opacity-100 transition-opacity"
-                      title={`将${month}月全部设为${getTypeLabel(activeType)}`}
-                    >
-                      全涂
-                    </button>
+                    <span className="text-[10px] font-mono text-slate-400 tabular-nums">
+                      {tipCount > 0 ? `尖${tipCount}` : `峰${peakCount}`}
+                    </span>
                   </div>
                 </div>
               );
@@ -391,8 +526,6 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
           </div>
         </div>
       </div>
-
-      {showToast && <Toast message={toastMessage.current} onClose={() => setShowToast(false)} />}
-    </Card>
+    </div>
   );
 };

@@ -1,7 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Library, MapPin, Plus, Search, CheckCircle2, Circle, X, Sparkles, Info, ShieldCheck, Zap } from 'lucide-react';
+import {
+  CalendarDays,
+  Library,
+  MapPin,
+  Plus,
+  Search,
+  CheckCircle2,
+  Circle,
+  X,
+  Sparkles,
+  Info,
+  ShieldCheck,
+  Zap,
+  ChevronDown,
+  Calendar,
+  Layers,
+  ArrowRight,
+  Trash2,
+  Check,
+  Clock,
+  Edit3
+} from 'lucide-react';
 import { TariffData, TimeConfig, TimeType } from '../types';
-import { PROVINCES, getTypeColor, getTypeLabel } from '../constants.tsx';
+import { PROVINCES, getTypeColor, getTypeLabel } from '../constants';
 import { TimeConfigMatrix } from './TimeConfigMatrix';
 import { Card, ConfirmModal, Toast } from './UI';
 import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
@@ -18,6 +39,7 @@ interface TimeConfigProps {
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const currentYear = new Date().getFullYear();
 
 const normalizeProvinceLabel = (value: string) => value.trim();
 
@@ -31,52 +53,6 @@ interface SpecialEditorState {
 
 const emptyGrid = (): TimeType[] => Array(24).fill('valley');
 
-const currentYear = new Date().getFullYear();
-
-const getGridSegments = (grid: TimeType[]) => {
-  if (!grid || grid.length === 0) return [];
-  const segments: { start: number; end: number; type: TimeType }[] = [];
-  let currentStart = 0;
-  let currentType = grid[0];
-
-  for (let i = 1; i < grid.length; i++) {
-    if (grid[i] !== currentType) {
-      segments.push({ start: currentStart, end: i, type: currentType });
-      currentStart = i;
-      currentType = grid[i];
-    }
-  }
-  segments.push({ start: currentStart, end: grid.length, type: currentType });
-  return segments;
-};
-
-const TimeSegmentSummary: React.FC<{ grid: TimeType[] }> = ({ grid }) => {
-  const segments = useMemo(() => getGridSegments(grid), [grid]);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  return (
-    <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-[10px] text-slate-500 leading-tight">
-      {segments.map((seg, idx) => (
-        <span
-          key={idx}
-          className={`cursor-default transition-colors px-1 rounded flex items-center ${
-            hoveredIndex === idx ? 'bg-slate-100 text-slate-800 font-medium' : ''
-          }`}
-          onMouseEnter={() => setHoveredIndex(idx)}
-          onMouseLeave={() => setHoveredIndex(null)}
-          title={`${seg.start}:00 - ${seg.end}:00 ${getTypeLabel(seg.type)}`}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full mr-1"
-            style={{ backgroundColor: getTypeColor(seg.type) }}
-          />
-          {seg.start}-{seg.end} {getTypeLabel(seg.type).replace('时段', '')}
-        </span>
-      ))}
-    </div>
-  );
-};
-
 export const MiniGrid: React.FC<{ grid: TimeType[] | null }> = ({ grid }) => {
   if (!grid) {
     return <div className="text-xs text-slate-400">未配置</div>;
@@ -84,7 +60,7 @@ export const MiniGrid: React.FC<{ grid: TimeType[] | null }> = ({ grid }) => {
 
   return (
     <div className="flex flex-col gap-1 w-full">
-      <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 border border-slate-200 rounded overflow-hidden h-6">
+      <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 border border-slate-200 rounded overflow-hidden h-5">
         {grid.map((type, hour) => (
           <div
             key={hour}
@@ -94,27 +70,24 @@ export const MiniGrid: React.FC<{ grid: TimeType[] | null }> = ({ grid }) => {
           />
         ))}
       </div>
-      <TimeSegmentSummary grid={grid} />
     </div>
   );
 };
 
 export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [], onSave, readOnly = false }) => {
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>('江苏省');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'configured' | 'unconfigured'>('all');
   const [deleteConfirmProvince, setDeleteConfirmProvince] = useState<string | null>(null);
   const [selectedEditYear, setSelectedEditYear] = useState<number>(currentYear);
-  const [visibleYears, setVisibleYears] = useState<number[]>([]);
-  const [newYearInput, setNewYearInput] = useState('');
+
   const [specialStartDateInput, setSpecialStartDateInput] = useState('');
   const [specialEndDateInput, setSpecialEndDateInput] = useState('');
   const [specialEditor, setSpecialEditor] = useState<SpecialEditorState | null>(null);
   const [specialActiveType, setSpecialActiveType] = useState<TimeType>('valley');
   const [specialDragging, setSpecialDragging] = useState(false);
+
   const [showToast, setShowToast] = useState(false);
-  const [focusMonth, setFocusMonth] = useState<number | null>(null);
-  const [monthsCollapsed, setMonthsCollapsed] = useState(true);
-  const matrixContainerRef = useRef<HTMLDivElement | null>(null);
   const toastMessage = useRef('操作成功');
 
   // 自动从 tariffs 政策中解析出的特殊日期时段规则
@@ -129,7 +102,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
 
     const existing = configs.find(
       (c) =>
-        c.province === selectedProvince &&
+        (c.province === selectedProvince || provinceMatches(c.province, selectedProvince)) &&
         c.config_type === 'special_date' &&
         c.special_date?.startsWith(item.startDate) &&
         (c.special_date_end || c.special_date)?.startsWith(item.endDate) &&
@@ -162,8 +135,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
     setShowToast(true);
   };
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'configured' | 'unconfigured'>('all');
-
+  // 省份配置状态映射
   const provinceStatus = useMemo(() => {
     const status: Record<string, boolean> = {};
     configs.forEach((config) => {
@@ -181,15 +153,15 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
     return status;
   }, [configs]);
 
-  // 去重后的省份选项：标准 PROVINCES 列表 + 真正的自定义非标准省份（按归一化去重，彻底消除“江苏”与“江苏省”等重复）
+  // 31 省份全量选项（去重并兼容自定义省份）
   const derivedProvinceOptions = useMemo(() => {
     const standardNormSet = new Set(PROVINCES.map((p) => normalizeProvinceName(p)));
     const customProvinces = Array.from(
       new Set(
         configs
           .map((config) => config.province?.trim())
-          .filter((p): p is string => Boolean(p) && !standardNormSet.has(normalizeProvinceName(p)))
-      )
+          .filter((p): p is string => Boolean(p) && !standardNormSet.has(normalizeProvinceName(p))),
+      ),
     ).sort((a: string, b: string) => a.localeCompare(b, 'zh-Hans-CN'));
 
     return [...PROVINCES, ...customProvinces];
@@ -197,7 +169,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
 
   const configuredCount = useMemo(
     () => derivedProvinceOptions.filter((p) => provinceStatus[p]).length,
-    [derivedProvinceOptions, provinceStatus]
+    [derivedProvinceOptions, provinceStatus],
   );
   const unconfiguredCount = derivedProvinceOptions.length - configuredCount;
 
@@ -206,7 +178,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
     if (!trimmedSearchTerm) return false;
     const norm = normalizeProvinceName(trimmedSearchTerm);
     return derivedProvinceOptions.some(
-      (p) => p === trimmedSearchTerm || (norm && normalizeProvinceName(p) === norm)
+      (p) => p === trimmedSearchTerm || (norm && normalizeProvinceName(p) === norm),
     );
   }, [trimmedSearchTerm, derivedProvinceOptions]);
 
@@ -222,19 +194,21 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
     const term = searchTerm.trim();
     const normTerm = normalizeProvinceName(term);
     return list.filter((province) =>
-      province.includes(term) || (normTerm && normalizeProvinceName(province).includes(normTerm))
+      province.includes(term) || (normTerm && normalizeProvinceName(province).includes(normTerm)),
     );
   }, [derivedProvinceOptions, searchTerm, statusFilter, provinceStatus]);
 
+  // 当前选中省份的所有配置
   const selectedProvinceConfigs = useMemo(() => {
     if (!selectedProvince) return [];
     return configs.filter(
       (config) =>
         (config.province === selectedProvince || provinceMatches(config.province, selectedProvince)) &&
-        !config._deleted
+        !config._deleted,
     );
   }, [configs, selectedProvince]);
 
+  // 可用年份列表
   const availableYears = useMemo(() => {
     const years = new Set<number>();
     selectedProvinceConfigs.forEach((config) => {
@@ -251,10 +225,12 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
   }, [selectedProvinceConfigs]);
 
   useEffect(() => {
-    setVisibleYears(availableYears);
-    setSelectedEditYear((prev) => (availableYears.includes(prev) ? prev : availableYears[availableYears.length - 1]));
-  }, [availableYears]);
+    if (!availableYears.includes(selectedEditYear)) {
+      setSelectedEditYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedEditYear]);
 
+  // 特殊日期配置列表
   const specialConfigs = useMemo(() => {
     const parseRangeForSort = (config: TimeConfig) => {
       const dates = (config.special_date?.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
@@ -268,50 +244,10 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
       .sort((a, b) => {
         const aRange = parseRangeForSort(a);
         const bRange = parseRangeForSort(b);
-        const aStart = aRange.start;
-        const bStart = bRange.start;
-        if (aStart !== bStart) return aStart.localeCompare(bStart);
-        const aEnd = aRange.end;
-        const bEnd = bRange.end;
-        return aEnd.localeCompare(bEnd);
+        if (aRange.start !== bRange.start) return aRange.start.localeCompare(bRange.start);
+        return aRange.end.localeCompare(bRange.end);
       });
   }, [selectedProvinceConfigs]);
-
-  const displayYears = useMemo(() => {
-    const set = new Set(visibleYears);
-    const years = availableYears.filter((year) => set.has(year));
-    return years.length > 0 ? years : availableYears;
-  }, [availableYears, visibleYears]);
-
-  const getMonthlyGrid = (month: number, year: number): TimeType[] | null => {
-    if (!selectedProvince) return null;
-    const resolved = resolveTimeConfigForMonth(configs, selectedProvince, month, year);
-    return resolved?.touGrid ?? null;
-  };
-
-  /** Group months with identical grids across all displayYears into one row */
-  const monthGroups = useMemo(() => {
-    const fingerprint = (month: number): string => {
-      return displayYears.map((year) => {
-        const grid = selectedProvince
-          ? resolveTimeConfigForMonth(configs, selectedProvince, month, year)?.touGrid
-          : null;
-        return grid ? grid.join(',') : 'null';
-      }).join('|');
-    };
-
-    const groups: { months: number[]; fp: string }[] = [];
-    for (const month of MONTHS) {
-      const fp = fingerprint(month);
-      const last = groups[groups.length - 1];
-      if (last && last.fp === fp) {
-        last.months.push(month);
-      } else {
-        groups.push({ months: [month], fp });
-      }
-    }
-    return groups;
-  }, [configs, selectedProvince, displayYears]);
 
   const handleCreateProvince = () => {
     if (!trimmedSearchTerm || isTrimmedDuplicate) return;
@@ -322,7 +258,11 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
   const handleMatrixSave = (province: string, newConfigs: TimeConfig[]) => {
     const keepConfigs = configs.filter(
       (config) =>
-        !(config.province === province && config.config_type === 'monthly' && config.year === selectedEditYear),
+        !(
+          (config.province === province || provinceMatches(config.province, province)) &&
+          config.config_type === 'monthly' &&
+          config.year === selectedEditYear
+        ),
     );
 
     const normalized = newConfigs.map((config) => ({
@@ -338,9 +278,8 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
 
   const clearProvinceConfig = () => {
     if (!deleteConfirmProvince) return;
-
-    const updatedList = configs.filter((config) => config.province !== deleteConfirmProvince);
-    const wasSelected = selectedProvince === deleteConfirmProvince;
+    const updatedList = configs.filter((config) => !provinceMatches(config.province, deleteConfirmProvince));
+    const wasSelected = selectedProvince && provinceMatches(selectedProvince, deleteConfirmProvince);
 
     onSave?.(updatedList);
     setDeleteConfirmProvince(null);
@@ -348,593 +287,326 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
     if (wasSelected) {
       setSelectedProvince(null);
     }
+    toastMessage.current = `已清空 ${deleteConfirmProvince} 的全部配置`;
+    setShowToast(true);
   };
 
-  const toggleVisibleYear = (year: number) => {
-    setVisibleYears((prev) => {
-      if (prev.includes(year)) {
-        return prev.filter((item) => item !== year);
-      }
-      return [...prev, year].sort((a, b) => a - b);
-    });
-  };
-
-  const handleAddYear = () => {
-    const parsed = Number.parseInt(newYearInput.trim(), 10);
-    if (!Number.isFinite(parsed) || parsed < 2000 || parsed > 2100) {
-      toastMessage.current = '年份需在 2000-2100 之间';
-      setShowToast(true);
-      return;
-    }
-
-    setVisibleYears((prev) => (prev.includes(parsed) ? prev : [...prev, parsed].sort((a, b) => a - b)));
-    setSelectedEditYear(parsed);
-    setNewYearInput('');
-  };
-
-  const normalizeDateRange = (startInput: string, endInput?: string): { start: string; end: string } | null => {
-    const inlineDates = (startInput.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
-
-    let start = '';
-    let end = '';
-
-    if (inlineDates.length >= 2) {
-      [start, end] = inlineDates;
-    } else {
-      start = (inlineDates[0] || startInput.slice(0, 10) || '').trim();
-      const endInline = (endInput?.match(/\d{4}-\d{2}-\d{2}/g) ?? [])[0];
-      end = (endInline || endInput?.slice(0, 10) || start).trim();
-    }
-
+  const parseSpecialRangeInput = () => {
+    const start = specialStartDateInput.trim();
+    const end = specialEndDateInput.trim() || start;
     if (!start) return null;
-    if (!end) end = start;
-
-    return start <= end ? { start, end } : { start: end, end: start };
+    const s = start <= end ? start : end;
+    const e = start <= end ? end : start;
+    const matchYear = s.match(/^(\d{4})/);
+    const year = matchYear ? Number.parseInt(matchYear[1], 10) : selectedEditYear;
+    return { start: s, end: e, year };
   };
 
-  const getConfigDateRange = (config: TimeConfig): { start: string; end: string } | null => {
-    if (!config.special_date) return null;
-    return normalizeDateRange(config.special_date, config.special_date_end);
-  };
-
-  const isRangeOverlapping = (a: { start: string; end: string }, b: { start: string; end: string }) => {
-    return a.start <= b.end && b.start <= a.end;
-  };
-
-  const openSpecialEditor = (config?: TimeConfig) => {
-    if (!selectedProvince) return;
-
-    if (config && config.special_date) {
-      const range = getConfigDateRange(config);
-      if (!range) return;
-      setSpecialEditor({
-        id: config.id,
-        startDate: range.start,
-        endDate: range.end,
-        year: config.year,
-        grid: rulesToGrid(config.time_rules),
-      });
-      return;
-    }
-
-    const selectedRange = normalizeDateRange(specialStartDateInput, specialEndDateInput || specialStartDateInput);
-    if (!selectedRange) {
-      toastMessage.current = '请先选择开始日期';
-      setShowToast(true);
-      return;
-    }
-
-    const overlapped = specialConfigs.find((item) => {
-      const range = getConfigDateRange(item);
-      if (!range) return false;
-      return isRangeOverlapping(selectedRange, range);
-    });
-
-    if (overlapped) {
-      openSpecialEditor(overlapped);
-      toastMessage.current = '该日期区间与现有规则重叠，已打开该规则进行编辑';
-      setShowToast(true);
-      return;
-    }
+  const startNewSpecialDateRange = () => {
+    const range = parseSpecialRangeInput();
+    if (!range) return;
 
     setSpecialEditor({
       id: crypto.randomUUID(),
-      startDate: selectedRange.start,
-      endDate: selectedRange.end,
-      year: Number.parseInt(selectedRange.start.slice(0, 4), 10),
+      startDate: range.start,
+      endDate: range.end,
+      year: range.year,
       grid: emptyGrid(),
     });
   };
 
   const saveSpecialEditor = () => {
-    if (!selectedProvince || !specialEditor) return;
+    if (!specialEditor || !selectedProvince) return;
+    const { startDate, endDate, year, grid } = specialEditor;
+    const timeRules = gridToRules(grid);
+    const existingIndex = configs.findIndex((c) => c.id === specialEditor.id);
 
-    const dateRange = normalizeDateRange(specialEditor.startDate, specialEditor.endDate);
-    if (!dateRange) return;
-
-    const rules = gridToRules(specialEditor.grid);
-    const now = new Date().toISOString();
-
-    const conflicts = configs.filter(
-      (config) => {
-        if (config.province !== selectedProvince) return false;
-        if (config.config_type !== 'special_date') return false;
-        if (config.id === specialEditor.id) return false;
-        const range = getConfigDateRange(config);
-        if (!range) return false;
-        return isRangeOverlapping(dateRange, range);
-      },
-    );
-
-    const keep = configs.filter(
-      (config) => {
-        if (config.province !== selectedProvince) return true;
-        if (config.config_type !== 'special_date') return true;
-        if (config.id === specialEditor.id) return false;
-        const range = getConfigDateRange(config);
-        if (!range) return true;
-        return !isRangeOverlapping(dateRange, range);
-      },
-    );
-
-    const encodedSpecialDate =
-      dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start}~${dateRange.end}`;
-
-    const next: TimeConfig = {
+    const updatedConfig: TimeConfig = {
       id: specialEditor.id,
       province: selectedProvince,
-      year: Number.parseInt(dateRange.start.slice(0, 4), 10),
+      year,
       config_type: 'special_date',
-      month_pattern: 'Special',
-      special_date: encodedSpecialDate,
-      special_date_end: dateRange.end,
-      time_rules: rules,
-      updated_at: now,
-      last_modified: now,
+      month_pattern: '',
+      special_date: startDate,
+      special_date_end: endDate,
+      time_rules: timeRules,
+      updated_at: new Date().toISOString(),
+      last_modified: new Date().toISOString(),
     };
 
-    onSave?.([...keep, next]);
+    if (existingIndex >= 0) {
+      const next = [...configs];
+      next[existingIndex] = updatedConfig;
+      onSave?.(next);
+    } else {
+      onSave?.([...configs, updatedConfig]);
+    }
+
     setSpecialEditor(null);
     setSpecialStartDateInput('');
     setSpecialEndDateInput('');
-
-    toastMessage.current = conflicts.length > 0 ? '存在区间重叠，已覆盖冲突规则' : '特殊日期区间规则已保存';
+    toastMessage.current = `已保存 ${startDate} 至 ${endDate} 特殊日期区间规则`;
     setShowToast(true);
   };
 
-  const deleteSpecialConfig = (id: string) => {
-    onSave?.(configs.filter((config) => config.id !== id));
-  };
+  const startEditSpecialConfig = (cfg: TimeConfig) => {
+    const dates = (cfg.special_date?.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
+    const start = dates[0] || cfg.special_date?.slice(0, 10) || '';
+    const end = dates[1] || cfg.special_date_end || start;
+    const grid = rulesToGrid(cfg.time_rules);
+    const matchYear = start.match(/^(\d{4})/);
+    const year = matchYear ? Number.parseInt(matchYear[1], 10) : selectedEditYear;
 
-  const updateSpecialCell = (hour: number) => {
-    if (!specialEditor) return;
-    const next = [...specialEditor.grid];
-    next[hour] = specialActiveType;
-    setSpecialEditor({ ...specialEditor, grid: next });
-  };
-
-  const handleSpecialMouseEnter = (hour: number) => {
-    if (!specialDragging) return;
-    updateSpecialCell(hour);
-  };
-
-  const formatDateRange = (start?: string, end?: string) => {
-    if (!start) return '';
-    const range = normalizeDateRange(start, end);
-    if (!range) return start;
-    return range.start === range.end ? range.start : `${range.start} 至 ${range.end}`;
-  };
-
-  const handleEditMonth = (month: number, year: number) => {
-    setSelectedEditYear(year);
-    setFocusMonth(month);
-    requestAnimationFrame(() => {
-      matrixContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setSpecialEditor({
+      id: cfg.id,
+      startDate: start,
+      endDate: end,
+      year,
+      grid,
     });
   };
 
+  const deleteSpecialConfig = (id: string) => {
+    onSave?.(configs.filter((c) => c.id !== id));
+    toastMessage.current = '已删除特殊日期规则';
+    setShowToast(true);
+  };
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 animate-in slide-in-from-right-4 duration-500">
-        <div className="w-full lg:w-1/4 flex flex-col gap-4 overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200">
-          <div className="p-4 border-b bg-slate-50 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold flex items-center gap-2 text-slate-800">
-                <Library size={18} className="text-blue-600" /> 省份列表
-              </h2>
-              <span className="text-[11px] font-mono text-slate-400">
-                已配置 <strong className="text-emerald-600">{configuredCount}</strong> / {derivedProvinceOptions.length}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
+      {/* 🌟 1. 顶部 Header */}
+      <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-slate-200/80 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <Library size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-slate-900 leading-tight">分时时段规则与全景矩阵</h2>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                12×24 画板
               </span>
             </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              直观查看与调配全国各省全年 12 个月 × 24 小时分时电价时段规则
+            </p>
+          </div>
+        </div>
 
-            {/* 搜索框 */}
+        {selectedProvince && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-400">当前省份:</span>
+            <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+              {selectedProvince}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 🌟 2. 左右双栏布局：左侧紧凑省份选择器 (3列) + 右侧宽幅 12×24 矩阵与特殊时段 (9列) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 左侧：省份选择与快速检索 (3.5列) */}
+        <div className="lg:col-span-3 glass-panel p-4 rounded-2xl flex flex-col h-[780px] overflow-hidden space-y-3 border border-slate-200/80 shadow-sm">
+          {/* 搜索框与新增自定义省份 */}
+          <div className="space-y-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+              <Search size={14} className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="搜索省份..."
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="搜索省份..."
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-indigo-500 focus:bg-white text-slate-800"
               />
               {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                >
-                  <X size={13} />
+                <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <X size={12} />
                 </button>
               )}
             </div>
 
-            {/* 状态筛选切换药丸 */}
-            <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-lg text-xs font-medium">
+            {trimmedSearchTerm && !isTrimmedDuplicate && (
               <button
-                onClick={() => setStatusFilter('all')}
-                className={`py-1 rounded-md transition-all text-center text-[11px] ${
-                  statusFilter === 'all' ? 'bg-white text-blue-700 font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
+                onClick={handleCreateProvince}
+                className="w-full py-1.5 px-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
               >
-                全部 ({derivedProvinceOptions.length})
+                <Plus size={13} />
+                <span>新增 "{trimmedSearchTerm}"</span>
               </button>
-              <button
-                onClick={() => setStatusFilter('configured')}
-                className={`py-1 rounded-md transition-all text-center text-[11px] flex items-center justify-center gap-1 ${
-                  statusFilter === 'configured' ? 'bg-white text-emerald-700 font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                已配 ({configuredCount})
-              </button>
-              <button
-                onClick={() => setStatusFilter('unconfigured')}
-                className={`py-1 rounded-md transition-all text-center text-[11px] ${
-                  statusFilter === 'unconfigured' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                未配 ({unconfiguredCount})
-              </button>
-            </div>
+            )}
           </div>
 
-          <div className="overflow-y-auto flex-1 custom-scrollbar">
+          {/* 状态筛选切换 */}
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-[11px] text-center font-semibold text-slate-500">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'hover:text-slate-800'}`}
+            >
+              全部 ({derivedProvinceOptions.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('configured')}
+              className={`py-1 rounded-lg transition-all ${statusFilter === 'configured' ? 'bg-white text-emerald-600 shadow-sm font-bold' : 'hover:text-slate-800'}`}
+            >
+              已配 ({configuredCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter('unconfigured')}
+              className={`py-1 rounded-lg transition-all ${statusFilter === 'unconfigured' ? 'bg-white text-slate-700 shadow-sm font-bold' : 'hover:text-slate-800'}`}
+            >
+              未配 ({unconfiguredCount})
+            </button>
+          </div>
+
+          {/* 省份纵向列表 */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 pr-1">
             {filteredProvinces.map((province) => {
-              const hasConfig = provinceStatus[province];
-              const isSelected = selectedProvince === province;
+              const isSelected = selectedProvince === province || provinceMatches(selectedProvince || '', province);
+              const isConfigured = provinceStatus[province];
 
               return (
                 <div
                   key={province}
-                  className={`w-full flex items-center justify-between transition-all hover:bg-slate-50 border-l-4 group ${
+                  className={`flex items-center justify-between p-2 rounded-xl text-xs transition-all ${
                     isSelected
-                      ? 'border-l-blue-600 bg-blue-50 text-blue-700 font-bold'
-                      : 'border-l-transparent text-slate-600'
+                      ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/20'
+                      : 'hover:bg-slate-100/80 text-slate-700'
                   }`}
                 >
                   <button
                     onClick={() => setSelectedProvince(province)}
-                    className="flex-1 px-4 py-3 flex items-center gap-3 text-left"
+                    className="flex-1 text-left flex items-center gap-2 truncate"
                   >
-                    <MapPin size={16} className={hasConfig ? 'text-blue-500' : 'text-slate-300'} />
-                    <span>{province}</span>
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        isSelected ? 'bg-white' : isConfigured ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                    />
+                    <span className="truncate">{province}</span>
                   </button>
 
-                  {hasConfig && (
-                    <div className="pr-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                      {!readOnly && (
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setDeleteConfirmProvince(province);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        title="清空配置"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        </svg>
-                      </button>
-                      )}
-                    </div>
+                  {isConfigured && !readOnly && (
+                    <button
+                      title="清空配置"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmProvince(province);
+                      }}
+                      className={`p-1 rounded-lg transition-colors ${
+                        isSelected ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                      }`}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   )}
                 </div>
               );
             })}
-
-            {!readOnly && searchTerm &&
-              trimmedSearchTerm &&
-              !filteredProvinces.includes(searchTerm) &&
-              !provinceStatus[trimmedSearchTerm] &&
-              !isTrimmedDuplicate && (
-                <button
-                  onClick={handleCreateProvince}
-                  className="w-full px-4 py-3 flex items-center gap-3 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-l-transparent border-t border-slate-100 group"
-                >
-                  <div className="bg-slate-100 p-1 rounded group-hover:bg-blue-200 text-slate-400 group-hover:text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                  </div>
-                  <span>新增 "{searchTerm}"</span>
-                </button>
-              )}
           </div>
         </div>
 
-        <div className="w-full lg:w-3/4 flex flex-col overflow-hidden">
-          {!selectedProvince ? (
-            <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-slate-400">
-              <Library size={64} className="mb-4 opacity-10" />
-              <p className="text-lg">{readOnly ? '请在左侧选择省份查看分时规则' : '请在左侧选择省份进行配置'}</p>
-              <p className="text-sm mt-2 opacity-60">{readOnly ? '支持按月份展示多年份规则和特殊日期' : '支持按月份展示多年份规则和特殊日期覆盖'}</p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-              <Card className="p-4 border border-slate-200">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays size={16} className="text-blue-600" />
-                    <span className="text-sm font-bold text-slate-700">年份显示控制</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {availableYears.map((year) => (
-                      <button
-                        key={year}
-                        onClick={() => toggleVisibleYear(year)}
-                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
-                          displayYears.includes(year)
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-white text-slate-500 border-slate-200'
-                        }`}
-                      >
-                        {year}年
-                      </button>
-                    ))}
-                    {!readOnly && (
-                    <>
-                    <input
-                      type="number"
-                      min={2000}
-                      max={2100}
-                      placeholder="新增年份"
-                      value={newYearInput}
-                      onChange={(event) => setNewYearInput(event.target.value)}
-                      className="w-24 px-2 py-1 text-xs border rounded"
-                    />
-                    <button onClick={handleAddYear} className="text-xs px-2.5 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
-                      <Plus size={12} className="inline-block mr-1" />新增
-                    </button>
-                    </>
-                    )}
-                  </div>
-                </div>
-                {!readOnly && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                  <span>当前编辑年份：</span>
-                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200">
-                    {selectedEditYear} 年
-                  </span>
-                </div>
-                )}
-              </Card>
-
-              {/* Month collapse toggle */}
-              {monthGroups.length < 12 && (
-                <div className="flex items-center justify-end">
-                  <button
-                    onClick={() => setMonthsCollapsed((prev) => !prev)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-1.5"
-                  >
-                    {monthsCollapsed ? (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                        展开全部月份（{12}个）
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-                        合并相同月份（{monthGroups.length}组）
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {monthsCollapsed && monthGroups.length < 12 ? (
-                /* Collapsed: grouped months */
-                monthGroups.map((group) => (
-                  <Card key={`group-${group.months.join(',')}`} className="p-4 border border-slate-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-slate-700">
-                        {group.months.length === 1
-                          ? `${group.months[0]}月`
-                          : group.months.length <= 4
-                            ? group.months.map((m) => `${m}月`).join('、')
-                            : `${group.months[0]}月-${group.months[group.months.length - 1]}月（${group.months.length}个月）`}
-                      </h3>
-                      {group.months.length > 1 && (
-                        <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                          相同配置
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      {displayYears.map((year) => {
-                        const grid = getMonthlyGrid(group.months[0], year);
-                        return (
-                          <div key={`group-${group.months[0]}-${year}`} className={`grid ${readOnly ? 'grid-cols-[72px,1fr]' : 'grid-cols-[72px,1fr,66px]'} gap-3 items-center`}>
-                            <span className="text-xs font-medium text-slate-500">{year}年</span>
-                            <MiniGrid grid={grid} />
-                            {!readOnly && (
-                            <button
-                              onClick={() => handleEditMonth(group.months[0], year)}
-                              className={`text-xs px-2 py-1 rounded border ${
-                                selectedEditYear === year
-                                  ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                  : 'bg-white border-slate-200 text-slate-500 hover:text-blue-600'
-                              }`}
-                            >
-                              编辑
-                            </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                /* Expanded: individual months */
-                MONTHS.map((month) => (
-                <Card key={month} className="p-4 border border-slate-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-slate-700">{month}月</h3>
-                    <span className="text-xs text-slate-400">按年份分层展示</span>
-                  </div>
-                  <div className="space-y-2">
-                    {displayYears.map((year) => {
-                      const grid = getMonthlyGrid(month, year);
+        {/* 右侧：宽幅大画板与特殊时段 (9列) */}
+        <div className="lg:col-span-9 space-y-6">
+          {selectedProvince ? (
+            <>
+              {/* 年份选择胶囊 */}
+              <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-4 border border-slate-200/80 shadow-sm">
+                <div className="flex items-center gap-2 text-xs">
+                  <Calendar size={15} className="text-indigo-600" />
+                  <span className="font-bold text-slate-800">编辑年度:</span>
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                    {availableYears.map((year) => {
+                      const isSelected = selectedEditYear === year;
                       return (
-                        <div key={`${month}-${year}`} className={`grid ${readOnly ? 'grid-cols-[72px,1fr]' : 'grid-cols-[72px,1fr,66px]'} gap-3 items-center`}>
-                          <span className="text-xs font-medium text-slate-500">{year}年</span>
-                          <MiniGrid grid={grid} />
-                          {!readOnly && (
-                          <button
-                            onClick={() => handleEditMonth(month, year)}
-                            className={`text-xs px-2 py-1 rounded border ${
-                              selectedEditYear === year
-                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                : 'bg-white border-slate-200 text-slate-500 hover:text-blue-600'
-                            }`}
-                          >
-                            编辑
-                          </button>
-                          )}
-                        </div>
+                        <button
+                          key={year}
+                          onClick={() => setSelectedEditYear(year)}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                            isSelected ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          {year} 年度
+                        </button>
                       );
                     })}
                   </div>
-                </Card>
-              ))
-              )}
-
-              {/* 特殊日期区间总览（含官方政策自动解析与手动配置） */}
-              <Card className="p-5 border border-slate-200 shadow-sm space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                      <Sparkles size={16} className="text-amber-500" />
-                      特殊日期区间与政策时段总览
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      支持迎峰度夏/度冬半月特殊尖峰、重大节假日深谷及气温响应等时段自动识别与生效
-                    </p>
-                  </div>
-
-                  {!readOnly && (
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                      <input
-                        type="date"
-                        aria-label="特殊日期开始"
-                        value={specialStartDateInput}
-                        onChange={(event) => setSpecialStartDateInput(event.target.value)}
-                        className="px-2 py-1 text-xs border rounded-lg bg-white"
-                      />
-                      <span className="text-xs text-slate-400">至</span>
-                      <input
-                        type="date"
-                        aria-label="特殊日期结束"
-                        value={specialEndDateInput}
-                        onChange={(event) => setSpecialEndDateInput(event.target.value)}
-                        className="px-2 py-1 text-xs border rounded-lg bg-white"
-                      />
-                      <button
-                        onClick={() => openSpecialEditor()}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-bold shadow-sm transition-all"
-                      >
-                        新增特殊日期区间
-                      </button>
-                    </div>
-                  )}
                 </div>
 
-                {/* 1. 官方政策智能提取清单（如安徽 07/15-08/31 尖峰等） */}
-                {detectedPolicySpecialPeriods.length > 0 && (
-                  <div className="space-y-3 bg-amber-50/50 border border-amber-200/80 rounded-xl p-3.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-amber-900">
-                      <span className="flex items-center gap-1.5">
-                        <ShieldCheck size={14} className="text-amber-600" />
-                        官方发改委政策时段自动提取 ({detectedPolicySpecialPeriods.length} 条)
-                      </span>
-                      <span className="text-[11px] text-amber-700 font-normal">
-                        根据 95598/发改委公告自动解析
-                      </span>
-                    </div>
+                <div className="text-xs text-slate-400">
+                  {selectedProvince} · {selectedEditYear} 年分时规则画板
+                </div>
+              </div>
 
-                    <div className="space-y-2.5">
-                      {detectedPolicySpecialPeriods.map((dp) => {
-                        const isAlreadyActive = specialConfigs.some(
-                          (sc) =>
-                            sc.special_date?.startsWith(dp.startDate) &&
-                            (sc.special_date_end || sc.special_date)?.startsWith(dp.endDate),
+              {/* 12×24 矩阵画板 */}
+              <TimeConfigMatrix
+                configs={configs}
+                selectedProvince={selectedProvince}
+                selectedYear={selectedEditYear}
+                onSave={handleMatrixSave}
+              />
+
+              {/* 发改委特殊日期区间总览与创建器 */}
+              <div className="glass-panel p-6 rounded-2xl space-y-5 bg-white border border-slate-200/90 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Sparkles size={16} className="text-indigo-600" />
+                      <span>发改委特殊日期时段区间管理</span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        迎峰度夏/度冬
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      针对特定日期区间（如 7/15~8/31 尖峰、节假日深谷等）独立配置特殊分时规则
+                    </p>
+                  </div>
+                </div>
+
+                {/* 智能检测到的政策特殊时段 */}
+                {detectedPolicySpecialPeriods.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Zap size={14} className="text-indigo-600" />
+                      <span>官方政策中检测到的特殊时段建议</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {detectedPolicySpecialPeriods.map((item, idx) => {
+                        const isSynced = configs.some(
+                          (c) =>
+                            (c.province === selectedProvince || provinceMatches(c.province, selectedProvince)) &&
+                            c.config_type === 'special_date' &&
+                            c.special_date?.startsWith(item.startDate) &&
+                            (c.special_date_end || c.special_date)?.startsWith(item.endDate) &&
+                            !c._deleted,
                         );
+
+                        const grid = rulesToGrid(item.timeRules);
 
                         return (
                           <div
-                            key={dp.id}
-                            className="bg-white border border-amber-200/60 rounded-xl p-3 shadow-xs space-y-2"
+                            key={idx}
+                            className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/70 hover:bg-white hover:border-indigo-200 transition-all space-y-2.5"
                           >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-800 text-xs">{dp.title}</span>
-                                <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                                  {dp.startDate} 至 {dp.endDate}
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-900">{item.title}</span>
+                              {isSynced ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                  <Check size={12} /> 已在规则库生效
                                 </span>
-                                {dp.policyCode && (
-                                  <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                                    {dp.policyCode}
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {isAlreadyActive ? (
-                                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
-                                    <CheckCircle2 size={12} />
-                                    已生效于规则库
-                                  </span>
-                                ) : (
-                                  !readOnly && (
-                                    <button
-                                      onClick={() => handleSyncPolicyPeriod(dp)}
-                                      className="text-xs font-bold px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-xs flex items-center gap-1 transition-colors"
-                                    >
-                                      <Zap size={11} />
-                                      一键同步生效
-                                    </button>
-                                  )
-                                )}
-                              </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleSyncPolicyPeriod(item)}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition-all flex items-center gap-1"
+                                >
+                                  <Zap size={12} />
+                                  <span>一键同步生效</span>
+                                </button>
+                              )}
                             </div>
-
-                            <p className="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100 font-mono">
-                              ⏱️ 政策说明：{dp.rawNote}
-                            </p>
-
-                            <div className="pt-1">
-                              <MiniGrid grid={rulesToGrid(dp.timeRules)} />
+                            <div className="text-[11px] text-slate-500 font-semibold">
+                              {item.startDate} 至 {item.endDate}
                             </div>
+                            <MiniGrid grid={grid} />
                           </div>
                         );
                       })}
@@ -942,149 +614,186 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
                   </div>
                 )}
 
-                {/* 2. 已配置特殊日期规则列表 */}
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <CalendarDays size={14} className="text-slate-500" />
-                    当前已生效特殊日期区间 ({specialConfigs.length})
+                {/* 手动创建特殊日期区间表单 */}
+                <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Edit3 size={14} className="text-indigo-600" />
+                    <span>新建特殊日期时段区间</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <label htmlFor="special-start-date" className="text-slate-500 font-medium">特殊日期开始</label>
+                      <input
+                        id="special-start-date"
+                        type="date"
+                        aria-label="特殊日期开始"
+                        value={specialStartDateInput}
+                        onChange={(e) => setSpecialStartDateInput(e.target.value)}
+                        className="p-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <label htmlFor="special-end-date" className="text-slate-500 font-medium">特殊日期结束</label>
+                      <input
+                        id="special-end-date"
+                        type="date"
+                        aria-label="特殊日期结束"
+                        value={specialEndDateInput}
+                        onChange={(e) => setSpecialEndDateInput(e.target.value)}
+                        className="p-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
+                      />
+                    </div>
+                    <button
+                      onClick={startNewSpecialDateRange}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                    >
+                      新增特殊日期区间
+                    </button>
                   </div>
 
-                  {specialConfigs.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-3 text-center bg-slate-50 rounded-xl border border-slate-100">
-                      暂无已生效的特殊日期区间规则
-                    </p>
-                  ) : (
-                    specialConfigs.map((config) => (
-                      <div
-                        key={config.id}
-                        className={`grid ${
-                          readOnly ? 'grid-cols-[160px,1fr]' : 'grid-cols-[160px,1fr,100px]'
-                        } gap-3 items-center p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition-colors`}
-                      >
-                        <div className="text-xs font-mono font-bold text-slate-800" title={config.market_notes}>
-                          {formatDateRange(config.special_date, config.special_date_end)}
+                  {/* 特殊日期画板编辑器 */}
+                  {specialEditor && (
+                    <div className="p-4 rounded-xl bg-white border border-indigo-200 space-y-3 animate-in fade-in duration-150">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-indigo-700">
+                          <span>特殊日期区间:</span>
+                          <input
+                            type="date"
+                            aria-label="编辑特殊日期开始"
+                            value={specialEditor.startDate}
+                            onChange={(e) => setSpecialEditor({ ...specialEditor, startDate: e.target.value })}
+                            className="p-1 rounded border border-indigo-200 text-xs text-slate-800"
+                          />
+                          <span>至</span>
+                          <input
+                            type="date"
+                            aria-label="编辑特殊日期结束"
+                            value={specialEditor.endDate}
+                            onChange={(e) => setSpecialEditor({ ...specialEditor, endDate: e.target.value })}
+                            className="p-1 rounded border border-indigo-200 text-xs text-slate-800"
+                          />
                         </div>
-
-                        <MiniGrid grid={rulesToGrid(config.time_rules)} />
-
-                        {!readOnly && (
-                          <div className="flex items-center gap-2 justify-end">
-                            <button
-                              onClick={() => openSpecialEditor(config)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                            >
-                              编辑
-                            </button>
-                            <button
-                              onClick={() => deleteSpecialConfig(config.id)}
-                              className="text-xs text-red-500 hover:text-red-700 font-semibold"
-                            >
-                              删除
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          onClick={saveSpecialEditor}
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                        >
+                          保存特殊日期区间规则
+                        </button>
                       </div>
-                    ))
+
+                      {/* 笔刷 */}
+                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
+                        {(['tip', 'peak', 'flat', 'valley', 'deep'] as TimeType[]).map((type) => (
+                          <button
+                            key={type}
+                            onClick={() => setSpecialActiveType(type)}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 ${
+                              specialActiveType === type ? 'bg-white shadow text-slate-900' : 'text-slate-500'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getTypeColor(type) }} />
+                            <span>{getTypeLabel(type)}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* 24 小时拖拽网格 */}
+                      <div
+                        className="grid grid-cols-24 gap-1 h-8 rounded-lg overflow-hidden border border-slate-200"
+                        style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}
+                        onMouseUp={() => setSpecialDragging(false)}
+                        onMouseLeave={() => setSpecialDragging(false)}
+                      >
+                        {HOURS.map((h) => (
+                          <div
+                            key={h}
+                            onMouseDown={() => {
+                              setSpecialDragging(true);
+                              setSpecialEditor((prev) => {
+                                if (!prev) return null;
+                                const next = [...prev.grid];
+                                next[h] = specialActiveType;
+                                return { ...prev, grid: next };
+                              });
+                            }}
+                            onMouseEnter={() => {
+                              if (!specialDragging) return;
+                              setSpecialEditor((prev) => {
+                                if (!prev) return null;
+                                const next = [...prev.grid];
+                                next[h] = specialActiveType;
+                                return { ...prev, grid: next };
+                              });
+                            }}
+                            className="cursor-pointer transition-transform hover:scale-105"
+                            style={{ backgroundColor: getTypeColor(specialEditor.grid[h]) }}
+                            title={`${h}:00 [${getTypeLabel(specialEditor.grid[h])}]`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </Card>
 
-              {!readOnly && specialEditor && (
-                <Card className="p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-slate-700">编辑特殊日期区间：{formatDateRange(specialEditor.startDate, specialEditor.endDate)}</h3>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setSpecialEditor(null)} className="text-xs px-2.5 py-1 rounded border border-slate-200">取消</button>
-                      <button onClick={saveSpecialEditor} className="text-xs px-2.5 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">保存特殊日期区间规则</button>
+                {/* 已保存的特殊日期规则列表 */}
+                {specialConfigs.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-slate-700">已保存的特殊日期时段列表:</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {specialConfigs.map((cfg) => {
+                        const dates = (cfg.special_date?.match(/\d{4}-\d{2}-\d{2}/g) ?? []).slice(0, 2);
+                        const start = dates[0] || cfg.special_date?.slice(0, 10) || '';
+                        const end = dates[1] || cfg.special_date_end || start;
+                        const grid = rulesToGrid(cfg.time_rules);
+
+                        return (
+                          <div key={cfg.id} className="p-3 rounded-xl border border-slate-200 bg-white space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-slate-800">{start} 至 {end}</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => startEditSpecialConfig(cfg)}
+                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-0.5 rounded hover:bg-indigo-50"
+                                >
+                                  编辑
+                                </button>
+                                <button
+                                  onClick={() => deleteSpecialConfig(cfg.id)}
+                                  className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                                  title="删除该规则"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                            <MiniGrid grid={grid} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-
-                  <div className="mb-3 flex items-center gap-2 flex-wrap">
-                    <input
-                      type="date"
-                      aria-label="编辑特殊日期开始"
-                      value={specialEditor.startDate}
-                      onChange={(event) => setSpecialEditor({ ...specialEditor, startDate: event.target.value })}
-                      className="px-2 py-1 text-xs border rounded"
-                    />
-                    <span className="text-xs text-slate-400">至</span>
-                    <input
-                      type="date"
-                      aria-label="编辑特殊日期结束"
-                      value={specialEditor.endDate}
-                      onChange={(event) => setSpecialEditor({ ...specialEditor, endDate: event.target.value })}
-                      className="px-2 py-1 text-xs border rounded"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {(['tip', 'peak', 'flat', 'valley', 'deep'] as TimeType[]).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setSpecialActiveType(type)}
-                        className={`px-2 py-1 text-xs rounded border flex items-center gap-1.5 ${
-                          specialActiveType === type
-                            ? 'bg-white text-slate-800 ring-1 ring-slate-200'
-                            : 'bg-slate-50 text-slate-500'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: getTypeColor(type) }} />
-                        {getTypeLabel(type)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div
-                    className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 border border-slate-200 rounded overflow-hidden h-8"
-                    onMouseUp={() => setSpecialDragging(false)}
-                    onMouseLeave={() => setSpecialDragging(false)}
-                  >
-                    {specialEditor.grid.map((type, hour) => (
-                      <div
-                        key={hour}
-                        style={{ background: getTypeColor(type) }}
-                        className="h-full cursor-crosshair"
-                        onMouseDown={() => {
-                          setSpecialDragging(true);
-                          updateSpecialCell(hour);
-                        }}
-                        onMouseEnter={() => handleSpecialMouseEnter(hour)}
-                        title={`${hour}:00 - ${hour + 1}:00 ${getTypeLabel(type)}`}
-                      />
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {!readOnly && (
-              <div ref={matrixContainerRef}>
-                <TimeConfigMatrix
-                  configs={configs}
-                  selectedProvince={selectedProvince}
-                  selectedYear={selectedEditYear}
-                  focusMonth={focusMonth}
-                  onSave={handleMatrixSave}
-                />
+                )}
               </div>
-              )}
+            </>
+          ) : (
+            <div className="glass-panel p-16 text-center text-slate-400 rounded-2xl">
+              请在左侧选择省份进行配置
             </div>
           )}
         </div>
-
-        {!readOnly && (
-        <ConfirmModal
-          isOpen={deleteConfirmProvince !== null}
-          title="确认清空"
-          message={`确定要清空 ${deleteConfirmProvince} 的所有配置吗？此操作不可撤销。`}
-          onConfirm={clearProvinceConfig}
-          onCancel={() => setDeleteConfirmProvince(null)}
-          confirmText="清空"
-          danger
-        />
-        )}
       </div>
 
-      {showToast && <Toast message={toastMessage.current} onClose={() => setShowToast(false)} />}
+      {/* 删除确认弹窗 */}
+      <ConfirmModal
+        isOpen={Boolean(deleteConfirmProvince)}
+        title="清空省份配置"
+        message={`确定要清空 ${deleteConfirmProvince} 的全部配置吗？此操作不可恢复。`}
+        confirmText="清空"
+        onConfirm={clearProvinceConfig}
+        onCancel={() => setDeleteConfirmProvince(null)}
+      />
+
+      <Toast message={toastMessage.current} isVisible={showToast} onClose={() => setShowToast(false)} />
     </div>
   );
 };
