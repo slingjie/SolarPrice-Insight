@@ -65,6 +65,9 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    test: {
+      exclude: ['**/node_modules/**', '**/.worktrees/**', '**/dist/**'],
     }
   };
 });

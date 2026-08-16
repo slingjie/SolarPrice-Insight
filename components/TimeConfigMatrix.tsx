@@ -12,14 +12,17 @@ import {
   Copy,
   Paintbrush
 } from 'lucide-react';
-import { TimeConfig, TimeType } from '../types';
+import { TimeConfig, TimeType, TariffData } from '../types';
 import { getTypeColor, getTypeLabel } from '../constants';
 import { rulesToGrid, gridToRules } from '../utils/timeUtils';
+import { provinceMatches } from '../utils/provinceNormalize';
+import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
 interface TimeConfigMatrixProps {
   configs: TimeConfig[];
+  tariffs?: TariffData[];
   selectedProvince: string;
   selectedYear?: number;
   focusMonth?: number | null;
@@ -31,6 +34,7 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
   configs,
+  tariffs = [],
   selectedProvince,
   selectedYear = new Date().getFullYear(),
   focusMonth = null,
@@ -54,17 +58,16 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
     if (!selectedProvince) return;
 
     const initial: Record<number, TimeType[]> = {};
-    MONTHS.forEach((month) => {
-      initial[month] = Array(24).fill('valley');
-    });
 
+    // 1. 优先从 configs (自定义配置表) 中提取已配置的规则
     const provinceConfigs = configs.filter(
       (config) =>
-        config.province === selectedProvince &&
+        (config.province === selectedProvince || provinceMatches(config.province, selectedProvince)) &&
         config.config_type === 'monthly' &&
         config.year === selectedYear,
     );
 
+    const configCoveredMonths = new Set<number>();
     provinceConfigs.forEach((config) => {
       const grid = rulesToGrid(config.time_rules);
       const monthSet =
@@ -77,11 +80,48 @@ export const TimeConfigMatrix: React.FC<TimeConfigMatrixProps> = ({
 
       monthSet.forEach((month) => {
         initial[month] = [...grid];
+        configCoveredMonths.add(month);
       });
     });
 
+    // 2. 对于未被自定义配置覆盖的月份，从 95598 tariffs 数据库中提取官方真实分时规则
+    const matchedTariffs = tariffs.filter((t) => provinceMatches(t.province, selectedProvince));
+
+    MONTHS.forEach((month) => {
+      if (configCoveredMonths.has(month) && initial[month]) {
+        return;
+      }
+
+      const mStr = `${selectedYear}-${String(month).padStart(2, '0')}`;
+      // (1) 找当期年份当月的 tariff
+      let targetTariff = matchedTariffs.find((t) => t.month === mStr && Array.isArray(t.time_rules) && t.time_rules.length > 0);
+
+      // (2) 若当期未发布，找历史同月份 (如去年同期) 的官方 tariff
+      if (!targetTariff) {
+        targetTariff = matchedTariffs.find((t) => {
+          const match = t.month.match(/-(\d{1,2})$/);
+          return match && parseInt(match[1], 10) === month && Array.isArray(t.time_rules) && t.time_rules.length > 0;
+        });
+      }
+
+      if (targetTariff && Array.isArray(targetTariff.time_rules) && targetTariff.time_rules.length > 0) {
+        initial[month] = rulesToGrid(targetTariff.time_rules);
+        return;
+      }
+
+      // (3) 回退到通用规则解析器 resolveTimeConfigForMonth
+      const resolved = resolveTimeConfigForMonth(configs, selectedProvince, month, selectedYear);
+      if (resolved && resolved.touGrid && resolved.touGrid.length === 24) {
+        initial[month] = [...resolved.touGrid];
+        return;
+      }
+
+      // (4) 最终兜底
+      initial[month] = Array(24).fill('valley');
+    });
+
     setMatrix(initial);
-  }, [configs, selectedProvince, selectedYear]);
+  }, [configs, tariffs, selectedProvince, selectedYear]);
 
   useEffect(() => {
     if (!focusMonth || focusMonth < 1 || focusMonth > 12) return;

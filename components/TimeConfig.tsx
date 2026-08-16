@@ -540,6 +540,7 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [
               {/* 12×24 矩阵画板 */}
               <TimeConfigMatrix
                 configs={configs}
+                tariffs={tariffs}
                 selectedProvince={selectedProvince}
                 selectedYear={selectedEditYear}
                 onSave={handleMatrixSave}
