@@ -194,6 +194,7 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
                 return (
                     <TimeConfigsManager
                         configs={timeConfigs}
+                        tariffs={tariffs}
                         onUpdateConfigs={onUpdateTimeConfigs}
                     />
                 );

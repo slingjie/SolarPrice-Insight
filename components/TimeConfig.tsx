@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Library, MapPin, Plus, Search, CheckCircle2, Circle, X } from 'lucide-react';
-import { TimeConfig, TimeType } from '../types';
+import { CalendarDays, Library, MapPin, Plus, Search, CheckCircle2, Circle, X, Sparkles, Info, ShieldCheck, Zap } from 'lucide-react';
+import { TariffData, TimeConfig, TimeType } from '../types';
 import { PROVINCES, getTypeColor, getTypeLabel } from '../constants.tsx';
 import { TimeConfigMatrix } from './TimeConfigMatrix';
 import { Card, ConfirmModal, Toast } from './UI';
 import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
 import { rulesToGrid, gridToRules } from '../utils/timeUtils';
 import { normalizeProvinceName, provinceMatches } from '../utils/provinceNormalize';
+import { parseSpecialPeriodsFromTariffs, ParsedSpecialPeriod } from '../utils/specialPeriodParser';
 
 interface TimeConfigProps {
   configs: TimeConfig[];
+  tariffs?: TariffData[];
   onSave?: (configs: TimeConfig[]) => void;
   readOnly?: boolean;
 }
@@ -97,7 +99,7 @@ export const MiniGrid: React.FC<{ grid: TimeType[] | null }> = ({ grid }) => {
   );
 };
 
-export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, readOnly = false }) => {
+export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, tariffs = [], onSave, readOnly = false }) => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmProvince, setDeleteConfirmProvince] = useState<string | null>(null);
@@ -114,6 +116,51 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, rea
   const [monthsCollapsed, setMonthsCollapsed] = useState(true);
   const matrixContainerRef = useRef<HTMLDivElement | null>(null);
   const toastMessage = useRef('操作成功');
+
+  // 自动从 tariffs 政策中解析出的特殊日期时段规则
+  const detectedPolicySpecialPeriods = useMemo(() => {
+    if (!selectedProvince || !tariffs || tariffs.length === 0) return [];
+    return parseSpecialPeriodsFromTariffs(tariffs, selectedProvince, selectedEditYear);
+  }, [tariffs, selectedProvince, selectedEditYear]);
+
+  // 一键同步/应用官方政策特殊日期时段
+  const handleSyncPolicyPeriod = (item: ParsedSpecialPeriod) => {
+    if (!onSave || !selectedProvince) return;
+
+    const existing = configs.find(
+      (c) =>
+        c.province === selectedProvince &&
+        c.config_type === 'special_date' &&
+        c.special_date?.startsWith(item.startDate) &&
+        (c.special_date_end || c.special_date)?.startsWith(item.endDate) &&
+        !c._deleted,
+    );
+
+    if (existing) {
+      toastMessage.current = '该政策特殊时段已生效于规则库中';
+      setShowToast(true);
+      return;
+    }
+
+    const newSpecialConfig: TimeConfig = {
+      id: `tc-sp-${normalizeProvinceName(selectedProvince)}-${item.startDate}-${crypto.randomUUID().slice(0, 6)}`,
+      province: selectedProvince,
+      year: item.year,
+      config_type: 'special_date',
+      month_pattern: '',
+      special_date: item.startDate,
+      special_date_end: item.endDate,
+      time_rules: item.timeRules,
+      market_notes: item.rawNote,
+      policy_code: item.policyCode,
+      updated_at: new Date().toISOString(),
+      last_modified: new Date().toISOString(),
+    };
+
+    onSave([...configs, newSpecialConfig]);
+    toastMessage.current = `已自动同步并生效「${item.title}」`;
+    setShowToast(true);
+  };
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'configured' | 'unconfigured'>('all');
 
@@ -782,47 +829,163 @@ export const TimeConfigView: React.FC<TimeConfigProps> = ({ configs, onSave, rea
               ))
               )}
 
-              <Card className="p-4 border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-slate-700">特殊日期区间总览</h3>
-                  {!readOnly && (
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                    <input
-                      type="date"
-                      aria-label="特殊日期开始"
-                      value={specialStartDateInput}
-                      onChange={(event) => setSpecialStartDateInput(event.target.value)}
-                      className="px-2 py-1 text-xs border rounded"
-                    />
-                    <span className="text-xs text-slate-400">至</span>
-                    <input
-                      type="date"
-                      aria-label="特殊日期结束"
-                      value={specialEndDateInput}
-                      onChange={(event) => setSpecialEndDateInput(event.target.value)}
-                      className="px-2 py-1 text-xs border rounded"
-                    />
-                    <button onClick={() => openSpecialEditor()} className="text-xs px-2.5 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
-                      新增特殊日期区间
-                    </button>
+              {/* 特殊日期区间总览（含官方政策自动解析与手动配置） */}
+              <Card className="p-5 border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <Sparkles size={16} className="text-amber-500" />
+                      特殊日期区间与政策时段总览
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      支持迎峰度夏/度冬半月特殊尖峰、重大节假日深谷及气温响应等时段自动识别与生效
+                    </p>
                   </div>
+
+                  {!readOnly && (
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      <input
+                        type="date"
+                        aria-label="特殊日期开始"
+                        value={specialStartDateInput}
+                        onChange={(event) => setSpecialStartDateInput(event.target.value)}
+                        className="px-2 py-1 text-xs border rounded-lg bg-white"
+                      />
+                      <span className="text-xs text-slate-400">至</span>
+                      <input
+                        type="date"
+                        aria-label="特殊日期结束"
+                        value={specialEndDateInput}
+                        onChange={(event) => setSpecialEndDateInput(event.target.value)}
+                        className="px-2 py-1 text-xs border rounded-lg bg-white"
+                      />
+                      <button
+                        onClick={() => openSpecialEditor()}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-bold shadow-sm transition-all"
+                      >
+                        新增特殊日期区间
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  {specialConfigs.length === 0 && <p className="text-xs text-slate-400">暂无特殊日期区间规则</p>}
-                  {specialConfigs.map((config) => (
-                    <div key={config.id} className={`grid ${readOnly ? 'grid-cols-[130px,1fr]' : 'grid-cols-[130px,1fr,120px]'} gap-3 items-center p-2 rounded border border-slate-100`}>
-                      <div className="text-xs text-slate-600 font-medium">{formatDateRange(config.special_date, config.special_date_end)}</div>
-                      <MiniGrid grid={rulesToGrid(config.time_rules)} />
-                      {!readOnly && (
-                      <div className="flex items-center gap-2 justify-end">
-                        <button onClick={() => openSpecialEditor(config)} className="text-xs text-blue-600 hover:text-blue-700">编辑</button>
-                        <button onClick={() => deleteSpecialConfig(config.id)} className="text-xs text-red-500 hover:text-red-600">删除</button>
-                      </div>
-                      )}
+                {/* 1. 官方政策智能提取清单（如安徽 07/15-08/31 尖峰等） */}
+                {detectedPolicySpecialPeriods.length > 0 && (
+                  <div className="space-y-3 bg-amber-50/50 border border-amber-200/80 rounded-xl p-3.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                      <span className="flex items-center gap-1.5">
+                        <ShieldCheck size={14} className="text-amber-600" />
+                        官方发改委政策时段自动提取 ({detectedPolicySpecialPeriods.length} 条)
+                      </span>
+                      <span className="text-[11px] text-amber-700 font-normal">
+                        根据 95598/发改委公告自动解析
+                      </span>
                     </div>
-                  ))}
+
+                    <div className="space-y-2.5">
+                      {detectedPolicySpecialPeriods.map((dp) => {
+                        const isAlreadyActive = specialConfigs.some(
+                          (sc) =>
+                            sc.special_date?.startsWith(dp.startDate) &&
+                            (sc.special_date_end || sc.special_date)?.startsWith(dp.endDate),
+                        );
+
+                        return (
+                          <div
+                            key={dp.id}
+                            className="bg-white border border-amber-200/60 rounded-xl p-3 shadow-xs space-y-2"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-800 text-xs">{dp.title}</span>
+                                <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                  {dp.startDate} 至 {dp.endDate}
+                                </span>
+                                {dp.policyCode && (
+                                  <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                    {dp.policyCode}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {isAlreadyActive ? (
+                                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                                    <CheckCircle2 size={12} />
+                                    已生效于规则库
+                                  </span>
+                                ) : (
+                                  !readOnly && (
+                                    <button
+                                      onClick={() => handleSyncPolicyPeriod(dp)}
+                                      className="text-xs font-bold px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-xs flex items-center gap-1 transition-colors"
+                                    >
+                                      <Zap size={11} />
+                                      一键同步生效
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100 font-mono">
+                              ⏱️ 政策说明：{dp.rawNote}
+                            </p>
+
+                            <div className="pt-1">
+                              <MiniGrid grid={rulesToGrid(dp.timeRules)} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. 已配置特殊日期规则列表 */}
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <CalendarDays size={14} className="text-slate-500" />
+                    当前已生效特殊日期区间 ({specialConfigs.length})
+                  </div>
+
+                  {specialConfigs.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-3 text-center bg-slate-50 rounded-xl border border-slate-100">
+                      暂无已生效的特殊日期区间规则
+                    </p>
+                  ) : (
+                    specialConfigs.map((config) => (
+                      <div
+                        key={config.id}
+                        className={`grid ${
+                          readOnly ? 'grid-cols-[160px,1fr]' : 'grid-cols-[160px,1fr,100px]'
+                        } gap-3 items-center p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition-colors`}
+                      >
+                        <div className="text-xs font-mono font-bold text-slate-800" title={config.market_notes}>
+                          {formatDateRange(config.special_date, config.special_date_end)}
+                        </div>
+
+                        <MiniGrid grid={rulesToGrid(config.time_rules)} />
+
+                        {!readOnly && (
+                          <div className="flex items-center gap-2 justify-end">
+                            <button
+                              onClick={() => openSpecialEditor(config)}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              onClick={() => deleteSpecialConfig(config.id)}
+                              className="text-xs text-red-500 hover:text-red-700 font-semibold"
+                            >
+                              删除
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </Card>
 
