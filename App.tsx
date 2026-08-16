@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
+import { MultiProvinceCompare } from './components/MultiProvinceCompare';
 import { TimeConfigView } from './components/TimeConfig';
 import { ManualEntry } from './components/ManualEntry';
 import { ComprehensivePriceCalculator } from './components/ComprehensivePriceCalculator';
@@ -481,6 +482,13 @@ const App: React.FC = () => {
               onViewModeChange={setDashboardViewMode}
               selectedProvinces={selectedProvinces}
               onSelectedProvincesChange={setSelectedProvinces}
+            />
+          )}
+          {view === 'compare' && (
+            <MultiProvinceCompare
+              tariffs={tariffs}
+              calcCompPrice={calcCompPrice}
+              onNavigate={setView}
             />
           )}
           {view === 'config' && (

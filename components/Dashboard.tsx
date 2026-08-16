@@ -75,6 +75,7 @@ const buildHourlyTypes = (rules: TimeRule[]): TimeType[] => {
 export const Dashboard: React.FC<DashboardProps> = ({
   tariffs,
   onOpenAnalysis,
+  onNavigate,
   selectedProvinces,
   onSelectedProvincesChange,
   calcCompPrice
@@ -284,43 +285,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       totalSpread,
     };
   }, [focusedTariff, focusedHourlyData]);
-
-  // 跨省多选分时横向对比谱带数据 (当 selectedProvinces.length > 1 时触发)
-  const multiProvinceRibbons = useMemo(() => {
-    if (selectedProvinces.length <= 1) return [];
-    return selectedProvinces.map((prov) => {
-      const provTariff = filteredTariffs.find((t) => t.province === prov) || tariffs.find((t) => t.province === prov);
-      if (!provTariff) return { province: prov, category: '', month: '', hourly: [], maxSpread: null, hasTip: false };
-
-      const { rules } = resolveEffectiveTimeRules(provTariff, []);
-      const hourlyTypes = buildHourlyTypes(rules);
-      const hourly = hourlyTypes.map((type, hour) => {
-        let eff = type;
-        if (eff === 'tip' && (provTariff.prices.tip === undefined || provTariff.prices.tip === null)) eff = 'peak';
-        if (eff === 'deep' && (provTariff.prices.deep === undefined || provTariff.prices.deep === null)) eff = 'valley';
-        return {
-          hour,
-          type: eff,
-          color: getTypeColor(eff),
-          price: provTariff.prices[eff] ?? 0,
-        };
-      });
-
-      const valid = [provTariff.prices.tip, provTariff.prices.peak, provTariff.prices.flat, provTariff.prices.valley, provTariff.prices.deep]
-        .filter((v): v is number => typeof v === 'number' && v > 0);
-      const maxSpread = valid.length >= 2 ? Math.max(...valid) - Math.min(...valid) : null;
-      const hasTip = hourly.some((h) => h.type === 'tip');
-
-      return {
-        province: prov,
-        category: provTariff.category,
-        month: provTariff.month,
-        hourly,
-        maxSpread,
-        hasTip,
-      };
-    });
-  }, [selectedProvinces, filteredTariffs, tariffs]);
 
   // 聚焦 Tariff 的综合电价计算（默认 08:00 - 16:00）
   const focusedCompPrice = useMemo(() => {
@@ -601,70 +565,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </Card>
 
-      {/* 跨省时段横向对比谱带 (多选省份时自动激活) */}
-      {multiProvinceRibbons.length > 1 && (
-        <Card className="p-5 bg-white border border-slate-200/80 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
-              <h3 className="font-bold text-slate-900 text-sm">跨省 24h 分时时段横向对比谱带</h3>
-              <span className="text-[11px] text-slate-400">（已勾选 {multiProvinceRibbons.length} 个省份）</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-600 inline-block"/>尖峰</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-500 inline-block"/>高峰</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-500 inline-block"/>平段</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-600 inline-block"/>低谷</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-600 inline-block"/>深谷</span>
+      {/* 跨省对比提示条 (多选省份时提示一键跳转独立跨省对比页) */}
+      {selectedProvinces.length > 1 && (
+        <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+            <div>
+              <span className="font-bold text-slate-800 text-sm">
+                已选择 {selectedProvinces.length} 个省份：{selectedProvinces.join('、')}
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                当前电价工作台聚焦展示单省电价与分时明细。如需跨省 24h 连续谱带与多曲线同屏叠加对比，可前往专属对比页。
+              </p>
             </div>
           </div>
-
-          <div className="space-y-2.5 pt-1">
-            <div className="flex items-center gap-3 px-1 text-[10px] text-slate-400 font-mono">
-              <div className="w-24 shrink-0">省份/分类</div>
-              <div className="flex-1 flex justify-between px-0.5">
-                <span>00:00</span>
-                <span>04:00</span>
-                <span>08:00</span>
-                <span>12:00</span>
-                <span>16:00</span>
-                <span>20:00</span>
-                <span>24:00</span>
-              </div>
-              <div className="w-28 shrink-0 text-right">最大峰谷价差</div>
-            </div>
-
-            {multiProvinceRibbons.map((item) => (
-              <div key={item.province} className="flex items-center gap-3 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
-                <div className="w-24 shrink-0">
-                  <div className="font-bold text-slate-800 text-xs">{item.province}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{item.category || item.month}</div>
-                </div>
-
-                <div className="flex-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-px bg-slate-200 rounded overflow-hidden h-7 shadow-inner">
-                  {item.hourly.map((h) => (
-                    <div
-                      key={h.hour}
-                      className="h-full relative group transition-opacity hover:opacity-90 cursor-pointer"
-                      style={{ backgroundColor: h.color }}
-                      title={`${h.hour}:00 ｜ ${getTypeLabel(h.type)} ｜ ${h.price.toFixed(4)}元`}
-                    />
-                  ))}
-                </div>
-
-                <div className="w-28 shrink-0 text-right">
-                  {item.maxSpread !== null ? (
-                    <span className="text-[11px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      价差 {item.maxSpread.toFixed(4)}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-slate-400">-</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+          <button
+            onClick={() => onNavigate('compare')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 shrink-0"
+          >
+            前往「跨省横向对比」页面 →
+          </button>
+        </div>
       )}
 
       {/* 核心双栏看板（左：24h 日分时洞察 + 储能充放双轨；右：综合电价 + 6+2 成本拆解 + 12个月走势） */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Library, Zap, Settings, Sun, Calculator, BarChart3, Home, LogOut, ArrowLeft, PieChart } from 'lucide-react';
+import { LayoutDashboard, Library, Zap, Settings, Sun, Calculator, BarChart3, Home, LogOut, ArrowLeft, PieChart, GitCompare } from 'lucide-react';
 import { AppView } from '../types';
 
 interface SidebarProps {
@@ -9,7 +9,8 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   const items = [
-    { id: 'dashboard', label: '数据概览', icon: LayoutDashboard },
+    { id: 'dashboard', label: '电价与时段', icon: LayoutDashboard },
+    { id: 'compare', label: '跨省横向对比', icon: GitCompare },
     { id: 'config', label: '分时规则查看', icon: Library },
     { id: 'calculator', label: '综合电价', icon: Calculator },
     { id: 'settings', label: '系统设置', icon: Settings },
