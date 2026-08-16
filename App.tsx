@@ -494,6 +494,8 @@ const App: React.FC = () => {
           {view === 'config' && (
             <TimeConfigView
               configs={timeConfigs}
+              tariffs={tariffs}
+              onSave={handleUpdateTimeConfigs}
               readOnly
             />
           )}

@@ -1,14 +1,15 @@
 import React from 'react';
-import { TimeConfig } from '../../types';
+import { TariffData, TimeConfig } from '../../types';
 import { recordLog } from '../../services/logService';
 import { TimeConfigView } from '../TimeConfig';
 
 interface TimeConfigsManagerProps {
   configs: TimeConfig[];
+  tariffs?: TariffData[];
   onUpdateConfigs: (newConfigs: TimeConfig[]) => void;
 }
 
-export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs, onUpdateConfigs }) => {
+export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs, tariffs, onUpdateConfigs }) => {
   const handleSave = (nextConfigs: TimeConfig[]) => {
     const prevCount = configs.length;
     const nextCount = nextConfigs.length;
@@ -28,5 +29,5 @@ export const TimeConfigsManager: React.FC<TimeConfigsManagerProps> = ({ configs,
     recordLog('time_configs', 'update', Math.max(1, nextCount));
   };
 
-  return <TimeConfigView configs={configs} onSave={handleSave} />;
+  return <TimeConfigView configs={configs} tariffs={tariffs} onSave={handleSave} />;
 };
