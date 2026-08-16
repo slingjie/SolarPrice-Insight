@@ -1,807 +1,685 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Calculator, Calendar, ArrowRight, Save, Trash2, Clock, TrendingUp, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card } from './UI';
-import { TariffData, SavedTimeRange, ComprehensiveResult, TimeConfig } from '../types';
-import { PROVINCES, DEFAULT_TIME_CONFIGS, getTypeColor, getTypeLabel } from '../constants.tsx';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  Calculator,
+  Calendar,
+  ArrowRight,
+  Save,
+  Trash2,
+  Clock,
+  TrendingUp,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Sun,
+  Building,
+  BatteryCharging,
+  Globe,
+  FileSpreadsheet,
+  Camera,
+  Check,
+  RotateCcw,
+  Sparkles,
+  Layers,
+  ArrowLeft
+} from 'lucide-react';
+import { TariffData, SavedTimeRange, ComprehensiveResult, TimeConfig, TimeRule, TimeType } from '../types';
+import { PROVINCES, getTypeColor, getTypeLabel } from '../constants';
 import { getDatabase } from '../services/db';
 import { calculateAveragePrice, CalculationResult } from '../services/priceCalculator';
 import { resolveTimeConfigForMonth } from '../utils/timeConfigResolver';
-import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
-import { syncOutboxService } from '../services/sync/syncOutboxService';
-import { getSyncManager } from '../services/sync/syncManager';
-import { getDocModifiedAt } from '../services/sync/syncAdapters';
+import { normalizeProvinceName, provinceMatches } from '../utils/provinceNormalize';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  Cell
+} from 'recharts';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 
 interface ComprehensivePriceCalculatorProps {
-    tariffs: TariffData[];
-    timeConfigs: TimeConfig[];
-    onNavigate: (view: string) => void;
+  tariffs: TariffData[];
+  timeConfigs: TimeConfig[];
+  onNavigate: (view: string) => void;
 }
-
 
 interface PriceResult extends CalculationResult {}
 
-export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({ tariffs: allTariffs, timeConfigs, onNavigate }) => {
-    const [dbProvinces, setDbProvinces] = useState<string[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [initLoading, setInitLoading] = useState(true);
+// 快捷时段预设
+const PRESET_TIME_RANGES = [
+  { label: '光伏黄金消纳', icon: Sun, start: '08:00', end: '16:00', desc: '8小时光伏自用黄金窗口' },
+  { label: '工商业全日生产', icon: Building, start: '08:00', end: '18:00', desc: '日间10小时典型生产时段' },
+  { label: '晚高峰放电', icon: BatteryCharging, start: '18:00', end: '22:00', desc: '晚间4小时储能放电窗口' },
+  { label: '全天24小时', icon: Globe, start: '00:00', end: '24:00', desc: '全日24小时算术加权' },
+];
 
-    const [formData, setFormData] = useState({
-        province: PROVINCES[0],
-        category: '',
-        voltage: '',
-        months: [] as string[], // "YYYY-MM"
-        startTime: '08:00',
-        endTime: '17:00'
+export const ComprehensivePriceCalculator: React.FC<ComprehensivePriceCalculatorProps> = ({
+  tariffs: allTariffs,
+  timeConfigs,
+  onNavigate,
+}) => {
+  const chartCaptureRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const [toastMsg, setToastMsg] = useState<{ title: string; desc: string } | null>(null);
+
+  const showToast = (title: string, desc: string) => {
+    setToastMsg({ title, desc });
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  // 可用省份列表（去重与归一化）
+  const activeProvinces = useMemo(() => {
+    return Array.from(new Set(allTariffs.map((t) => t.province))).sort();
+  }, [allTariffs]);
+
+  const [formData, setFormData] = useState({
+    province: activeProvinces[0] || '江苏',
+    category: '',
+    voltage: '',
+    months: [] as string[],
+    startTime: '08:00',
+    endTime: '16:00',
+  });
+
+  // 当前省份的数据
+  const provinceTariffs = useMemo(() => {
+    return allTariffs.filter((t) => provinceMatches(t.province, formData.province));
+  }, [allTariffs, formData.province]);
+
+  // 动态级联可用选项
+  const availableCategories = useMemo(() => {
+    return Array.from(new Set(provinceTariffs.map((t) => t.category))).filter(Boolean).sort();
+  }, [provinceTariffs]);
+
+  const availableVoltages = useMemo(() => {
+    return Array.from(
+      new Set(provinceTariffs.filter((t) => t.category === formData.category).map((t) => t.voltage_level)),
+    ).filter(Boolean).sort();
+  }, [provinceTariffs, formData.category]);
+
+  const availableMonths = useMemo(() => {
+    return Array.from(
+      new Set(
+        provinceTariffs
+          .filter((t) => t.category === formData.category && t.voltage_level === formData.voltage)
+          .map((t) => t.month),
+      ),
+    ).sort().reverse();
+  }, [provinceTariffs, formData.category, formData.voltage]);
+
+  // 智能自动初始化与级联保护
+  useEffect(() => {
+    if (activeProvinces.length > 0 && !activeProvinces.some((p) => provinceMatches(p, formData.province))) {
+      setFormData((prev) => ({ ...prev, province: activeProvinces[0] }));
+    }
+  }, [activeProvinces, formData.province]);
+
+  useEffect(() => {
+    if (availableCategories.length > 0 && (!formData.category || !availableCategories.includes(formData.category))) {
+      setFormData((prev) => ({ ...prev, category: availableCategories[0] }));
+    }
+  }, [availableCategories, formData.category]);
+
+  useEffect(() => {
+    if (availableVoltages.length > 0 && (!formData.voltage || !availableVoltages.includes(formData.voltage))) {
+      setFormData((prev) => ({ ...prev, voltage: availableVoltages[0] }));
+    }
+  }, [availableVoltages, formData.voltage]);
+
+  useEffect(() => {
+    if (availableMonths.length > 0 && formData.months.length === 0) {
+      // 默认全选该组合的所有月份
+      setFormData((prev) => ({ ...prev, months: availableMonths }));
+    }
+  }, [availableMonths, formData.months.length]);
+
+  const [results, setResults] = useState<PriceResult[]>([]);
+  const [calcMsg, setCalcMsg] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+
+  // 执行综合电价计算
+  const handleCalculate = () => {
+    setCalcMsg(null);
+    if (formData.months.length === 0) {
+      setCalcMsg({ type: 'error', msg: '请至少选择一个执行月份' });
+      return;
+    }
+
+    const selectedMonthSet = new Set(formData.months);
+    const filteredTariffs = provinceTariffs.filter((t) => {
+      if (t.category !== formData.category || t.voltage_level !== formData.voltage) return false;
+      return selectedMonthSet.has(t.month);
     });
 
-    const provinceTariffs = useMemo(() => {
-        return allTariffs.filter(t => t.province === formData.province);
-    }, [allTariffs, formData.province]);
+    if (filteredTariffs.length === 0) {
+      setCalcMsg({ type: 'error', msg: '在所选参数与月份下未找到有效电价规则' });
+      return;
+    }
 
-    const activeProvinces = useMemo(() => {
-        return Array.from(new Set(allTariffs.map(t => t.province))).sort();
-    }, [allTariffs]);
+    const normalizedTariffs = filteredTariffs.map((tariff) => {
+      if (Array.isArray(tariff.time_rules) && tariff.time_rules.length > 0) return tariff;
+      const monthMatch = tariff.month.match(/-(\d{1,2})$/);
+      const monthNum = monthMatch ? parseInt(monthMatch[1], 10) : 1;
+      const yearMatch = tariff.month.match(/^(\d{4})-/);
+      const yearNum = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
 
-    // sync dbProvinces with activeProvinces
-    useEffect(() => {
-        setDbProvinces(activeProvinces);
-        setInitLoading(false);
-        if (activeProvinces.length > 0 && !activeProvinces.includes(formData.province)) {
-            setFormData(prev => ({ ...prev, province: activeProvinces[0] }));
-        }
-    }, [activeProvinces]);
+      const resolved = resolveTimeConfigForMonth(timeConfigs, tariff.province, monthNum, yearNum);
+      if (!resolved || resolved.timeRules.length === 0) return tariff;
+      return { ...tariff, time_rules: resolved.timeRules };
+    });
 
-
-    const [results, setResults] = useState<PriceResult[]>([]);
-    const [savedRanges, setSavedRanges] = useState<SavedTimeRange[]>([]);
-    const [newRangeName, setNewRangeName] = useState('');
-    const [actionStatus, setActionStatus] = useState<{ type: 'error' | 'success', msg: string } | null>(null);
-    const [calcMsg, setCalcMsg] = useState<{ type: 'error' | 'success', msg: string } | null>(null);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-    const [isActionLoading, setIsActionLoading] = useState(false);
-    const [isSavingResult, setIsSavingResult] = useState(false);
-
-
-    // Calculate Average over all selected months
-    const totalAvgPrice = useMemo(() => {
-        if (results.length === 0) return 0;
-        const totalValueSum = results.reduce((acc, curr) => acc + (curr.avgPrice * curr.totalHours), 0);
-        const totalHoursSum = results.reduce((acc, curr) => acc + curr.totalHours, 0);
-        return totalHoursSum > 0 ? totalValueSum / totalHoursSum : 0;
-    }, [results]);
-
-    const averageHours = useMemo(() => {
-        if (results.length === 0) return 0;
-        return results.reduce((acc, curr) => acc + curr.totalHours, 0) / results.length;
-    }, [results]);
-
-    // Load saved time ranges
-    useEffect(() => {
-        const loadSaved = async () => {
-            try {
-                const db = await getDatabase();
-                const ranges = await db.saved_time_ranges.find().exec();
-                setSavedRanges(ranges.map(d => d.toJSON()));
-            } catch (err) {
-                console.error("Failed to load saved ranges:", err);
-            }
-        };
-        loadSaved();
-    }, []);
-
-    const [isDetailExpanded, setIsDetailExpanded] = useState(false);
-
-
-    const handleSaveRange = async () => {
-        if (!newRangeName.trim()) {
-            setActionStatus({ type: 'error', msg: '请写一个名称' });
-            setTimeout(() => setActionStatus(null), 3000);
-            return;
-        }
-        setIsActionLoading(true);
-        try {
-            const db = await getDatabase();
-            const newRange: SavedTimeRange = {
-                id: crypto.randomUUID(),
-                name: newRangeName,
-                startTime: formData.startTime,
-                endTime: formData.endTime,
-                created_at: new Date().toISOString(),
-                last_modified: new Date().toISOString()
-            };
-            await db.saved_time_ranges.insert(newRange);
-            await syncOutboxService.enqueueUpsert({
-                collection: 'saved_time_ranges',
-                docId: newRange.id,
-                modifiedAt: getDocModifiedAt('saved_time_ranges', newRange as unknown as Record<string, unknown>),
-                doc: newRange as unknown as Record<string, unknown>,
-            });
-            getSyncManager().requestSyncSoon();
-            setSavedRanges(prev => [...prev, newRange]);
-            setNewRangeName('');
-            setActionStatus({ type: 'success', msg: '保存成功' });
-            setTimeout(() => setActionStatus(null), 2000);
-        } catch (err) {
-            console.error("Failed to save range:", err);
-            setActionStatus({ type: 'error', msg: '保存失败' });
-            setTimeout(() => setActionStatus(null), 3000);
-        } finally {
-            setIsActionLoading(false);
-        }
-    };
-
-    const handleDeleteRange = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (deleteConfirmId !== id) {
-            setDeleteConfirmId(id);
-            return;
-        }
-
-        setIsActionLoading(true);
-        try {
-            const db = await getDatabase();
-            const doc = await db.saved_time_ranges.findOne(id).exec();
-            if (doc) {
-                await doc.remove();
-                await syncOutboxService.enqueueDelete({
-                    collection: 'saved_time_ranges',
-                    docId: id,
-                    modifiedAt: new Date().toISOString(),
-                });
-                getSyncManager().requestSyncSoon();
-                setSavedRanges(prev => prev.filter(r => r.id !== id));
-            }
-            setDeleteConfirmId(null);
-        } catch (err) {
-            console.error("Failed to delete range:", err);
-            setActionStatus({ type: 'error', msg: '删除失败' });
-            setTimeout(() => setActionStatus(null), 3000);
-        } finally {
-            setIsActionLoading(false);
-        }
-    };
-
-    const handleApplyRange = (range: SavedTimeRange) => {
-        setFormData(prev => ({
-            ...prev,
-            startTime: range.startTime,
-            endTime: range.endTime
-        }));
-    };
-
-    const handleSaveResult = async () => {
-        if (results.length === 0 || !formData.province) return;
-
-        setIsSavingResult(true);
-        try {
-            const db = await getDatabase();
-            // We use a deterministic ID based on province (if we only want one main result per province)
-            // Or use a UUID if we want multiple. For the floating list, let's stick to one main result per province
-            // to keep it simple and clean.
-            const resultId = `comp-${formData.province}`;
-
-            const newResult: ComprehensiveResult = {
-                id: resultId,
-                province: formData.province,
-                category: formData.category,
-                voltage_level: formData.voltage,
-                avg_price: totalAvgPrice,
-                months: formData.months,
-                start_time: formData.startTime,
-                end_time: formData.endTime,
-                last_modified: new Date().toISOString()
-            };
-
-            await db.comprehensive_results.upsert(newResult);
-            await syncOutboxService.enqueueUpsert({
-                collection: 'comprehensive_results',
-                docId: newResult.id,
-                modifiedAt: getDocModifiedAt('comprehensive_results', newResult as unknown as Record<string, unknown>),
-                doc: newResult as unknown as Record<string, unknown>,
-            });
-            getSyncManager().requestSyncSoon();
-
-            setActionStatus({ type: 'success', msg: '电价结果已保存到数据中心' });
-            setTimeout(() => setActionStatus(null), 3000);
-        } catch (err) {
-            console.error("Failed to save comprehensive result full error:", err);
-            setActionStatus({ type: 'error', msg: `保存失败: ${err instanceof Error ? err.message : '未知错误'}` });
-            setTimeout(() => setActionStatus(null), 5000);
-        } finally {
-            setTimeout(() => setIsSavingResult(false), 1000);
-        }
-
-    };
-
-
-    // Derived options from filtered province tariffs
-    const availableCategories = useMemo(() =>
-        Array.from(new Set(provinceTariffs.map(t => t.category))), [provinceTariffs]);
-
-    const availableVoltages = useMemo(() =>
-        Array.from(new Set(provinceTariffs.filter(t => t.category === formData.category).map(t => t.voltage_level))),
-        [provinceTariffs, formData.category]);
-
-    const availableMonths = useMemo(() =>
-        Array.from(new Set(provinceTariffs.filter(t =>
-            t.category === formData.category &&
-            t.voltage_level === formData.voltage
-        ).map(t => t.month))).sort(),
-        [provinceTariffs, formData.category, formData.voltage]);
-
-    const getMonthToken = (monthValue: string): string => {
-        const trimmed = monthValue.trim();
-        const directMonthMatch = trimmed.match(/^(\d{1,2})$/);
-        if (directMonthMatch) return directMonthMatch[1].padStart(2, '0');
-
-        const yearMonthMatch = trimmed.match(/-(\d{1,2})$/);
-        if (yearMonthMatch) return yearMonthMatch[1].padStart(2, '0');
-
-        return trimmed;
-    };
-
-    const parseMonthNumber = (monthValue: string): number | null => {
-        const monthToken = getMonthToken(monthValue);
-        const parsed = Number.parseInt(monthToken, 10);
-        if (!Number.isFinite(parsed) || parsed < 1 || parsed > 12) {
-            return null;
-        }
-        return parsed;
-    };
-
-    const parseYearNumber = (monthValue: string): number => {
-        const match = monthValue.trim().match(/^(\d{4})-(\d{1,2})$/);
-        if (!match) return new Date().getFullYear();
-        const parsed = Number.parseInt(match[1], 10);
-        return Number.isFinite(parsed) ? parsed : new Date().getFullYear();
-    };
-
-
-    const handleCalculate = () => {
-        setCalcMsg(null);
-        if (formData.months.length === 0) {
-            setCalcMsg({ type: 'error', msg: "请至少选择一个月份" });
-            setTimeout(() => setCalcMsg(null), 3000);
-            return;
-        }
-
-        // Filter tariffs for selected province, category, voltage
-        const selectedMonthSet = new Set(formData.months);
-        const hasLegacyShortMonthSelection = formData.months.some(m => /^\d{1,2}$/.test(m.trim()));
-        const selectedMonthTokenSet = new Set(
-            hasLegacyShortMonthSelection ? formData.months.map(getMonthToken) : []
-        );
-
-        const filteredTariffs = provinceTariffs.filter((t) => {
-            if (t.category !== formData.category || t.voltage_level !== formData.voltage) {
-                return false;
-            }
-
-            if (selectedMonthSet.has(t.month)) {
-                return true;
-            }
-
-            if (hasLegacyShortMonthSelection) {
-                return selectedMonthTokenSet.has(getMonthToken(t.month));
-            }
-
-            return false;
-        });
-
-        const normalizedTariffs = filteredTariffs.map((tariff) => {
-            if (Array.isArray(tariff.time_rules) && tariff.time_rules.length > 0) {
-                return tariff;
-            }
-
-            const monthNumber = parseMonthNumber(tariff.month);
-            if (!monthNumber) {
-                return tariff;
-            }
-
-            const resolved = resolveTimeConfigForMonth(
-                timeConfigs,
-                tariff.province,
-                monthNumber,
-                parseYearNumber(tariff.month),
-            );
-            if (!resolved || resolved.timeRules.length === 0) {
-                return tariff;
-            }
-
-            return {
-                ...tariff,
-                time_rules: resolved.timeRules,
-            };
-        });
-
-        const monthsToCalculate: string[] = Array.from(new Set<string>(normalizedTariffs.map(t => t.month))).sort();
-
-        if (filteredTariffs.length === 0) {
-            setCalcMsg({ type: 'error', msg: "在所选时段内未找到有效的电价规则" });
-            setTimeout(() => setCalcMsg(null), 3000);
-            return;
-        }
-
-        // Call service to calculate average prices
-        const calcResults = calculateAveragePrice(
-            normalizedTariffs,
-            monthsToCalculate,
-            formData.startTime,
-            formData.endTime
-        );
-
-        if (calcResults.length === 0) {
-            setCalcMsg({ type: 'error', msg: "在所选时段内未找到有效的电价规则" });
-            setTimeout(() => setCalcMsg(null), 3000);
-        }
-        setResults(calcResults);
-    };
-
-    const handleMonthToggle = (m: string) => {
-        setFormData(prev => {
-            if (prev.months.includes(m)) {
-                return { ...prev, months: prev.months.filter(x => x !== m) };
-            } else {
-                return { ...prev, months: [...prev.months, m] };
-            }
-        });
-    };
-
-    return (
-        <div className="max-w-6xl mx-auto space-y-6 animate-in slide-in-from-right-6 duration-500 pb-20">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                            <Calculator size={24} />
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-900">月度综合电价计算</h2>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Configuration Panel */}
-                <Card className="p-6 space-y-6 lg:col-span-1 flex flex-col h-full">
-                    <div className="space-y-4">
-                        <div className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-                            <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                            基础参数
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1 block">省份</label>
-                            {dbProvinces.length === 0 && !initLoading ? (
-                                <div className="p-4 border border-dashed border-slate-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center gap-3">
-                                    <p className="text-sm text-slate-600 font-medium">暂无电价数据</p>
-                                    <button
-                                        onClick={() => onNavigate('upload')}
-                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all"
-                                    >
-                                        前往导入
-                                    </button>
-                                </div>
-                            ) : (
-                                <select
-                                    className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 font-bold"
-                                    value={formData.province}
-                                    onChange={e => {
-                                        setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] });
-                                        setResults([]);
-                                    }}
-                                    disabled={initLoading}
-                                >
-                                    {initLoading ? (
-                                        <option>加载中...</option>
-                                    ) : dbProvinces.length > 0 ? (
-                                        dbProvinces.map(p => <option key={p} value={p}>{p}</option>)
-                                    ) : (
-                                        <option value="">暂无数据省份</option>
-                                    )}
-                                </select>
-                            )}
-                            {dbProvinces.length === 0 && !initLoading && (
-                                <p className="text-[10px] text-red-500 mt-1">数据库中暂无任何省份的电价数据</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1 block">用电分类</label>
-                            <select
-                                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                                value={formData.category}
-                                onChange={e => setFormData({ ...formData, category: e.target.value, voltage: '', months: [] })}
-                                disabled={loading || availableCategories.length === 0}
-                            >
-                                <option value="">-- 请选择 --</option>
-                                {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1 block">电压等级</label>
-                            <select
-                                className="w-full p-2.5 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                                value={formData.voltage}
-                                onChange={e => setFormData({ ...formData, voltage: e.target.value, months: [] })}
-                                disabled={!formData.category || availableVoltages.length === 0}
-                            >
-                                <option value="">-- 请选择 --</option>
-                                {availableVoltages.map(v => <option key={v} value={v}>{v}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    {availableMonths.length > 0 && (
-                        <div className="space-y-3 pt-2">
-                            <div className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-                                <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                                选择月份
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                                <button
-                                    onClick={() => {
-                                        setFormData(prev => ({ ...prev, months: availableMonths }));
-                                    }}
-                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                                >
-                                    全选
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setFormData(prev => ({ ...prev, months: [] }));
-                                    }}
-                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                                >
-                                    取消
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const summerMonthSet = new Set(['06', '07', '08', '09']);
-                                        const summerMonths = availableMonths.filter(m => summerMonthSet.has(getMonthToken(m)));
-                                        setFormData(prev => ({ ...prev, months: summerMonths }));
-                                    }}
-                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                                >
-                                    夏季
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const winterMonthSet = new Set(['12', '01', '02']);
-                                        const winterMonths = availableMonths.filter(m => winterMonthSet.has(getMonthToken(m)));
-                                        setFormData(prev => ({ ...prev, months: winterMonths }));
-                                    }}
-                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                                >
-                                    冬季
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                                {availableMonths.map(m => (
-                                    <label key={m} className={`
-                                   flex items-center justify-center p-2 rounded-lg border cursor-pointer text-sm transition-all
-                                   ${formData.months.includes(m) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-white border-slate-200 hover:border-indigo-300'}
-                               `}>
-                                        <input
-                                            type="checkbox"
-                                            className="hidden"
-                                            checked={formData.months.includes(m)}
-                                            onChange={() => handleMonthToggle(m)}
-                                        />
-                                        {m}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-4 pt-2">
-                        <div className="font-bold text-slate-800 flex items-center justify-between border-b pb-2">
-                            <div className="flex items-center gap-2">
-                                <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
-                                计算时段
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-4">
-                            <input
-                                type="time"
-                                className="flex-1 p-2.5 border rounded-lg text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                value={formData.startTime}
-                                onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                            />
-                            <span className="text-slate-400"><ArrowRight size={16} /></span>
-                            <input
-                                type="time"
-                                className="flex-1 p-2.5 border rounded-lg text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                value={formData.endTime}
-                                onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-2 group relative">
-                            <div className="relative flex-1">
-                                <input
-                                    type="text"
-                                    placeholder="时段名称 (如: 白班)"
-                                    className="w-full text-xs p-2.5 border-b focus:border-indigo-500 outline-none bg-transparent transition-colors"
-                                    value={newRangeName}
-                                    onChange={e => {
-                                        setNewRangeName(e.target.value);
-                                        if (actionStatus) setActionStatus(null);
-                                    }}
-                                    onKeyDown={e => e.key === 'Enter' && !isActionLoading && handleSaveRange()}
-                                />
-                                {actionStatus && (
-                                    <div className={`absolute -top-6 left-0 text-[10px] font-bold animate-in fade-in slide-in-from-bottom-1 ${actionStatus.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
-                                        {actionStatus.msg}
-                                    </div>
-                                )}
-                            </div>
-                            <button
-                                onClick={handleSaveRange}
-                                disabled={isActionLoading}
-                                title="保存当前时段"
-                                className={`p-2 rounded-lg transition-colors ${isActionLoading ? 'text-slate-300' : 'text-indigo-600 hover:bg-indigo-50'}`}
-                            >
-                                <Save size={20} />
-                            </button>
-                        </div>
-
-                        {/* Saved Ranges List - Moved to bottom to prevent jumping of inputs */}
-                        {savedRanges.length > 0 && (
-                            <div className="pt-2 border-t mt-4">
-                                <div className="text-[10px] font-bold text-slate-400 mb-2 flex items-center gap-1">
-                                    <Clock size={10} /> 已保存时段
-                                </div>
-                                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
-                                    {savedRanges.map(range => (
-                                        <div
-                                            key={range.id}
-                                            onClick={() => handleApplyRange(range)}
-                                            className={`
-                                                group flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] cursor-pointer transition-all relative
-                                                ${formData.startTime === range.startTime && formData.endTime === range.endTime
-                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600'}
-                                            `}
-                                        >
-                                            <span className="max-w-[80px] truncate">{range.name}</span>
-                                            <button
-                                                onClick={(e) => handleDeleteRange(range.id, e)}
-                                                onMouseLeave={() => setDeleteConfirmId(null)}
-                                                className={`
-                                                    transition-all p-0.5 rounded-full
-                                                    ${deleteConfirmId === range.id ? 'bg-red-500 text-white' : 'hover:bg-red-100 text-slate-400'}
-                                                    ${formData.startTime === range.startTime && formData.endTime === range.endTime && deleteConfirmId !== range.id ? 'text-white/70' : ''}
-                                                `}
-                                                title={deleteConfirmId === range.id ? "再次点击确认删除" : "删除"}
-                                            >
-                                                <Trash2 size={10} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="relative mt-auto">
-                        {calcMsg && (
-                            <div className={`absolute -top-12 left-0 right-0 p-2 text-center text-xs font-bold rounded-lg animate-in fade-in slide-in-from-bottom-1 z-10 ${calcMsg.type === 'error' ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
-                                {calcMsg.msg}
-                            </div>
-                        )}
-                        <button
-                            onClick={handleCalculate}
-                            disabled={formData.months.length === 0}
-                            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? '加载中...' : '开始计算'}
-                        </button>
-                    </div>
-                </Card>
-
-                {/* Right: Results Panel */}
-                <div className="lg:col-span-2 h-full flex flex-col gap-6">
-                    {results.length > 0 ? (
-                        <>
-                            {/* Summary Card */}
-                            <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 border-none shadow-xl shadow-indigo-200 relative overflow-hidden group min-h-[220px] shrink-0">
-                                <div className="flex items-center justify-between mb-4 opacity-90 relative z-10">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-2 bg-white/20 rounded-lg">
-                                            <TrendingUp size={20} className="text-white" />
-                                        </div>
-                                        <span className="text-sm font-medium">所选月份平均综合电价</span>
-                                    </div>
-                                    <Calendar size={20} className="opacity-70" />
-                                </div>
-                                <div className="flex items-end justify-between relative z-10">
-                                    <div className="text-5xl font-bold font-mono tracking-tight drop-shadow-sm">
-                                        {totalAvgPrice.toFixed(4)} <span className="text-xl opacity-75 font-sans font-normal">元/kWh</span>
-                                    </div>
-                                    <button
-                                        onClick={handleSaveResult}
-                                        disabled={isSavingResult}
-                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${isSavingResult ? 'bg-white/20 text-white/50' : 'bg-white text-indigo-600 hover:bg-white/90 active:scale-95 shadow-lg shadow-black/10'}`}
-                                    >
-                                        <Save size={16} />
-                                        {isSavingResult ? '已保存' : '存至数据中心'}
-                                    </button>
-                                </div>
-                                <div className="mt-8 flex flex-wrap gap-6 text-sm relative z-10">
-                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
-                                        <span className="opacity-70 text-xs block mb-1">已选月份</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="font-bold text-2xl">{formData.months.length}</span> <span className="text-xs opacity-70">个</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
-                                        <span className="opacity-70 text-xs block mb-1">日均时长</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="font-bold text-2xl">{averageHours.toFixed(1)}</span> <span className="text-xs opacity-70">h</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
-                                        <span className="opacity-70 text-xs block mb-1">最高单价</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="font-bold text-2xl">{Math.max(...results.map(r => r.avgPrice)).toFixed(4)}</span> <span className="text-xs opacity-70">元</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10 min-w-[100px]">
-                                        <span className="opacity-70 text-xs block mb-1">最低单价</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="font-bold text-2xl">{Math.min(...results.map(r => r.avgPrice)).toFixed(4)}</span> <span className="text-xs opacity-70">元</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Decorative background element */}
-                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
-                                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl group-hover:bg-purple-500/40 transition-all duration-700"></div>
-                            </Card>
-
-                            <Card className="p-6 border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[350px]">
-                                <div className="flex items-center justify-between mb-6 shrink-0">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md">
-                                            <BarChart3 size={18} />
-                                        </div>
-                                        <h3 className="font-bold text-slate-700">月度价格趋势分析</h3>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>均价
-                                        <div className="w-2 h-2 rounded-full bg-indigo-300 ml-2"></div>趋势
-                                    </div>
-                                </div>
-                                <div className="w-full flex-1 min-h-0">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <ComposedChart data={results} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                            <defs>
-                                                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.8} />
-                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.2} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                            <XAxis 
-                                                dataKey="month" 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{ fill: '#64748b', fontSize: 11 }} 
-                                                dy={10}
-                                                tickFormatter={(value) => value.split('-')[1] + '月'}
-                                            />
-                                            <YAxis 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{ fill: '#64748b', fontSize: 11 }} 
-                                                domain={['dataMin - 0.1', 'dataMax + 0.1']}
-                                                tickFormatter={(value) => value.toFixed(2)}
-                                            />
-                                            <RechartsTooltip
-                                                cursor={{ fill: '#f8fafc' }}
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                labelStyle={{ color: '#64748b', marginBottom: '4px', fontWeight: 'bold' }}
-                                                formatter={(value: number) => [value.toFixed(4) + ' 元/kWh', '平均电价']}
-                                            />
-                                            <Bar dataKey="avgPrice" barSize={32} fill="url(#colorPrice)" radius={[6, 6, 0, 0]}>
-                                                {results.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.avgPrice === Math.max(...results.map(r => r.avgPrice)) ? '#ef4444' : (entry.avgPrice === Math.min(...results.map(r => r.avgPrice)) ? '#10b981' : '#6366f1')} fillOpacity={0.8} />
-                                                ))}
-                                            </Bar>
-                                            <Line type="monotone" dataKey="avgPrice" stroke="#818cf8" strokeWidth={2} dot={{ r: 3, fill: '#fff', strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                                        </ComposedChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </Card>
-
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
-                                <button
-                                    onClick={() => setIsDetailExpanded(!isDetailExpanded)}
-                                    className="w-full px-6 py-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
-                                >
-                                    <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                        <Clock size={18} className="text-indigo-600" />
-                                        月度详细数据
-                                        <span className="text-xs font-normal text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">
-                                            {results.length} 个月份
-                                        </span>
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                                        {isDetailExpanded ? '收起' : '展开'}
-                                        {isDetailExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                    </div>
-                                </button>
-                                
-                                {isDetailExpanded && (
-                                    <div className="p-6 border-t border-slate-200 animate-in slide-in-from-top-2">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                            {results.map((res, idx) => (
-                                                <Card key={res.month} className="p-0 overflow-hidden hover:shadow-lg transition-all duration-300 border-slate-200 group">
-                                                    <div className="bg-slate-50/50 p-4 border-b flex items-center justify-between group-hover:bg-indigo-50/30 transition-colors">
-                                                        <div className="font-bold text-slate-700 flex items-center gap-2">
-                                                            <span className="bg-white border px-2 py-0.5 rounded text-xs text-slate-400 font-mono">{idx + 1}</span>
-                                                            <span className="text-lg">{res.month}</span>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="font-mono font-bold text-indigo-600 text-xl leading-none">
-                                                                {res.avgPrice.toFixed(4)}
-                                                            </div>
-                                                            <div className="text-[10px] text-slate-400 mt-0.5">元/kWh</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-4 space-y-4">
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex justify-between text-[10px] text-slate-400">
-                                                                <span>时段构成</span>
-                                                                <span>{res.totalHours.toFixed(1)}h</span>
-                                                            </div>
-                                                            <div className="flex bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                                                {res.details.map((d, i) => (
-                                                                    <div
-                                                                        key={i}
-                                                                        style={{ width: `${(d.hours / res.totalHours) * 100}%`, backgroundColor: getTypeColor(d.type) }}
-                                                                        title={`${getTypeLabel(d.type)}: ${d.hours.toFixed(1)}h`}
-                                                                        className="hover:opacity-80 transition-opacity cursor-help"
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-2 gap-y-2 gap-x-1 text-xs bg-slate-50/50 rounded-lg p-2">
-                                                            {res.details.map((d, i) => (
-                                                                <div key={i} className="flex flex-col">
-                                                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: getTypeColor(d.type) }}></div>
-                                                                        <span className="text-slate-500 scale-90 origin-left">{getTypeLabel(d.type)}</span>
-                                                                    </div>
-                                                                    <div className="pl-3 flex items-baseline justify-between">
-                                                                        <span className="font-mono font-bold text-slate-700">{d.price.toFixed(4)}</span>
-                                                                        <span className="text-[10px] text-slate-400 scale-90 origin-right">{d.hours.toFixed(1)}h</span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200 min-h-[600px] flex-1">
-                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                                <Calculator size={32} className="text-slate-300" />
-                            </div>
-                            <p>请在左侧选择参数并开始计算</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+    const monthsToCalculate = Array.from(new Set<string>(normalizedTariffs.map((t) => t.month))).sort();
+    const calcResults = calculateAveragePrice(
+      normalizedTariffs,
+      monthsToCalculate,
+      formData.startTime,
+      formData.endTime,
     );
+
+    if (calcResults.length === 0) {
+      setCalcMsg({ type: 'error', msg: '在所选时段内未找到有效的电价时段规则' });
+    }
+    setResults(calcResults);
+  };
+
+  // 依赖变动时自动触发计算
+  useEffect(() => {
+    if (formData.category && formData.voltage && formData.months.length > 0) {
+      handleCalculate();
+    }
+  }, [formData.province, formData.category, formData.voltage, formData.months, formData.startTime, formData.endTime]);
+
+  // 宏观统计结果
+  const totalAvgPrice = useMemo(() => {
+    if (results.length === 0) return 0;
+    const totalValueSum = results.reduce((acc, curr) => acc + curr.avgPrice * curr.totalHours, 0);
+    const totalHoursSum = results.reduce((acc, curr) => acc + curr.totalHours, 0);
+    return totalHoursSum > 0 ? totalValueSum / totalHoursSum : 0;
+  }, [results]);
+
+  const averageHours = useMemo(() => {
+    if (results.length === 0) return 0;
+    return results.reduce((acc, curr) => acc + curr.totalHours, 0) / results.length;
+  }, [results]);
+
+  // 🌟 功能 1：一键截图导出综合电价图表 (PNG)
+  const handleCaptureChart = async () => {
+    if (!chartCaptureRef.current) return;
+    setIsCapturing(true);
+    try {
+      const canvas = await html2canvas(chartCaptureRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${formData.province}_${formData.category}_综合电价测算走势图.png`;
+      link.href = imgData;
+      link.click();
+      showToast('测算图表已导出', `已成功保存 ${formData.province} 综合电价走势图 (PNG)`);
+    } catch (err) {
+      console.error(err);
+      alert('图表截图生成失败');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  // 🌟 功能 2：导出月度综合电价测算明细报告 (Excel)
+  const handleExportExcelReport = () => {
+    if (results.length === 0) {
+      alert('当前没有测算结果可供导出');
+      return;
+    }
+
+    const reportRows = results.map((r) => {
+      const details = r.details || [];
+      const tipHours = details.filter((d) => d.type === 'tip').reduce((sum, d) => sum + d.hours, 0);
+      const peakHours = details.filter((d) => d.type === 'peak').reduce((sum, d) => sum + d.hours, 0);
+      const flatHours = details.filter((d) => d.type === 'flat').reduce((sum, d) => sum + d.hours, 0);
+      const valleyHours = details.filter((d) => d.type === 'valley' || d.type === 'deep').reduce((sum, d) => sum + d.hours, 0);
+
+      return {
+        省份: formData.province,
+        执行月份: r.month,
+        用电类别: formData.category,
+        电压等级: formData.voltage,
+        测算时间窗口: `${formData.startTime} ~ ${formData.endTime}`,
+        日均窗口时长: `${r.totalHours} 小时`,
+        '月度综合加权电价(元/kWh)': r.avgPrice.toFixed(4),
+        '尖峰时段时长(h)': tipHours,
+        '高峰时段时长(h)': peakHours,
+        '平段时段时长(h)': flatHours,
+        '低谷/深谷时段时长(h)': valleyHours,
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(reportRows);
+    XLSX.utils.book_append_sheet(wb, ws, '月度综合电价测算结果');
+
+    const fileName = `${formData.province}_${formData.category}_综合电价(${formData.startTime}-${formData.endTime})测算报表.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('测算报告已导出', `已成功生成 ${formData.province} 综合电价 Excel 测算报告`);
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
+      {/* Toast 提示浮窗 */}
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 glass-panel px-4 py-3 rounded-2xl shadow-xl border border-emerald-200 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+            <Check size={16} />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-800">{toastMsg.title}</div>
+            <div className="text-[11px] text-slate-500">{toastMsg.desc}</div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 1. 顶部 Header 与控制条 */}
+      <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-slate-200/80 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <Calculator size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-slate-900 leading-tight">月度综合电价测算引擎</h2>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                加权测算
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              支持按光伏消纳、企业生产、储能放电等自定义时间窗口进行精确加权计算
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleExportExcelReport}
+          disabled={results.length === 0}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-all group"
+          title="导出当前综合电价测算明细报表"
+        >
+          <div className="w-4 h-4 rounded bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            <FileSpreadsheet size={12} />
+          </div>
+          <span>导出测算结果 (Excel)</span>
+        </button>
+      </div>
+
+      {/* 🌟 2. 4 大核心测算结果指标卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-indigo-200/80 bg-gradient-to-b from-white/90 to-indigo-50/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">加权综合电价</span>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+              综合单价
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-indigo-600 tracking-tight tabular-nums">
+              {totalAvgPrice > 0 ? totalAvgPrice.toFixed(4) : '--'}
+            </span>
+            <span className="text-xs font-medium text-slate-400">元/kWh</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500">测算窗口: {formData.startTime} ~ {formData.endTime}</span>
+            <span className="text-indigo-600 font-bold">全期均值</span>
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">日均测算时长</span>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+              窗口覆盖
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              {averageHours > 0 ? averageHours.toFixed(1) : '--'}
+            </span>
+            <span className="text-xs font-medium text-slate-400">小时/天</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span>全天 24 小时占比</span>
+            <span className="text-blue-600 font-semibold">{((averageHours / 24) * 100).toFixed(1)}%</span>
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 bg-blue-500/5 rounded-full blur-xl pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">测算月份跨度</span>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+              样本数
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              {results.length}
+            </span>
+            <span className="text-xs font-medium text-slate-400">个自然月</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span>{results[0]?.month || '--'} ~ {results[results.length - 1]?.month || '--'}</span>
+            <span className="text-emerald-600 font-semibold">100% 规则覆盖</span>
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+        </div>
+
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">最高/最低月单价</span>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+              波动极差
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              {results.length > 0 ? (Math.max(...results.map((r) => r.avgPrice)) - Math.min(...results.map((r) => r.avgPrice))).toFixed(4) : '--'}
+            </span>
+            <span className="text-xs font-medium text-slate-400">元/kWh</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span>峰值月: {results.length > 0 ? Math.max(...results.map((r) => r.avgPrice)).toFixed(4) : '--'}</span>
+            <span className="text-amber-600 font-semibold">谷值月: {results.length > 0 ? Math.min(...results.map((r) => r.avgPrice)).toFixed(4) : '--'}</span>
+          </div>
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 bg-amber-500/5 rounded-full blur-xl pointer-events-none"></div>
+        </div>
+      </div>
+
+      {/* 🌟 3. 主操作区：左侧参数与时段窗口配置 + 右侧月度综合电价走势图 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 左侧：参数与时间窗口 (5列) */}
+        <div className="lg:col-span-5 glass-panel p-6 rounded-2xl space-y-5">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+              <span>测算参数设置</span>
+            </h3>
+            <span className="text-[11px] text-slate-400">自动级联匹配</span>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            {/* 省份选择 */}
+            <div>
+              <label className="font-bold text-slate-700 mb-1.5 block">目标省份</label>
+              <select
+                value={formData.province}
+                onChange={(e) => setFormData({ ...formData, province: e.target.value, category: '', voltage: '', months: [] })}
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 focus:bg-white focus:border-indigo-500 focus:outline-none font-bold text-slate-800"
+              >
+                {activeProvinces.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 用电类别与电压等级 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-700 mb-1.5 block">用电类别</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value, voltage: '', months: [] })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 focus:bg-white focus:border-indigo-500 focus:outline-none text-slate-800"
+                >
+                  {availableCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 mb-1.5 block">电压等级</label>
+                <select
+                  value={formData.voltage}
+                  onChange={(e) => setFormData({ ...formData, voltage: e.target.value, months: [] })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 focus:bg-white focus:border-indigo-500 focus:outline-none text-slate-800"
+                >
+                  {availableVoltages.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 🌟 快捷时间窗口预设 */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-bold text-slate-700">测算时间窗口预设</label>
+                <span className="text-[10px] text-indigo-600 font-semibold">一键应用</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {PRESET_TIME_RANGES.map((preset) => {
+                  const isMatch = formData.startTime === preset.start && formData.endTime === preset.end;
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => setFormData({ ...formData, startTime: preset.start, endTime: preset.end })}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        isMatch
+                          ? 'bg-indigo-50/90 text-indigo-700 border-indigo-200 font-bold shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <preset.icon size={13} className={isMatch ? 'text-indigo-600' : 'text-slate-400'} />
+                        <span className="text-xs">{preset.label}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 tabular-nums">
+                        {preset.start} ~ {preset.end}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 自定义时间输入 */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 mb-1 block">起始时间</label>
+                <input
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold tabular-nums focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 mb-1 block">结束时间</label>
+                <input
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold tabular-nums focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* 月份多选与快捷按钮 */}
+            {availableMonths.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700">执行月份筛选 ({formData.months.length}/{availableMonths.length})</label>
+                  <div className="flex items-center gap-1 text-[11px]">
+                    <button
+                      onClick={() => setFormData({ ...formData, months: availableMonths })}
+                      className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold"
+                    >
+                      全选
+                    </button>
+                    <button
+                      onClick={() => setFormData({ ...formData, months: [] })}
+                      className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"
+                    >
+                      清空
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                  {availableMonths.map((m) => {
+                    const isSelected = formData.months.includes(m);
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          if (isSelected) {
+                            setFormData({ ...formData, months: formData.months.filter((x) => x !== m) });
+                          } else {
+                            setFormData({ ...formData, months: [...formData.months, m].sort() });
+                          }
+                        }}
+                        className={`px-2.5 py-1 text-xs rounded-lg font-semibold tabular-nums transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 右侧：月度走势图与测算明细表 (7列) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* 月度综合电价走势组合图 (Bar + Line) */}
+          <div ref={chartCaptureRef} className="glass-panel p-6 rounded-2xl space-y-4 bg-white border border-slate-200/90 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <BarChart3 size={16} className="text-indigo-600" />
+                  <span>月度综合加权电价走势</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {formData.province} · {formData.category} ({formData.startTime} ~ {formData.endTime})
+                </p>
+              </div>
+
+              <button
+                onClick={handleCaptureChart}
+                disabled={isCapturing || results.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200 text-xs font-semibold transition-all shadow-sm group"
+                title="下载测算图表截图"
+              >
+                <Camera size={14} className="text-slate-500 group-hover:text-indigo-600" />
+                <span>{isCapturing ? '生成中...' : '下载图表截图'}</span>
+              </button>
+            </div>
+
+            <div className="h-64 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={results} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} />
+                  <YAxis
+                    domain={[0, 'auto']}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tickFormatter={(v) => v.toFixed(2)}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <RechartsTooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload as PriceResult;
+                        return (
+                          <div className="bg-slate-900 text-white text-xs p-3 rounded-xl shadow-xl space-y-1">
+                            <div className="font-bold text-slate-200 pb-1 border-b border-slate-700 mb-1">{label} 测算结果</div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-slate-300">加权综合电价:</span>
+                              <span className="font-extrabold text-indigo-300 tabular-nums">{data.avgPrice.toFixed(4)} 元/kWh</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-slate-300">窗口有效时长:</span>
+                              <span className="font-bold text-white tabular-nums">{data.totalHours} 小时/日</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="avgPrice" name="综合电价" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={28} />
+                  <Line type="monotone" dataKey="avgPrice" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4, fill: '#4f46e5' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 测算明细与时段构成拆解表 */}
+          <div className="glass-panel p-6 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Layers size={16} className="text-indigo-600" />
+                <span>月度测算明细与时段构成</span>
+              </h3>
+              <span className="text-xs text-slate-400">共 {results.length} 个月份样本</span>
+            </div>
+
+            <div className="overflow-x-auto max-h-64 custom-scrollbar rounded-xl border border-slate-200/80">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3">执行月份</th>
+                    <th className="py-2.5 px-3 text-right">加权综合单价</th>
+                    <th className="py-2.5 px-2 text-right text-rose-600">尖峰(h)</th>
+                    <th className="py-2.5 px-2 text-right text-amber-600">高峰(h)</th>
+                    <th className="py-2.5 px-2 text-right text-blue-600">平段(h)</th>
+                    <th className="py-2.5 px-2 text-right text-emerald-600">低谷(h)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {results.map((r) => {
+                    const details = r.details || [];
+                    const tipHours = details.filter((d) => d.type === 'tip').reduce((sum, d) => sum + d.hours, 0);
+                    const peakHours = details.filter((d) => d.type === 'peak').reduce((sum, d) => sum + d.hours, 0);
+                    const flatHours = details.filter((d) => d.type === 'flat').reduce((sum, d) => sum + d.hours, 0);
+                    const valleyHours = details.filter((d) => d.type === 'valley' || d.type === 'deep').reduce((sum, d) => sum + d.hours, 0);
+
+                    return (
+                      <tr key={r.month} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-2.5 px-3 font-bold text-slate-800 tabular-nums">{r.month}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-indigo-600 tabular-nums">
+                          {r.avgPrice.toFixed(4)} <span className="text-[10px] text-slate-400 font-normal">元</span>
+                        </td>
+                        <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-rose-600">{tipHours > 0 ? `${tipHours}h` : '-'}</td>
+                        <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-amber-600">{peakHours > 0 ? `${peakHours}h` : '-'}</td>
+                        <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-blue-600">{flatHours > 0 ? `${flatHours}h` : '-'}</td>
+                        <td className="py-2.5 px-2 text-right tabular-nums font-semibold text-emerald-600">{valleyHours > 0 ? `${valleyHours}h` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
